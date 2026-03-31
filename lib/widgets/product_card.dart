@@ -66,11 +66,9 @@ class ProductCard extends StatelessWidget {
                 ),
                 SizedBox(height: 12),
                 SizedBox(
-                  width: double.infinity, // кнопка на всю ширину
+                  width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: добавить логику аренды
-                    },
+                    onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,

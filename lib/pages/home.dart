@@ -10,7 +10,6 @@ class Home extends StatefulWidget {
 
   @override
   State<Home> createState() => HomeState();
-
 }
 
 class HomeState extends State<Home> {
