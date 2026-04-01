@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled/data/product_data.dart';
 import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/product_card.dart';
+import 'package:untitled/widgets/favorite_card.dart';
 import 'package:untitled/widgets/category.dart';
 import '../models/product.dart';
 
@@ -53,7 +53,7 @@ class FavoriteState extends State<Favorite> {
             ),
             SizedBox(height: 15),
             SizedBox(
-                height: 100,
+                height: 30,
                 child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount:category.items.length,
@@ -65,17 +65,6 @@ class FavoriteState extends State<Favorite> {
                         ),
                       );
                     }
-                  //children:[
-                  //Container(
-                  //width: 150,
-                  //height: 80,
-                  //decoration: BoxDecoration(
-                  //color: AppColors.lightGreen,
-                  //borderRadius: BorderRadius.circular(30),
-                  //),
-                  //onChanged:
-                  //),
-                  //]
                 )
             ),
             SizedBox(height: 15,),
@@ -88,7 +77,7 @@ class FavoriteState extends State<Favorite> {
                 ),
                 itemBuilder: (context, index) {
                   final product = products[index];
-                  return ProductCard(
+                  return FavoriteCard(
                     name: product.name,
                     price: product.price,
                     location: product.location,

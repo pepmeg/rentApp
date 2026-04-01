@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/product.dart';
 
 class ProductCard extends StatelessWidget {
 
@@ -22,7 +21,6 @@ class ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           ClipRRect(
             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             child: Image.asset(
@@ -32,7 +30,6 @@ class ProductCard extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -63,18 +60,6 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
-                SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text('Арендовать'),
-                  ),
                 ),
               ],
             ),
