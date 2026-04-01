@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:untitled/data/product_data.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/product_card.dart';
+import 'package:untitled/widgets/category.dart';
 import '../models/product.dart';
 
 class Favorite extends StatefulWidget {
@@ -22,7 +23,7 @@ class FavoriteState extends State<Favorite> {
   @override
   Widget build(BuildContext context) {
     final products = ProductData.getAllProducts();
-
+    final Category category = Category();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -51,6 +52,33 @@ class FavoriteState extends State<Favorite> {
               ),
             ),
             SizedBox(height: 15),
+            SizedBox(
+                height: 100,
+                child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount:category.items.length,
+                    itemBuilder:(context, index){
+                      return Padding(padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          child: Text(category.items[index]),
+                        ),
+                      );
+                    }
+                  //children:[
+                  //Container(
+                  //width: 150,
+                  //height: 80,
+                  //decoration: BoxDecoration(
+                  //color: AppColors.lightGreen,
+                  //borderRadius: BorderRadius.circular(30),
+                  //),
+                  //onChanged:
+                  //),
+                  //]
+                )
+            ),
+            SizedBox(height: 15,),
             Expanded(
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

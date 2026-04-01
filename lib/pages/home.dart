@@ -23,7 +23,6 @@ class HomeState extends State<Home> {
   Widget build(BuildContext context) {
 
     final products = ProductData.getAllProducts();
-
     return Scaffold(
           body: Padding(
             padding: const EdgeInsets.all(20),
