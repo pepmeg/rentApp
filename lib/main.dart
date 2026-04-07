@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:untitled/pages/add_product.dart';
 import 'package:untitled/pages/favorite.dart';
 import 'package:untitled/pages/home.dart';
 import 'package:untitled/pages/person.dart';
@@ -33,6 +34,7 @@ class ScreenState extends State<MainScreen> {
   final List<Widget> screens = [
     Home(),
     Favorite(),
+    Add_Product(),
     ShoppingBasket(),
     Profile(),
   ];

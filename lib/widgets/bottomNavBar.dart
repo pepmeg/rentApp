@@ -26,6 +26,9 @@ class BottomNavBar extends StatelessWidget{
           label: 'Избранное',
         ),
         BottomNavigationBarItem(
+          icon: Icon(Icons.plus_one),
+        ),
+        BottomNavigationBarItem(
           icon: Icon(Icons.shopping_basket),
           label: 'Корзина',
         ),
