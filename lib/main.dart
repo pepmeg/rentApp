@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:untitled/pages/login.dart';
+import 'package:untitled/pages/registration.dart';
+import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/pages/add_product.dart';
 import 'package:untitled/pages/favorite.dart';
 import 'package:untitled/pages/home.dart';
@@ -8,14 +12,24 @@ import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/bottomNavBar.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+      ChangeNotifierProvider(
+        create: (context) => AuthProvider(),
+        child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget{
   @override
   Widget build(BuildContext context){
     return MaterialApp(
-      home: MainScreen(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => Login(),
+        '/register': (context) => Registration(),
+        '/home': (context) => Home(),
+      },
       theme: ThemeData(
         primaryColor: AppColors.spaceCream
       ),
@@ -58,4 +72,5 @@ class ScreenState extends State<MainScreen> {
       ),
     );
   }
+
 }

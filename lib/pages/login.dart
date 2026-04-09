@@ -1,7 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:untitled/pages/registration.dart';
 import 'package:untitled/utils/colors.dart';
+import '../provider/AuthProvider.dart';
 
-class Login extends StatelessWidget {
+class Login extends StatefulWidget {
+  @override
+  LoginState createState() => LoginState();
+}
+
+ class LoginState extends State<Login> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  @override
+  void dispose(){
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.login(
+      emailController.text.trim(),
+      passwordController.text,
+    );
+
+    if (success) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Неверный email или пароль')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,9 +65,20 @@ class Login extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: TextField(
-                  onChanged: (value) {},
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.copper,
+                    fontWeight: FontWeight.normal,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'yourmail@shrestha.com',
+                    hintStyle: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.copper,
+                      fontWeight: FontWeight.w100,
+                    ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
                   ),
@@ -56,9 +101,20 @@ class Login extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: TextField(
-                  onChanged: (value) {},
+                  controller: passwordController,
+                  obscureText: true,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.copper,
+                    fontWeight: FontWeight.normal,
+                  ),
                   decoration: InputDecoration(
                     hintText: '.........',
+                    hintStyle: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.copper,
+                      fontWeight: FontWeight.w100,
+                    ),
                     suffixIcon: IconButton(
                         onPressed: () {},
                         icon: Icon(Icons.panorama_fish_eye, size: 25, color: AppColors.copper,),
@@ -69,29 +125,46 @@ class Login extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 70,),
-              Expanded(
-                  child: ElevatedButton(
-                      onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.macaroniCheese,
-                      foregroundColor: AppColors.oliveGray,
-                      padding: const EdgeInsetsGeometry.symmetric(horizontal: 105, vertical: 5)
-                    ),
-                      child: Text(
-                          'Войти',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
-                        ),
-                  )
+              Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return Expanded(
+                        child: ElevatedButton(
+                          onPressed: authProvider.isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.macaroniCheese,
+                              foregroundColor: AppColors.oliveGray,
+                              padding: const EdgeInsetsGeometry.symmetric(horizontal: 105, vertical: 5)
+                          ),
+                          child: authProvider.isLoading
+                          ? CircularProgressIndicator()
+                          : Text(
+                            'Войти',
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
+                          ),
+                        )
+                    );
+                  }
               ),
               SizedBox(height: 15,),
-              Text(
-                'Нет аккаунта?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+              GestureDetector(
+                onTap: (){
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Registration()),
+                  );
+                },
+                child:
+                Text(
+                  'Нет аккаунта?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                ),
               ),
               SizedBox(height: 15,),
               Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                      onPressed: () {
+                        Navigator.pushNamed(context, 'register');
+                      },
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.copper,
                         foregroundColor: AppColors.oliveGray,

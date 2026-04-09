@@ -1,134 +1,221 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:untitled/provider/AuthProvider.dart';
+import '../models/user.dart';
 import '../utils/colors.dart';
 
-class Registration extends StatelessWidget {
+class Registration extends StatefulWidget {
+  @override
+  RegistrationState createState() => RegistrationState();
+}
+
+class RegistrationState extends State<Registration> {
+  final formKey = GlobalKey<FormState>();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
+  final addressController = TextEditingController();
+  final phoneNumberController = TextEditingController();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    addressController.dispose();
+    phoneNumberController.dispose();
+    super.dispose();
+  }
+
+  Future<void> register() async {
+    if (!formKey.currentState!.validate()) return;
+
+    if (passwordController.text != confirmPasswordController.text) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Пароли не совпадают')));
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final newUser = UserModel(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+      firstName: firstNameController.text.trim(),
+      lastName: lastNameController.text.trim(),
+      address: addressController.text.trim(),
+      phoneNumber: phoneNumberController.text.trim(),
+    );
+
+    final success = await authProvider.register(newUser);
+    if (success) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка регистрации. Попробуйте другой email.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 35, vertical: 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'Регистрация',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
-            ),
-            SizedBox(height: 50,),
-            Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.macaroniCheese,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: TextField(
-                    onChanged: (value) {},
-                    decoration: InputDecoration(
-                      hintText: 'Имя',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: 35, vertical: 100),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Регистрация',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.normal,
+                  color: AppColors.copper,
+                ),
+              ),
+              SizedBox(height: 50),
+              Row(
+                children: [
+                  Expanded(
+                    child: buildInputField(
+                      firstNameController,
+                      'Имя',
+                      validator: (v) => v!.isEmpty ? 'Введите имя' : null,
                     ),
                   ),
-                ),
-                SizedBox(width: 10,),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.macaroniCheese,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: TextField(
-                    onChanged: (value) {},
-                    decoration: InputDecoration(
-                      hintText: 'Фамилия',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: buildInputField(
+                      lastNameController,
+                      'Фамилия',
+                      validator: (v) => v!.isEmpty ? 'Введите фамилию' : null,
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 10,),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(15),
+                ],
               ),
-              child: TextField(
-                onChanged: (value) {},
-                decoration: InputDecoration(
-                  hintText: 'Адрес',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
-                ),
+              SizedBox(height: 10),
+              buildInputField(
+                addressController,
+                'Адрес',
+                validator: (v) => v!.isEmpty ? 'Введите адрес' : null,
               ),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(15),
+              SizedBox(height: 10),
+              buildInputField(
+                phoneNumberController,
+                '+79643435453',
+                validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
               ),
-              child: TextField(
-                onChanged: (value) {},
-                decoration: InputDecoration(
-                  hintText: 'yourmail@shrestha.com',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
-                ),
+              SizedBox(height: 10),
+              buildInputField(
+                emailController,
+                'yourmail@shrestha.com',
+                validator: (v) {
+                  if (v!.isEmpty) return 'Введите email';
+                  if (!v.contains('@')) return 'Введите корректный email';
+                  return null;
+                },
               ),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(15),
+              SizedBox(height: 10),
+              buildInputField(
+                passwordController,
+                'Пароль',
+                obscure: true,
+                validator: (v) => v!.length < 6
+                    ? 'Пароль должен быть не менее 6 символов'
+                    : null,
               ),
-              child: TextField(
-                onChanged: (value) {},
-                decoration: InputDecoration(
-                  hintText: 'Пароль',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
-                ),
+              SizedBox(height: 10),
+              buildInputField(
+                confirmPasswordController,
+                'Подтвердите пароль',
+                obscure: true,
+                validator: (v) {
+                  if (v!.isEmpty) return 'Подтвердите пароль';
+                  if (v != passwordController.text)
+                    return 'Пароли не совпадают';
+                  return null;
+                },
               ),
-            ),
-            SizedBox(height: 10,),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: TextField(
-                onChanged: (value) {},
-                decoration: InputDecoration(
-                  hintText: 'Подтвердите пароль',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
-                ),
-              ),
-            ),
-            SizedBox(height: 30,),
-            Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
+              SizedBox(height: 30),
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  return ElevatedButton(
+                    onPressed: authProvider.isLoading ? null : register,
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.macaroniCheese,
                       foregroundColor: AppColors.oliveGray,
-                      padding: const EdgeInsetsGeometry.symmetric(horizontal: 60, vertical: 5)
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 60,
+                        vertical: 5,
+                      ),
+                    ),
+                    child: authProvider.isLoading
+                        ? CircularProgressIndicator()
+                        : Text(
+                            'Зарегистрироваться',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.normal,
+                              color: AppColors.copper,
+                            ),
+                          ),
+                  );
+                },
+              ),
+              SizedBox(height: 30),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Text(
+                  'вернуться',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w100,
+                    color: AppColors.copper,
                   ),
-                  child: Text(
-                    'Зарегестрироваться',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
-                  ),
-                )
-            ),
-            SizedBox(height: 30,),
-            Text(
-              'вернуться',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w100, color: AppColors.copper),
-            ),
-          ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildInputField(
+    TextEditingController controller,
+    String hint, {
+    bool obscure = false,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.macaroniCheese,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscure,
+        validator: validator,
+        style: TextStyle(
+          fontSize: 16,
+          color: AppColors.copper,
+          fontWeight: FontWeight.normal,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(
+            fontSize: 16,
+            color: AppColors.copper,
+            fontWeight: FontWeight.w100,
+          ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
         ),
       ),
     );
