@@ -105,6 +105,7 @@ class Product extends StatelessWidget{
                   ),
                   SizedBox(height: 5,),
                   Text(
+
                     'Описание',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.copper,),
                   ),
