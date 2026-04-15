@@ -1,10 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/utils/colors.dart';
 
 class Profile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.currentUser;
     return Scaffold(
       body: Padding(
         padding: EdgeInsetsGeometry.all(20),
@@ -27,7 +31,7 @@ class Profile extends StatelessWidget {
                   Column(
                     children: [
                       Text(
-                        'Никита Красильников',
+                        '${user?.firstName ?? ""} ${user?.lastName ?? ""}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.normal,
@@ -35,7 +39,7 @@ class Profile extends StatelessWidget {
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'nikita.krasilnikov@email.ru',
+                        '${user?.email ?? ""}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.normal,

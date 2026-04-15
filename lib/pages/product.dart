@@ -1,10 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
+
+import '../provider/AuthProvider.dart';
 
 class Product extends StatelessWidget{
   @override
   Widget build(BuildContext context){
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.currentUser;
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -121,17 +126,17 @@ class Product extends StatelessWidget{
                       Column(
                         children: [
                           Text(
-                            'Никита Красильников',
+                            '${user?.firstName} ${user?.lastName}',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper,),
                           ),
                           SizedBox(height: 5,),
                           Text(
-                            '+79643435453',
+                            '${user?.phoneNumber}',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper,),
                           ),
                           SizedBox(height: 5,),
                           Text(
-                            'Республика Мордовия г. Чебупели ул. Сыктывка 18 кв. 15',
+                            '${user?.address}',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper,),
                           ),
                         ],
