@@ -3,8 +3,8 @@ import '../models/product.dart';
 class ProductData {
   static final List<Product> products = [
     Product(
-        name: 'Дрель',
-        price: 300,
+        name: 'Электродрель',
+        price: 500,
         location: 'Йошкар-Ола',
         image: 'assets/drill.png'
     ),

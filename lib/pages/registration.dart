@@ -148,7 +148,7 @@ class RegistrationState extends State<Registration> {
                   return ElevatedButton(
                     onPressed: authProvider.isLoading ? null : register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.macaroniCheese,
+                      backgroundColor: AppColors.whiteAntique,
                       foregroundColor: AppColors.oliveGray,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 60,
@@ -195,7 +195,7 @@ class RegistrationState extends State<Registration> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.macaroniCheese,
+        color: AppColors.whiteAntique,
         borderRadius: BorderRadius.circular(15),
       ),
       child: TextFormField(

@@ -18,6 +18,7 @@ class FavoriteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: AppColors.whiteAntique,
         child: Padding(
             padding: const EdgeInsetsGeometry.symmetric(
               vertical: 10,
@@ -34,27 +35,28 @@ class FavoriteCard extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
-
+          SizedBox(width: 20,),
           Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.normal,
-                    color: AppColors.copper,
+                    color: AppColors.oliveGray,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 2),
                 Text(
-                  '$price в день',
+                  '$price ₽ в день',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.normal,
-                    color: AppColors.copper,
+                    color: AppColors.oliveGray,
                   ),
                 ),
                 SizedBox(height: 2),
@@ -63,7 +65,7 @@ class FavoriteCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w200,
-                    color: AppColors.copper,
+                    color: AppColors.oliveGray,
                   ),
                 ),
               ],

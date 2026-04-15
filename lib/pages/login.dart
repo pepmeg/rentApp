@@ -61,7 +61,7 @@ class Login extends StatefulWidget {
               SizedBox(height: 10,),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.macaroniCheese,
+                  color: AppColors.whiteAntique,
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: TextField(
@@ -97,7 +97,7 @@ class Login extends StatefulWidget {
               SizedBox(height: 10,),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.macaroniCheese,
+                  color: AppColors.whiteAntique,
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: TextField(
@@ -127,11 +127,10 @@ class Login extends StatefulWidget {
               SizedBox(height: 70,),
               Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
-                    return Expanded(
-                        child: ElevatedButton(
+                    return ElevatedButton(
                           onPressed: authProvider.isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.macaroniCheese,
+                              backgroundColor: AppColors.whiteAntique,
                               foregroundColor: AppColors.oliveGray,
                               padding: const EdgeInsetsGeometry.symmetric(horizontal: 105, vertical: 5)
                           ),
@@ -141,41 +140,29 @@ class Login extends StatefulWidget {
                             'Войти',
                             style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
                           ),
-                        )
-                    );
+                        );
                   }
               ),
               SizedBox(height: 15,),
-              GestureDetector(
-                onTap: (){
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Registration()),
-                  );
-                },
-                child:
                 Text(
                   'Нет аккаунта?',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                 ),
-              ),
               SizedBox(height: 15,),
-              Expanded(
-                  child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, 'register');
-                      },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.copper,
-                        foregroundColor: AppColors.oliveGray,
-                        padding: const EdgeInsetsGeometry.symmetric(horizontal: 105, vertical: 5)
-                    ),
-                    child: Text(
-                      'Создать аккаунт',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
-                    ),
-                  )
-              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => Registration()));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.copper,
+                  foregroundColor: AppColors.oliveGray,
+                  padding: const EdgeInsets.symmetric(horizontal: 105, vertical: 5),
+                ),
+                child: Text(
+                  'Создать аккаунт',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                ),
+              )
             ],
           ),
       ),

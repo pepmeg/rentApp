@@ -7,4 +7,5 @@ class AppColors {
   static const wildWatermelon = Color(0xFFFF6284);
   static const macaroniCheese = Color(0xFFFFBB7C);
   static const oliveGray = Color(0xFF564739);
+  static const whiteAntique = Color(0xFFF7ECC9);
 }

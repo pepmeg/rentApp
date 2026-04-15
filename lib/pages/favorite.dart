@@ -29,6 +29,7 @@ class FavoriteState extends State<Favorite> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            SizedBox(height: 30,),
             Container(
               decoration: BoxDecoration(
                 color: AppColors.lightGreen,
@@ -67,14 +68,10 @@ class FavoriteState extends State<Favorite> {
                     }
                 )
             ),
-            SizedBox(height: 15,),
+            SizedBox(height: 20,),
             Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 1,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
+              child: ListView.builder(
+                itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
                   final product = products[index];
                   return FavoriteCard(
