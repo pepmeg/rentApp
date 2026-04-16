@@ -75,8 +75,8 @@ class RegistrationState extends State<Registration> {
                 'Регистрация',
                 style: TextStyle(
                   fontSize: 28,
-                  fontWeight: FontWeight.normal,
-                  color: AppColors.copper,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.oliveGray,
                 ),
               ),
               SizedBox(height: 50),
@@ -148,21 +148,19 @@ class RegistrationState extends State<Registration> {
                   return ElevatedButton(
                     onPressed: authProvider.isLoading ? null : register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.whiteAntique,
+                      backgroundColor: AppColors.copper,
                       foregroundColor: AppColors.oliveGray,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 60,
-                        vertical: 5,
-                      ),
+                      minimumSize: const Size(double.infinity, 48),
+                      padding: const EdgeInsets.symmetric(vertical: 5,),
                     ),
                     child: authProvider.isLoading
                         ? CircularProgressIndicator()
                         : Text(
                             'Зарегистрироваться',
                             style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.normal,
-                              color: AppColors.copper,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.spaceCream,
                             ),
                           ),
                   );
@@ -175,8 +173,8 @@ class RegistrationState extends State<Registration> {
                   'вернуться',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w100,
-                    color: AppColors.copper,
+                    fontWeight: FontWeight.w300,
+                    color: AppColors.oliveGray,
                   ),
                 ),
               ),
@@ -204,14 +202,14 @@ class RegistrationState extends State<Registration> {
         validator: validator,
         style: TextStyle(
           fontSize: 16,
-          color: AppColors.copper,
+          color: AppColors.oliveGray,
           fontWeight: FontWeight.normal,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
             fontSize: 16,
-            color: AppColors.copper,
+            color: AppColors.oliveGray,
             fontWeight: FontWeight.w100,
           ),
           border: InputBorder.none,

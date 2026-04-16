@@ -25,10 +25,11 @@ class HomeState extends State<Home> {
     final products = ProductData.getAllProducts();
     return Scaffold(
           body: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
             child: Column(
               children: [
                 Container(
+                  padding: EdgeInsetsGeometry.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.lightGreen,
                     borderRadius: BorderRadius.circular(30),
@@ -53,7 +54,7 @@ class HomeState extends State<Home> {
                       ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
-                          vertical: 20, horizontal: 20),
+                          vertical: 15, horizontal: 20),
                     ),
                   ),
                 ),
@@ -64,6 +65,7 @@ class HomeState extends State<Home> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
+                      childAspectRatio: 0.84
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {

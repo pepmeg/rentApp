@@ -8,4 +8,5 @@ class AppColors {
   static const macaroniCheese = Color(0xFFFFBB7C);
   static const oliveGray = Color(0xFF564739);
   static const whiteAntique = Color(0xFFF7ECC9);
+  static const yellowSchoolBus = Color(0xFFFFD900);
 }

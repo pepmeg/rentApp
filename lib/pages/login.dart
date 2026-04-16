@@ -46,7 +46,7 @@ class Login extends StatefulWidget {
             children: [
               Text(
                 'Войдите в аккаунт',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
               ),
               SizedBox(height: 50,),
               Row(
@@ -54,7 +54,7 @@ class Login extends StatefulWidget {
                 children: [
                   Text(
                     'Почта',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                   ),
                 ],
               ),
@@ -69,14 +69,14 @@ class Login extends StatefulWidget {
                   keyboardType: TextInputType.emailAddress,
                   style: TextStyle(
                     fontSize: 16,
-                    color: AppColors.copper,
+                    color: AppColors.oliveGray,
                     fontWeight: FontWeight.normal,
                   ),
                   decoration: InputDecoration(
                     hintText: 'yourmail@shrestha.com',
                     hintStyle: TextStyle(
                       fontSize: 16,
-                      color: AppColors.copper,
+                      color: AppColors.oliveGray,
                       fontWeight: FontWeight.w100,
                     ),
                     border: InputBorder.none,
@@ -90,7 +90,7 @@ class Login extends StatefulWidget {
                 children: [
                   Text(
                     'Пароль',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                   ),
                 ],
               ),
@@ -105,19 +105,19 @@ class Login extends StatefulWidget {
                   obscureText: true,
                   style: TextStyle(
                     fontSize: 16,
-                    color: AppColors.copper,
+                    color: AppColors.oliveGray,
                     fontWeight: FontWeight.normal,
                   ),
                   decoration: InputDecoration(
-                    hintText: '.........',
+                    hintText: '● ● ● ● ● ● ● ● ●',
                     hintStyle: TextStyle(
                       fontSize: 16,
-                      color: AppColors.copper,
-                      fontWeight: FontWeight.w100,
+                      color: AppColors.oliveGray,
+                      fontWeight: FontWeight.normal,
                     ),
                     suffixIcon: IconButton(
                         onPressed: () {},
-                        icon: Icon(Icons.panorama_fish_eye, size: 25, color: AppColors.copper,),
+                        icon: Icon(Icons.panorama_fish_eye, size: 25, color: AppColors.oliveGray,),
                     ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
@@ -130,15 +130,19 @@ class Login extends StatefulWidget {
                     return ElevatedButton(
                           onPressed: authProvider.isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.whiteAntique,
+                              backgroundColor: AppColors.copper,
                               foregroundColor: AppColors.oliveGray,
-                              padding: const EdgeInsetsGeometry.symmetric(horizontal: 105, vertical: 5)
+                              minimumSize: const Size(double.infinity, 48),
+                              padding: const EdgeInsetsGeometry.symmetric(vertical: 5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: authProvider.isLoading
                           ? CircularProgressIndicator()
                           : Text(
                             'Войти',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.normal, color: AppColors.copper),
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.spaceCream,),
                           ),
                         );
                   }
@@ -154,13 +158,17 @@ class Login extends StatefulWidget {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => Registration()));
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.copper,
+                  backgroundColor: AppColors.oliveGray,
                   foregroundColor: AppColors.oliveGray,
-                  padding: const EdgeInsets.symmetric(horizontal: 105, vertical: 5),
+                  minimumSize: const Size(double.infinity, 48),
+                  padding: const EdgeInsetsGeometry.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: Text(
                   'Создать аккаунт',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.spaceCream),
                 ),
               )
             ],

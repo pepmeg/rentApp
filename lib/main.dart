@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget{
         '/home': (context) => MainScreen(),
       },
       theme: ThemeData(
-        primaryColor: AppColors.spaceCream
+        scaffoldBackgroundColor: AppColors.spaceCream,
       ),
     );
   }
@@ -62,6 +62,7 @@ class ScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.spaceCream,
       body: IndexedStack(
         index: currentIndex,
         children: screens,
@@ -72,5 +73,4 @@ class ScreenState extends State<MainScreen> {
       ),
     );
   }
-
 }
