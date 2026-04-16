@@ -28,7 +28,7 @@ class FavoriteState extends State<Favorite> {
     final Category category = Category();
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Column(
           children: [
             Container(
