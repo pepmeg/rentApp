@@ -11,21 +11,24 @@ class Profile extends StatelessWidget {
     final user = authProvider.currentUser;
     return Scaffold(
       body: Padding(
-        padding: EdgeInsetsGeometry.all(20),
+        padding: EdgeInsetsGeometry.only(left: 20, right: 20, top: 40),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Профиль',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
             ),
             SizedBox(height: 30),
-            Expanded(
-              child: Row(
+              Row(
                 children: [
-                  Image.asset(
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: Image.asset(
                     'assets/silly_cat.jpg',
                     height: 100,
                     fit: BoxFit.cover,
+                    ),
                   ),
                   SizedBox(width: 30),
                   Column(
@@ -49,52 +52,57 @@ class Profile extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
+            SizedBox(height: 30,),
             Container(
+              padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
               decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(30),
+                color: AppColors.whiteAntique,
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Column(
+                  Expanded(child: Column(
                     children: [
                       Text(
                         '12',
-                        style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: AppColors.copper),
+                        style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                       ),
-                      SizedBox(height: 10,),
+                      SizedBox(height: 5,),
                       Text(
                         'Заказов',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                       ),
                     ],
                   ),
-                  Column(
+                  ),
+                  Expanded(child: Column(
                     children: [
                       Text(
                         '3',
-                        style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: AppColors.copper),
+                        style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                       ),
-                      SizedBox(height: 10,),
+                      SizedBox(height: 5,),
                       Text(
                         'Активных',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                       ),
                     ],
                   ),
-                  Column(
+                  ),
+                  Expanded(child: Column(
                     children: [
                       Text(
                         '4.8',
-                        style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: AppColors.copper),
+                        style: TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                       ),
-                      SizedBox(height: 10,),
+                      SizedBox(height: 5,),
                       Text(
                         'Рейтинг',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                       ),
                     ],
+                  ),
                   ),
                 ],
               ),
@@ -103,16 +111,16 @@ class Profile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
               decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(30),
+                color: AppColors.whiteAntique,
+                borderRadius: BorderRadius.circular(15),
             ),
               child: Row(
                 children: [
-                  Icon(Icons.check_box, size: 22, color: AppColors.copper,),
+                  Icon(Icons.check_box, size: 22, color: AppColors.oliveGray,),
                   SizedBox(width: 15,),
                   Text(
                     'Мои заказы',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.copper),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                   ),
                   const Spacer(),
                   Container(
@@ -120,16 +128,16 @@ class Profile extends StatelessWidget {
                     height: 25,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
+                      color: AppColors.spaceCream,
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Text(
                       '3',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w100, color: AppColors.copper),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w100, color: AppColors.oliveGray),
                     ),
                   ),
                   SizedBox(width: 15,),
-                  Icon(Icons.arrow_circle_right_sharp, size: 14, color: AppColors.copper,)
+                  Icon(Icons.arrow_circle_right_sharp, size: 14, color: AppColors.oliveGray,)
                 ],
               ),
             ),
@@ -138,23 +146,23 @@ class Profile extends StatelessWidget {
               children: [
                 Text(
                   'Активные аренды',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal, color: AppColors.copper),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                 ),
                 Spacer(),
                 Text(
                   'Показать все',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w100, color: AppColors.copper),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w100, color: AppColors.oliveGray),
                 ),
                 SizedBox(width: 3,),
-                Icon(Icons.arrow_circle_right_sharp, size: 10, color: AppColors.copper,),
+                Icon(Icons.arrow_circle_right_sharp, size: 10, color: AppColors.oliveGray,),
               ],
             ),
             SizedBox(height: 10,),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 25, vertical: 15),
               decoration: BoxDecoration(
-                color: AppColors.macaroniCheese,
-                borderRadius: BorderRadius.circular(30),
+                color: AppColors.whiteAntique,
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Column(
                 children: [
@@ -162,7 +170,7 @@ class Profile extends StatelessWidget {
                     children: [
                       Text(
                         'Электродрель',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                       ),
                       Spacer(),
                       Container(

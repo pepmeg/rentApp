@@ -64,7 +64,19 @@ class FavoriteState extends State<Favorite> {
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: ElevatedButton(
                           onPressed: () {},
-                          child: Text(item),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.lightGreen,
+                            foregroundColor: AppColors.oliveGray,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadiusGeometry.circular(15),
+                            ),
+                            elevation: 2,
+                            padding: const EdgeInsetsGeometry.symmetric(horizontal: 16, vertical: 8)
+                          ),
+                          child: Text(
+                            item,
+                          style: TextStyle(fontWeight: FontWeight.normal,fontSize: 14),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -74,6 +86,7 @@ class FavoriteState extends State<Favorite> {
             ),
             Expanded(
               child: ListView.builder(
+                padding: EdgeInsets.symmetric(vertical: 20),
                 itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
                   final product = filteredProducts[index];

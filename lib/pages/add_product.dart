@@ -8,17 +8,21 @@ class Add_Product extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 20, vertical: 10),
+        padding: EdgeInsets.only(left: 20, right: 20, top: 40),
         child: Column(
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.arrow_right, size: 24, color: AppColors.copper,),
-                SizedBox(width: 20,),
-                Text(
+                IconButton(
+                  icon: Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                  onPressed: () => Navigator.pop(context),
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 20,),
+                const Text(
                   'Добавить товар',
-                  style: TextStyle(fontSize: 24,fontWeight: FontWeight.normal, color: AppColors.copper),
+                  style: TextStyle(fontSize: 24,fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                 ),
               ],
             ),
@@ -33,8 +37,10 @@ class Add_Product extends StatelessWidget {
                       onTap: () {},
                       child: Container(
                         height: 100,
+                        width: 100,
+                        margin: const EdgeInsets.only(right: 10),
                         decoration: BoxDecoration(
-                          color: AppColors.macaroniCheese,
+                          color: AppColors.whiteAntique,
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
@@ -42,13 +48,24 @@ class Add_Product extends StatelessWidget {
                   }
               ),
             ),
-            SizedBox(height: 10,),
+            const SizedBox(height: 10,),
             TextField(
               onChanged: (value) {},
               decoration: InputDecoration(
                 hintText: 'Название товара',
-                border: InputBorder.none,
-                contentPadding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 10),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey, width: 2),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               ),
             ),
             SizedBox(height: 10,),
@@ -56,29 +73,53 @@ class Add_Product extends StatelessWidget {
               onChanged: (value) {},
               decoration: InputDecoration(
                 hintText: 'Категория',
-                border: InputBorder.none,
-                contentPadding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 10),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               ),
             ),
             SizedBox(height: 10,),
             Row(
               children: [
-                TextField(
+                Expanded(child: TextField(
                   onChanged: (value) {},
                   decoration: InputDecoration(
                     hintText: '500 ₽',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 10),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey, width: 2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                   ),
                 ),
+                ),
+
                 SizedBox(width: 10,),
-                TextField(
+                Expanded(child: TextField(
                   onChanged: (value) {},
                   decoration: InputDecoration(
                     hintText: 'Срок аренды',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 10),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey, width: 2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                   ),
+                ),
                 ),
               ],
             ),
@@ -86,9 +127,16 @@ class Add_Product extends StatelessWidget {
             TextField(
               onChanged: (value) {},
               decoration: InputDecoration(
-                hintText: 'Срок аренды',
-                border: InputBorder.none,
-                contentPadding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 10),
+                hintText: 'Город, район',
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               ),
             ),
             SizedBox(height: 10,),
@@ -96,8 +144,30 @@ class Add_Product extends StatelessWidget {
               onChanged: (value) {},
               decoration: InputDecoration(
                 hintText: 'Опишите товар, его состояние и условия аренды...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 10),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              ),
+            ),
+            SizedBox(height: 20,),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.copper,
+                foregroundColor: AppColors.spaceCream,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              child: const Text(
+                'Создать',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
           ],
