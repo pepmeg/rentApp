@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:untitled/pages/productScreen.dart';
 import 'package:untitled/utils/colors.dart';
 import '../data/product_data.dart';
 import '../models/product.dart';
@@ -75,6 +76,14 @@ class HomeState extends State<Home> {
                         price: product.price,
                         location: product.location,
                         image: product.image,
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductScreen(product: product),
+                              ),
+                          );
+                        },
                       );
                     },
                   ),

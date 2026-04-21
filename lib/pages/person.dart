@@ -1,8 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:untitled/pages/active_leases.dart';
+import 'package:untitled/pages/edit_profile.dart';
+import 'package:untitled/pages/user_orders.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/utils/colors.dart';
+
+import 'home.dart';
 
 class Profile extends StatelessWidget {
   @override
@@ -20,37 +25,44 @@ class Profile extends StatelessWidget {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
             ),
             SizedBox(height: 30),
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: Image.asset(
-                    'assets/silly_cat.jpg',
-                    height: 100,
-                    fit: BoxFit.cover,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfile(),
+                  ),
+                  );
+                },
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(50),
+                      child: Image.asset(
+                        'assets/silly_cat.jpg',
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 30),
-                  Column(
-                    children: [
-                      Text(
-                        '${user?.firstName ?? ""} ${user?.lastName ?? ""}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.normal,
+                    SizedBox(width: 30),
+                    Column(
+                      children: [
+                        Text(
+                          '${user?.firstName ?? ""} ${user?.lastName ?? ""}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.normal,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        '${user?.email ?? ""}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.normal,
+                        SizedBox(height: 2),
+                        Text(
+                          '${user?.email ?? ""}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.normal,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             SizedBox(height: 30,),
             Container(
@@ -108,37 +120,44 @@ class Profile extends StatelessWidget {
               ),
             ),
             SizedBox(height: 15,),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
-              decoration: BoxDecoration(
-                color: AppColors.whiteAntique,
-                borderRadius: BorderRadius.circular(15),
-            ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_box, size: 22, color: AppColors.oliveGray,),
-                  SizedBox(width: 15,),
-                  Text(
-                    'Мои заказы',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 25,
-                    height: 25,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.spaceCream,
-                      borderRadius: BorderRadius.circular(15),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => UserOrders(),
+                ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.whiteAntique,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_box, size: 22, color: AppColors.oliveGray,),
+                    SizedBox(width: 15,),
+                    Text(
+                      'Мои заказы',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                     ),
-                    child: Text(
-                      '3',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w100, color: AppColors.oliveGray),
+                    const Spacer(),
+                    Container(
+                      width: 25,
+                      height: 25,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.spaceCream,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Text(
+                        '3',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w100, color: AppColors.oliveGray),
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 15,),
-                  Icon(Icons.arrow_circle_right_sharp, size: 14, color: AppColors.oliveGray,)
-                ],
+                    SizedBox(width: 15,),
+                    Icon(Icons.arrow_circle_right_sharp, size: 14, color: AppColors.oliveGray,)
+                  ],
+                ),
               ),
             ),
             SizedBox(height: 20,),
@@ -149,9 +168,16 @@ class Profile extends StatelessWidget {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                 ),
                 Spacer(),
-                Text(
-                  'Показать все',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w100, color: AppColors.oliveGray),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ActiveLeases(),
+                    ),
+                    );
+                  },
+                  child: Text(
+                    'Показать все',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w100, color: AppColors.oliveGray),
+                  ),
                 ),
                 SizedBox(width: 3,),
                 Icon(Icons.arrow_circle_right_sharp, size: 10, color: AppColors.oliveGray,),

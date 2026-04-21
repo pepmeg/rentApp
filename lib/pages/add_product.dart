@@ -10,23 +10,13 @@ class Add_Product extends StatelessWidget {
       body: Padding(
         padding: EdgeInsets.only(left: 20, right: 20, top: 40),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 20,),
                 const Text(
                   'Добавить товар',
-                  style: TextStyle(fontSize: 24,fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                  style: TextStyle(fontSize: 24,fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                 ),
-              ],
-            ),
-            SizedBox(height: 10,),
+            SizedBox(height: 15,),
             SizedBox(
               height: 100,
               child: ListView.builder(
@@ -103,7 +93,6 @@ class Add_Product extends StatelessWidget {
                   ),
                 ),
                 ),
-
                 SizedBox(width: 10,),
                 Expanded(child: TextField(
                   onChanged: (value) {},
