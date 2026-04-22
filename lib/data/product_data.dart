@@ -3,12 +3,14 @@ import '../models/product.dart';
 class ProductData {
   static final List<Product> products = [
     Product(
+        id: 1,
         name: 'Электродрель',
         price: 500,
         location: 'Йошкар-Ола',
         image: 'assets/drill.png'
     ),
     Product(
+        id: 2,
         name: 'Палатка',
         price: 1300,
         location: 'Йошкар-Ола',
@@ -28,7 +30,11 @@ class ProductData {
     }).toList();
   }
 
-  static Product getProductByIndex(int index) {
-    return products[index];
+  static Product? getProductById(int id) {
+    try {
+      return products.firstWhere((product) => product.id == id);
+    } catch (e) {
+      return null;
+    }
   }
 }

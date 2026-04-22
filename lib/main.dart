@@ -8,13 +8,19 @@ import 'package:untitled/pages/favorite.dart';
 import 'package:untitled/pages/home.dart';
 import 'package:untitled/pages/person.dart';
 import 'package:untitled/pages/shopping_basket.dart';
+import 'package:untitled/provider/basket_provider.dart';
+import 'package:untitled/provider/favorite_provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/bottomNavBar.dart';
 
 void main() {
   runApp(
-      ChangeNotifierProvider(
-        create: (context) => AuthProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => FavoriteProvider()),
+        ChangeNotifierProvider(create: (context) => BasketProvider()),
+      ],
         child: MyApp(),
     ),
   );

@@ -72,6 +72,7 @@ class HomeState extends State<Home> {
                     itemBuilder: (context, index) {
                       final product = products[index];
                       return ProductCard(
+                        id: product.id,
                         name: product.name,
                         price: product.price,
                         location: product.location,

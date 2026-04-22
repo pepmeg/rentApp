@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:untitled/data/product_data.dart';
+import 'package:untitled/provider/favorite_provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/favorite_card.dart';
 import 'package:untitled/widgets/category.dart';
@@ -16,16 +18,22 @@ class Favorite extends StatefulWidget {
 class FavoriteState extends State<Favorite> {
   String searchQuery = '';
 
-  List<Product> get filteredProducts {
-    return ProductData.searchProducts(searchQuery);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final products = ProductData.getAllProducts();
-    final filteredProducts = products.where((product) =>
-        product.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+    final favoriteProvider = Provider.of<FavoriteProvider>(context);
+    final allProducts = ProductData.getAllProducts();
+
+    final favoriteProducts = allProducts
+        .where((product) => favoriteProvider.isFavorite(product.id))
+        .toList();
+
+    final filteredProducts = favoriteProducts
+        .where((product) =>
+        product.name.toLowerCase().contains(searchQuery.toLowerCase()))
+        .toList();
+
     final Category category = Category();
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
@@ -91,6 +99,7 @@ class FavoriteState extends State<Favorite> {
                 itemBuilder: (context, index) {
                   final product = filteredProducts[index];
                   return FavoriteCard(
+                    id: product.id,
                     name: product.name,
                     price: product.price,
                     location: product.location,

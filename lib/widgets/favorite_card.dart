@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:untitled/pages/productScreen.dart';
 import 'package:untitled/utils/colors.dart';
+import '../data/product_data.dart';
+import '../provider/favorite_provider.dart';
 
-class FavoriteCard extends StatelessWidget {
+class FavoriteCard extends StatefulWidget {
+  final int id;
   final String name;
   final int price;
   final String image;
   final String location;
 
   const FavoriteCard({
+    required this.id,
     required this.name,
     required this.price,
     required this.image,
@@ -16,69 +22,101 @@ class FavoriteCard extends StatelessWidget {
   });
 
   @override
+  State<FavoriteCard> createState() => FavoriteCardState();
+}
+
+class FavoriteCardState extends State<FavoriteCard> {
+  bool isFavorite = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.whiteAntique,
-        child: Padding(
+    final favoriteProvider = Provider.of<FavoriteProvider>(context);
+    final isFavorite = favoriteProvider.isFavorite(widget.id);
+    return GestureDetector(
+      onTap: () {
+        final product = ProductData.getProductById(widget.id);
+        if (product != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ProductScreen(product: product)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Товар не найден')),
+          );
+        }
+      },
+      child:   Card(
+          color: AppColors.whiteAntique,
+          child: Padding(
             padding: const EdgeInsetsGeometry.symmetric(
               vertical: 10,
               horizontal: 15,
             ),
-          child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-            children:[ ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                image,
-                height: 80,
-                width: 80,
-                fit: BoxFit.cover,
-              ),
-            ),
-          SizedBox(width: 20,),
-          Expanded(
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: AppColors.oliveGray,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              children:[ ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  widget.image,
+                  height: 80,
+                  width: 80,
+                  fit: BoxFit.cover,
                 ),
-                SizedBox(height: 2),
-                Text(
-                  '$price ₽ в день',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: AppColors.oliveGray,
+              ),
+                SizedBox(width: 20,),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: AppColors.oliveGray,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        '${widget.price} ₽ в день',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: AppColors.oliveGray,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        widget.location,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w200,
+                          color: AppColors.oliveGray,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
-                  location,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w200,
-                    color: AppColors.oliveGray,
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      favoriteProvider.toggleFavorite(widget.id);
+                    });
+                  },
+                  child: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite ? AppColors.copper : AppColors.oliveGray,
+                    size: 20,
                   ),
                 ),
               ],
             ),
           ),
-            Icon(
-              Icons.heart_broken,
-              size: 20,
-              color: AppColors.spaceCream,
-            ),
-            ],
-          ),
-      ),
+        ),
     );
+
   }
 }

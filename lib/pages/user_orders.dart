@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import '../data/product_data.dart';
 import '../models/product.dart';
 import '../utils/colors.dart';
@@ -74,6 +73,7 @@ class UserOrdersState extends State<UserOrders> {
                 itemBuilder: (context, index) {
                   final product = filteredProducts[index];
                   return FavoriteCard(
+                    id: product.id,
                     name: product.name,
                     price: product.price,
                     location: product.location,

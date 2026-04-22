@@ -3,18 +3,38 @@ import 'package:flutter/material.dart';
 import '../utils/colors.dart';
 
 class BasketCard extends StatelessWidget {
+  final int id;
   final String name;
   final int price;
   final String image;
   final int days;
+  final Function(int) onDaysChanged;
+  final VoidCallback onRemove;
 
-  const BasketCard ({
+  const BasketCard({
+    required this.id,
     required this.name,
-    required this.image,
     required this.price,
+    required this.image,
     required this.days,
+    required this.onDaysChanged,
+    required this.onRemove,
     super.key,
-});
+  });
+
+  String _getDaysWord(int days) {
+    if (days % 100 >= 11 && days % 100 <= 19) return 'дней';
+    switch (days % 10) {
+      case 1:
+        return 'день';
+      case 2:
+      case 3:
+      case 4:
+        return 'дня';
+      default:
+        return 'дней';
+    }
+  }
 
   @override
   Widget build(BuildContext context){
@@ -57,10 +77,13 @@ class BasketCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Spacer(),
-                          Icon(
-                            Icons.shopping_basket,
-                            size: 30,
-                            color: AppColors.oliveGray,
+                          GestureDetector(
+                            onTap: onRemove,
+                            child: Icon(
+                              Icons.delete_outline,
+                              size: 30,
+                              color: AppColors.oliveGray,
+                            ),
                           ),
                         ],
                       ),
@@ -93,14 +116,48 @@ class BasketCard extends StatelessWidget {
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                     ),
                     Spacer(),
-                    Icon(Icons.plus_one, size: 15, color: AppColors.oliveGray,),
-                    SizedBox(width: 15,),
-                    Text(
-                      '$days дня',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                    GestureDetector(
+                      onTap: () {
+                        if (days > 1) {
+                          onDaysChanged(days - 1);
+                        }
+                      },
+                      child: Icon(
+                        Icons.exposure_minus_1,
+                        size: 15,
+                        color: days > 1
+                            ? AppColors.oliveGray
+                            : AppColors.oliveGray.withOpacity(0.3),
+                      ),
                     ),
                     SizedBox(width: 15,),
-                    Icon(Icons.exposure_minus_1, size: 15, color: AppColors.oliveGray,),
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        '$days ${_getDaysWord(days)}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: AppColors.oliveGray,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 15,),
+                    GestureDetector(
+                      onTap: () {
+                        if (days < 99) {
+                          onDaysChanged(days + 1);
+                        }
+                      },
+                      child: Icon(
+                        Icons.plus_one,
+                        size: 15,
+                        color: days < 99
+                            ? AppColors.oliveGray
+                            : AppColors.oliveGray.withOpacity(0.3),
+                      ),
+                    ),
                   ]
               ),
             ),

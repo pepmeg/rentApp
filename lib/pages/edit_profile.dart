@@ -127,6 +127,21 @@ class EditProfile extends StatelessWidget{
                 fillColor: AppColors.whiteAntique
               ),
             ),
+            SizedBox(height: 20,),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.copper,
+                foregroundColor: AppColors.spaceCream,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              child: const Text(
+                'Сохранить',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
       ),

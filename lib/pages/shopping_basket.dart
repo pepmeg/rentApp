@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/basket_card.dart';
+
+import '../provider/basket_provider.dart';
 
 class ShoppingBasket extends StatefulWidget {
   const ShoppingBasket({super.key});
@@ -9,26 +12,11 @@ class ShoppingBasket extends StatefulWidget {
   State<ShoppingBasket> createState() => BasketState();
 }
 
-class CartItem {
-  final String name;
-  final String image;
-  final int price;
-  final int days;
-
-  const CartItem({
-    required this.name,
-    required this.image,
-    required this.price,
-    required this.days,
-  });
-}
-
   class BasketState extends State<ShoppingBasket> {
   @override
   Widget build(BuildContext context) {
-    final List<CartItem> cartItems = const [
-      CartItem(name: 'Электродрель', image: 'assets/silly_cat.jpg', price: 500, days: 2),
-    ];
+    final basketProvider = Provider.of<BasketProvider>(context);
+    final cartItems = basketProvider.items;
     return Scaffold(
       body: Padding(
         padding: EdgeInsetsGeometry.only(left: 20, right: 20, top: 40),
@@ -45,7 +33,7 @@ class CartItem {
             ),
             SizedBox(height: 2),
             Text(
-              '2 товара',
+              '${cartItems.length} товара',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w100,
@@ -59,10 +47,17 @@ class CartItem {
                 itemBuilder: (context, index) {
                   final item = cartItems[index];
                   return BasketCard(
+                    id: item.id,
                     name: item.name,
                     price: item.price,
                     image: item.image,
                     days: item.days,
+                    onDaysChanged: (newDays) {
+                      basketProvider.updateDays(item.id, newDays);
+                    },
+                    onRemove: () {
+                      basketProvider.removeFromCart(item.id);
+                    },
                   );
                 },
               ),
@@ -76,7 +71,7 @@ class CartItem {
                 ),
                 const Spacer(),
                 Text(
-                  '1700 ₽',
+                  '${basketProvider.totalPrice} ₽',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                 ),
               ],

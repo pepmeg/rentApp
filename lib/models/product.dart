@@ -1,8 +1,9 @@
 class Product {
+  final int id;
   final String name;
   final int price;
   final String location;
   final String image;
 
-  Product({required this. name, required this.price, required this.location, required this.image});
+  Product({required this.id, required this. name, required this.price, required this.location, required this.image});
 }
