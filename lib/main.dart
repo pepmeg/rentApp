@@ -8,7 +8,9 @@ import 'package:untitled/pages/favorite.dart';
 import 'package:untitled/pages/home.dart';
 import 'package:untitled/pages/person.dart';
 import 'package:untitled/pages/shopping_basket.dart';
+import 'package:untitled/provider/activeLeasesProvider.dart';
 import 'package:untitled/provider/basket_provider.dart';
+import 'package:untitled/provider/bottom_nav_provider.dart';
 import 'package:untitled/provider/favorite_provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/bottomNavBar.dart';
@@ -20,6 +22,8 @@ void main() {
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(create: (context) => FavoriteProvider()),
         ChangeNotifierProvider(create: (context) => BasketProvider()),
+        ChangeNotifierProvider(create: (context) => ActiveLeasesProvider()),
+        ChangeNotifierProvider(create: (context) => BottomNavProvider()),
       ],
         child: MyApp(),
     ),
@@ -43,39 +47,31 @@ class MyApp extends StatelessWidget{
   }
 }
 
-class MainScreen extends StatefulWidget {
-  @override
-  ScreenState createState() => ScreenState();
-}
-
-class ScreenState extends State<MainScreen> {
-  int currentIndex = 0;
-
-  final List<Widget> screens = [
-    Home(),
-    Favorite(),
-    Add_Product(),
-    ShoppingBasket(),
-    Profile(),
-  ];
-
-  void onTabTapped(int index) {
-    setState(() {
-      currentIndex = index;
-    });
-  }
+class MainScreen extends StatelessWidget {
+  const MainScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final navProvider = context.watch<BottomNavProvider>();
+    final currentIndex = navProvider.currentIndex;
+
     return Scaffold(
       backgroundColor: AppColors.spaceCream,
       body: IndexedStack(
         index: currentIndex,
-        children: screens,
+        children: [
+          Home(),
+          Favorite(),
+          AddProduct(),
+          ShoppingBasket(),
+          Profile(),
+        ],
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentIndex,
-        onTap: onTabTapped,
+        onTap: (index) {
+          navProvider.setIndex(index);
+        },
       ),
     );
   }

@@ -3,7 +3,7 @@ class Product {
   final String name;
   final int price;
   final String location;
-  final String image;
+  final List<String> images;
 
-  Product({required this.id, required this. name, required this.price, required this.location, required this.image});
+  Product({required this.id, required this. name, required this.price, required this.location, required this.images});
 }

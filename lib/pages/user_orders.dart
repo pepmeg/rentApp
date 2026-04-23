@@ -77,7 +77,7 @@ class UserOrdersState extends State<UserOrders> {
                     name: product.name,
                     price: product.price,
                     location: product.location,
-                    image: product.image,
+                    images: product.images,
                   );
                 },
               ),

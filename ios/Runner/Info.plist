@@ -43,6 +43,8 @@
 					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
 					<key>UISceneStoryboardFile</key>
 					<string>Main</string>
+					<key>NSPhotoLibraryUsageDescription</key>
+                    <string>Нам нужен доступ к вашей медиатеке, чтобы выбрать аватар профиля</string>
 				</dict>
 			</array>
 		</dict>

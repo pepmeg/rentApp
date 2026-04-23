@@ -1,15 +1,85 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:untitled/provider/AuthProvider.dart';
+import 'package:untitled/models/user.dart';
+import 'package:untitled/utils/colors.dart';
 
-import '../utils/colors.dart';
+class EditProfile extends StatefulWidget {
+  const EditProfile({super.key});
 
-class EditProfile extends StatelessWidget{
+  @override
+  State<EditProfile> createState() => _EditProfileState();
+}
+
+class _EditProfileState extends State<EditProfile> {
+  late TextEditingController firstNameController;
+  late TextEditingController lastNameController;
+  late TextEditingController addressController;
+  late TextEditingController phoneController;
+  late TextEditingController emailController;
+
+  String? _avatarPath;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = context.read<AuthProvider>().currentUser;
+    firstNameController = TextEditingController(text: user?.firstName ?? '');
+    lastNameController = TextEditingController(text: user?.lastName ?? '');
+    addressController = TextEditingController(text: user?.address ?? '');
+    phoneController = TextEditingController(text: user?.phoneNumber ?? '');
+    emailController = TextEditingController(text: user?.email ?? '');
+    _avatarPath = user?.avatarPath;
+  }
+
+  @override
+  void dispose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    addressController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> save() async {
+    final authProvider = context.read<AuthProvider>();
+    final currentUser = authProvider.currentUser;
+    if (currentUser == null) return;
+
+    final updatedUser = UserModel(
+      email: emailController.text.trim(),
+      password: currentUser.password,
+      firstName: firstNameController.text.trim(),
+      lastName: lastNameController.text.trim(),
+      address: addressController.text.trim(),
+      phoneNumber: phoneController.text.trim(),
+      avatarPath: _avatarPath,
+    );
+
+    await authProvider.updateUser(updatedUser);
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _avatarPath = pickedFile.path;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: EdgeInsetsGeometry.only(left: 20, right: 20, top: 40),
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -17,119 +87,50 @@ class EditProfile extends StatelessWidget{
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                  icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
                   onPressed: () => Navigator.pop(context),
                   constraints: const BoxConstraints(),
                 ),
-                SizedBox(width: 5,),
-                Text(
+                const SizedBox(width: 5),
+                const Text(
                   'Редактировать',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                 ),
               ],
             ),
-            SizedBox(height: 15,),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: Image.asset(
-                'assets/silly_cat.jpg',
-                height: 100,
-                width: 100,
+            const SizedBox(height: 15),
+            GestureDetector(
+              onTap: _pickImage,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: _avatarPath != null
+                    ? Image.file(
+                  File(_avatarPath!),
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                )
+                    : Image.asset(
+                  'assets/silly_cat.jpg',
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-            SizedBox(height: 20,),
-            TextField(
-              onChanged: (value) {},
-              decoration: InputDecoration(
-                hintText: 'Имя',
-                border: OutlineInputBorder(
-                  borderSide: BorderSide.none,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  filled: true,
-                  fillColor: AppColors.whiteAntique
-              ),
-            ),
-            SizedBox(height: 10,),
-            TextField(
-              onChanged: (value) {},
-              decoration: InputDecoration(
-                hintText: 'Фамилия',
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  filled: true,
-                  fillColor: AppColors.whiteAntique
-              ),
-            ),
-            SizedBox(height: 10,),
-            TextField(
-              onChanged: (value) {},
-              decoration: InputDecoration(
-                hintText: 'Адрес',
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  filled: true,
-                  fillColor: AppColors.whiteAntique
-              ),
-            ),
-            SizedBox(height: 10,),
-            TextField(
-              onChanged: (value) {},
-              decoration: InputDecoration(
-                hintText: 'Номер телефона',
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  filled: true,
-                  fillColor: AppColors.whiteAntique
-              ),
-            ),
-            SizedBox(height: 10,),
-            TextField(
-              onChanged: (value) {},
-              decoration: InputDecoration(
-                hintText: 'Почта',
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.oliveGray, width: 2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                filled: true,
-                fillColor: AppColors.whiteAntique
-              ),
-            ),
-            SizedBox(height: 20,),
+            const SizedBox(height: 20),
+            _buildField(firstNameController, 'Имя'),
+            const SizedBox(height: 10),
+            _buildField(lastNameController, 'Фамилия'),
+            const SizedBox(height: 10),
+            _buildField(addressController, 'Адрес'),
+            const SizedBox(height: 10),
+            _buildField(phoneController, 'Номер телефона'),
+            const SizedBox(height: 10),
+            _buildField(emailController, 'Почта'),
+            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: save,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.copper,
                 foregroundColor: AppColors.spaceCream,
@@ -144,6 +145,32 @@ class EditProfile extends StatelessWidget{
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildField(TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
+        filled: true,
+        fillColor: AppColors.whiteAntique,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.grey, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: AppColors.oliveGray, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       ),
     );
   }

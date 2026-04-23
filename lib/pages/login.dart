@@ -76,8 +76,8 @@ class Login extends StatefulWidget {
                     hintText: 'yourmail@shrestha.com',
                     hintStyle: TextStyle(
                       fontSize: 16,
-                      color: AppColors.oliveGray,
-                      fontWeight: FontWeight.w100,
+                      color: AppColors.oliveGray.withOpacity(0.5),
+                      fontWeight: FontWeight.normal,
                     ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
@@ -112,7 +112,7 @@ class Login extends StatefulWidget {
                     hintText: '● ● ● ● ● ● ● ● ●',
                     hintStyle: TextStyle(
                       fontSize: 16,
-                      color: AppColors.oliveGray,
+                      color: AppColors.oliveGray.withOpacity(0.5),
                       fontWeight: FontWeight.normal,
                     ),
                     suffixIcon: IconButton(

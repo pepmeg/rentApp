@@ -86,6 +86,22 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isAuthenticated => _currentUser != null;
 
+  Future<void> updateUser(UserModel updatedUser) async {
+    final prefs = await SharedPreferences.getInstance();
+    final oldEmail = _currentUser?.email;
+    final newEmail = updatedUser.email;
+
+    if (oldEmail != null && oldEmail != newEmail) {
+      await prefs.remove('user_$oldEmail');
+    }
+
+    await prefs.setString('user_$newEmail', jsonEncode(updatedUser.toJson()));
+    await prefs.setString('current_user_email', newEmail);
+
+    _currentUser = updatedUser;
+    notifyListeners();
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

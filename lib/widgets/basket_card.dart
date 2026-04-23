@@ -6,7 +6,7 @@ class BasketCard extends StatelessWidget {
   final int id;
   final String name;
   final int price;
-  final String image;
+  final List<String> images;
   final int days;
   final Function(int) onDaysChanged;
   final VoidCallback onRemove;
@@ -15,7 +15,7 @@ class BasketCard extends StatelessWidget {
     required this.id,
     required this.name,
     required this.price,
-    required this.image,
+    required this.images,
     required this.days,
     required this.onDaysChanged,
     required this.onRemove,
@@ -54,7 +54,7 @@ class BasketCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(15),
                   child: Image.asset(
-                    image,
+                    images[0],
                     height: 100,
                     fit: BoxFit.cover,
                   ),
@@ -92,8 +92,8 @@ class BasketCard extends StatelessWidget {
                         '$price ₽ за день',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w100,
-                          color: AppColors.oliveGray,
+                          fontWeight: FontWeight.normal,
+                          color: AppColors.oliveGray.withOpacity(0.5),
                         ),
                       ),
                     ],

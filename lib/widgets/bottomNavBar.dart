@@ -21,7 +21,7 @@ class BottomNavBar extends StatelessWidget {
         onTap: onTap,
         backgroundColor: AppColors.spaceCream,
         selectedItemColor: AppColors.copper,
-        unselectedItemColor: AppColors.oliveGray,
+        unselectedItemColor: AppColors.oliveGray.withOpacity(0.5),
         elevation: 0,
         selectedLabelStyle: TextStyle(
           fontWeight: FontWeight.bold,

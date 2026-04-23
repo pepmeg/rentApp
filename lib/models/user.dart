@@ -5,6 +5,7 @@ class UserModel {
   final String lastName;
   final String address;
   final String phoneNumber;
+  final String? avatarPath;
 
   UserModel({
     required this.email,
@@ -13,6 +14,7 @@ class UserModel {
     required this.lastName,
     required this.address,
     required this.phoneNumber,
+    this.avatarPath,
   });
 
   Map<String, dynamic> toJson() =>
@@ -23,6 +25,7 @@ class UserModel {
         'lastName': lastName,
         'address': address,
         'phoneNumber': phoneNumber,
+        if (avatarPath != null) 'avatarPath': avatarPath,
       };
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +36,7 @@ class UserModel {
         lastName: json['lastName'] ?? '',
         address: json['address'] ?? '',
         phoneNumber: json['phoneNumber'] ?? '',
+        avatarPath: json['avatarPath'],
     );
   }
 }

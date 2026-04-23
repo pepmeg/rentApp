@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/models/product.dart';
 import 'package:untitled/provider/basket_provider.dart';
 import 'package:untitled/utils/colors.dart';
+import '../models/activeLease.dart';
 import '../models/cart_item.dart';
 import '../provider/AuthProvider.dart';
+import '../provider/activeLeasesProvider.dart';
+import '../provider/bottom_nav_provider.dart';
 import '../provider/favorite_provider.dart';
 
 class ProductScreen extends StatefulWidget {
@@ -59,7 +64,15 @@ class ProductScreenState extends State<ProductScreen> {
               ],
             ),
             SizedBox(height: 20),
-            Image.asset(widget.product.image, height: 230),
+            widget.product.images.isNotEmpty
+                ? Image.asset(widget.product.images[0], height: 230)
+                : Container(
+                height: 230,
+                color: AppColors.oliveGray,
+                child: const Center(
+                  child: Icon(Icons.image, size: 80, color: AppColors.oliveGray),
+                ),
+            ),
             SizedBox(height: 20),
             Row(
               children: [
@@ -100,8 +113,8 @@ class ProductScreenState extends State<ProductScreen> {
                   'за день',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w100,
-                    color: AppColors.oliveGray,
+                    fontWeight: FontWeight.normal,
+                    color: AppColors.oliveGray.withOpacity(0.5),
                   ),
                 ),
               ],
@@ -113,13 +126,43 @@ class ProductScreenState extends State<ProductScreen> {
                   id: widget.product.id,
                   name: widget.product.name,
                   price: widget.product.price,
-                  image: widget.product.image,
+                  images: widget.product.images,
                   days: 1,
                 );
                 basketProvider.addToCart(cartItem);
-                ScaffoldMessenger.of(context).showSnackBar(
+                final added = context.read<ActiveLeasesProvider>().addPendingLease(
+                  ActiveLease(
+                    productId: widget.product.id,
+                    name: widget.product.name,
+                    pricePerDay: widget.product.price,
+                    totalDays: 1,
+                    status: LeaseStatus.pending,
+                  ),
+                );
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
                   SnackBar(
-                    content: Text('${widget.product.name} добавлен в корзину'),
+                    content: Text(added
+                        ? 'Товар добавлен в корзину'
+                        : 'Товар уже в аренде',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.whiteAntique),
+                    ),
+                    action: SnackBarAction(
+                      label: 'В корзину',
+                      textColor: AppColors.copper,
+                      onPressed: () {
+                        context.read<BottomNavProvider>().setIndex(3);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    backgroundColor: AppColors.oliveGray,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.all(16),
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               },
@@ -165,8 +208,8 @@ class ProductScreenState extends State<ProductScreen> {
                         'Категория:',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w100,
-                          color: AppColors.oliveGray,
+                          fontWeight: FontWeight.normal,
+                          color: AppColors.oliveGray.withOpacity(0.5),
                         ),
                       ),
                       SizedBox(height: 1),
@@ -204,10 +247,18 @@ class ProductScreenState extends State<ProductScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(50),
-                        child: Image.asset(
+                        child: user?.avatarPath != null
+                            ? Image.file(
+                          File(user!.avatarPath!),
+                          height: 100,
+                          width: 100,
+                          fit: BoxFit.cover,
+                        )
+                            : Image.asset(
                           'assets/silly_cat.jpg',
                           height: 100,
                           width: 100,
+                          fit: BoxFit.cover,
                         ),
                       ),
                       SizedBox(width: 30),

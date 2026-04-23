@@ -209,8 +209,8 @@ class RegistrationState extends State<Registration> {
           hintText: hint,
           hintStyle: TextStyle(
             fontSize: 16,
-            color: AppColors.oliveGray,
-            fontWeight: FontWeight.w100,
+            color: AppColors.oliveGray.withOpacity(0.5),
+            fontWeight: FontWeight.normal,
           ),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),

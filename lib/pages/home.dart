@@ -42,7 +42,8 @@ class HomeState extends State<Home> {
                       });
                     },
                     decoration: InputDecoration(
-                      hintText: 'Поиск...',
+                      hintText: 'Поиск',
+                      hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
                       prefixIcon: Icon(Icons.search, color: AppColors.copper,),
                       suffixIcon: IconButton(
                           icon: Icon(
@@ -76,7 +77,7 @@ class HomeState extends State<Home> {
                         name: product.name,
                         price: product.price,
                         location: product.location,
-                        image: product.image,
+                        images: product.images,
                         onTap: () {
                           Navigator.push(
                               context,

@@ -9,14 +9,14 @@ class FavoriteCard extends StatefulWidget {
   final int id;
   final String name;
   final int price;
-  final String image;
+  final List<String> images;
   final String location;
 
   const FavoriteCard({
     required this.id,
     required this.name,
     required this.price,
-    required this.image,
+    required this.images,
     required this.location,
     super.key,
   });
@@ -58,7 +58,7 @@ class FavoriteCardState extends State<FavoriteCard> {
               children:[ ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
-                  widget.image,
+                  widget.images[0],
                   height: 80,
                   width: 80,
                   fit: BoxFit.cover,

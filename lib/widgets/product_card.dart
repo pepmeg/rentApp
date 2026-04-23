@@ -8,7 +8,7 @@ class ProductCard extends StatefulWidget {
   final String name;
   final int price;
   final String location;
-  final String image;
+  final List<String> images;
   final VoidCallback? onTap;
 
   const ProductCard({
@@ -16,7 +16,7 @@ class ProductCard extends StatefulWidget {
     required this.name,
     required this.price,
     required this.location,
-    required this.image,
+    required this.images,
     this.onTap,
     super.key,
   });
@@ -43,11 +43,17 @@ class ProductCardState extends State<ProductCard> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.asset(
-                    widget.image,
+                  child: widget.images.isNotEmpty
+                      ? Image.asset(
+                    widget.images[0],
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                  )
+                      : Container(
+                    height: 120,
+                    color: AppColors.oliveGray,
+                    child: const Icon(Icons.image_not_supported),
                   ),
                 ),
                 Positioned(
@@ -96,7 +102,7 @@ class ProductCardState extends State<ProductCard> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.normal,
-                          color: AppColors.oliveGray,
+                          color: AppColors.oliveGray.withOpacity(0.5),
                         ),
                       ),
                     ],
@@ -120,7 +126,7 @@ class ProductCardState extends State<ProductCard> {
                           widget.location,
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.oliveGray,
+                            color: AppColors.oliveGray.withOpacity(0.5),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

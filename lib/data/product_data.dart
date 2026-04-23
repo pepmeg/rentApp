@@ -7,34 +7,35 @@ class ProductData {
         name: 'Электродрель',
         price: 500,
         location: 'Йошкар-Ола',
-        image: 'assets/drill.png'
+        images: ['assets/drill.png'],
     ),
     Product(
         id: 2,
         name: 'Палатка',
         price: 1300,
         location: 'Йошкар-Ола',
-        image: 'assets/palatka.png'
+        images: ['assets/palatka.png'],
     ),
   ];
 
-  static List<Product> getAllProducts(){
-    return products;
-  }
+  static List<Product> getAllProducts() => products;
 
   static List<Product> searchProducts(String query) {
     if (query.isEmpty) return products;
-
-    return products.where((product){
-      return product.name.toLowerCase().contains(query.toLowerCase());
-    }).toList();
+    return products
+        .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
   }
 
   static Product? getProductById(int id) {
     try {
-      return products.firstWhere((product) => product.id == id);
-    } catch (e) {
+      return products.firstWhere((p) => p.id == id);
+    } catch (_) {
       return null;
     }
+  }
+
+  static void addProduct(Product product) {
+    products.add(product);
   }
 }
