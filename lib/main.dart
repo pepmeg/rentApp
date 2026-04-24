@@ -15,7 +15,12 @@ import 'package:untitled/provider/favorite_provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/bottomNavBar.dart';
 
-void main() {
+import 'data/product_data.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ProductData.loadFromPrefs();
+
   runApp(
     MultiProvider(
       providers: [

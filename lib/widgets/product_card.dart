@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/provider/favorite_provider.dart';
@@ -44,14 +45,27 @@ class ProductCardState extends State<ProductCard> {
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                   child: widget.images.isNotEmpty
+                      ? (widget.images[0].startsWith('assets/')
                       ? Image.asset(
                     widget.images[0],
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   )
+                      : Image.file(
+                    File(widget.images[0]),
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 120,
+                      color: AppColors.oliveGray,
+                      child: const Icon(Icons.image_not_supported),
+                    ),
+                  ))
                       : Container(
                     height: 120,
+                    width: double.infinity,
                     color: AppColors.oliveGray,
                     child: const Icon(Icons.image_not_supported),
                   ),

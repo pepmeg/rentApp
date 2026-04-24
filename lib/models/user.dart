@@ -1,4 +1,5 @@
 class UserModel {
+  final int id;
   final String email;
   final String password;
   final String firstName;
@@ -8,6 +9,7 @@ class UserModel {
   final String? avatarPath;
 
   UserModel({
+    required this.id,
     required this.email,
     required this.password,
     required this.firstName,
@@ -19,6 +21,7 @@ class UserModel {
 
   Map<String, dynamic> toJson() =>
       {
+        'id': id,
         'email': email,
         'password': password,
         'firstName': firstName,
@@ -30,6 +33,7 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
+        id: json['id'] ?? '',
         email: json['email'] ?? '',
         password: json['password'] ?? '',
         firstName: json['firstName'] ?? '',

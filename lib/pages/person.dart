@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,11 +7,8 @@ import 'package:untitled/pages/edit_profile.dart';
 import 'package:untitled/pages/user_orders.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/utils/colors.dart';
-
-import '../models/activeLease.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../widgets/lease_card.dart';
-import 'home.dart';
 
 class Profile extends StatelessWidget {
   @override
@@ -207,7 +203,7 @@ class Profile extends StatelessWidget {
                     Icon(Icons.check_box, size: 22, color: AppColors.oliveGray),
                     SizedBox(width: 15),
                     Text(
-                      'Мои заказы',
+                      'Мои объявления',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

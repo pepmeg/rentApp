@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/models/user.dart';
@@ -44,12 +45,30 @@ class _EditProfileState extends State<EditProfile> {
     super.dispose();
   }
 
+  Future<String> _saveAvatarPermanently(String sourcePath) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final avatarDir = Directory('${directory.path}/avatars');
+      if (!await avatarDir.exists()) {
+        await avatarDir.create(recursive: true);
+      }
+      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final savedImage = File('${avatarDir.path}/$fileName');
+      await File(sourcePath).copy(savedImage.path);
+      return savedImage.path;
+    } catch (e) {
+      print('Ошибка сохранения аватара: $e');
+      return sourcePath;
+    }
+  }
+
   Future<void> save() async {
     final authProvider = context.read<AuthProvider>();
     final currentUser = authProvider.currentUser;
     if (currentUser == null) return;
 
     final updatedUser = UserModel(
+      id: currentUser.id,
       email: emailController.text.trim(),
       password: currentUser.password,
       firstName: firstNameController.text.trim(),
@@ -69,8 +88,9 @@ class _EditProfileState extends State<EditProfile> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      final permanentPath = await _saveAvatarPermanently(pickedFile.path);
       setState(() {
-        _avatarPath = pickedFile.path;
+        _avatarPath = permanentPath;
       });
     }
   }
@@ -109,6 +129,12 @@ class _EditProfileState extends State<EditProfile> {
                   height: 100,
                   width: 100,
                   fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Image.asset(
+                    'assets/silly_cat.jpg',
+                    height: 100,
+                    width: 100,
+                    fit: BoxFit.cover,
+                  ),
                 )
                     : Image.asset(
                   'assets/silly_cat.jpg',

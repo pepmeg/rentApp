@@ -43,6 +43,7 @@ class RegistrationState extends State<Registration> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final newUser = UserModel(
+      id: DateTime.now().millisecondsSinceEpoch,
       email: emailController.text.trim(),
       password: passwordController.text.trim(),
       firstName: firstNameController.text.trim(),

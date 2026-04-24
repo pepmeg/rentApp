@@ -1,5 +1,6 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:untitled/widgets/product_image.dart';
 import '../utils/colors.dart';
 
 class BasketCard extends StatelessWidget {
@@ -37,11 +38,11 @@ class BasketCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Card(
       color: AppColors.whiteAntique,
       child: Container(
-        padding: EdgeInsetsGeometry.all(25),
+        padding: const EdgeInsets.all(25),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           color: AppColors.whiteAntique,
@@ -53,13 +54,14 @@ class BasketCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                  child: Image.asset(
-                    images[0],
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
+                    child: ProductImage(
+                      images: images,
+                      width: 80,
+                      height: 80,
+                      backgroundColor: AppColors.whiteAntique,
+                    ),
                 ),
-                SizedBox(width: 15),
+                const SizedBox(width: 15),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,7 +70,7 @@ class BasketCard extends StatelessWidget {
                         children: [
                           Text(
                             name,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.normal,
                               color: AppColors.oliveGray,
@@ -76,10 +78,10 @@ class BasketCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Spacer(),
+                          const Spacer(),
                           GestureDetector(
                             onTap: onRemove,
-                            child: Icon(
+                            child: const Icon(
                               Icons.delete_outline,
                               size: 30,
                               color: AppColors.oliveGray,
@@ -87,78 +89,78 @@ class BasketCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       Text(
                         '$price ₽ за день',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.normal,
                           color: AppColors.oliveGray.withOpacity(0.5),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                )
-
+                ),
               ],
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             Container(
-              padding: EdgeInsetsGeometry.symmetric(horizontal: 15, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
                 color: AppColors.spaceCream,
               ),
               child: Row(
-                  children: [
-                    Text(
-                      'Срок аренды',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                children: [
+                  const Text(
+                    'Срок аренды',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      if (days > 1) {
+                        onDaysChanged(days - 1);
+                      }
+                    },
+                    child: Icon(
+                      Icons.exposure_minus_1,
+                      size: 15,
+                      color: days > 1
+                          ? AppColors.oliveGray
+                          : AppColors.oliveGray.withOpacity(0.3),
                     ),
-                    Spacer(),
-                    GestureDetector(
-                      onTap: () {
-                        if (days > 1) {
-                          onDaysChanged(days - 1);
-                        }
-                      },
-                      child: Icon(
-                        Icons.exposure_minus_1,
-                        size: 15,
-                        color: days > 1
-                            ? AppColors.oliveGray
-                            : AppColors.oliveGray.withOpacity(0.3),
+                  ),
+                  const SizedBox(width: 15),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      '$days ${_getDaysWord(days)}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.normal,
+                        color: AppColors.oliveGray,
                       ),
                     ),
-                    SizedBox(width: 15,),
-                    SizedBox(
-                      width: 70,
-                      child: Text(
-                        '$days ${_getDaysWord(days)}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.normal,
-                          color: AppColors.oliveGray,
-                        ),
-                      ),
+                  ),
+                  const SizedBox(width: 15),
+                  GestureDetector(
+                    onTap: () {
+                      if (days < 99) {
+                        onDaysChanged(days + 1);
+                      }
+                    },
+                    child: Icon(
+                      Icons.plus_one,
+                      size: 15,
+                      color: days < 99
+                          ? AppColors.oliveGray
+                          : AppColors.oliveGray.withOpacity(0.3),
                     ),
-                    SizedBox(width: 15,),
-                    GestureDetector(
-                      onTap: () {
-                        if (days < 99) {
-                          onDaysChanged(days + 1);
-                        }
-                      },
-                      child: Icon(
-                        Icons.plus_one,
-                        size: 15,
-                        color: days < 99
-                            ? AppColors.oliveGray
-                            : AppColors.oliveGray.withOpacity(0.3),
-                      ),
-                    ),
-                  ]
+                  ),
+                ],
               ),
             ),
           ],
@@ -167,4 +169,3 @@ class BasketCard extends StatelessWidget {
     );
   }
 }
-
