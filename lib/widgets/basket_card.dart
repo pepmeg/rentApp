@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:untitled/widgets/plural.dart';
 import 'package:untitled/widgets/product_image.dart';
 import '../utils/colors.dart';
 
@@ -22,20 +23,6 @@ class BasketCard extends StatelessWidget {
     required this.onRemove,
     super.key,
   });
-
-  String _getDaysWord(int days) {
-    if (days % 100 >= 11 && days % 100 <= 19) return 'дней';
-    switch (days % 10) {
-      case 1:
-        return 'день';
-      case 2:
-      case 3:
-      case 4:
-        return 'дня';
-      default:
-        return 'дней';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +123,7 @@ class BasketCard extends StatelessWidget {
                   SizedBox(
                     width: 70,
                     child: Text(
-                      '$days ${_getDaysWord(days)}',
+                      '$days ${Plural.days(days)}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 16,

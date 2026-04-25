@@ -3,24 +3,30 @@ import '../models/activeLease.dart';
 
 class ActiveLeasesProvider extends ChangeNotifier {
   final List<ActiveLease> _leases = [];
+  int _totalLeases = 0;
 
   List<ActiveLease> get leases => _leases;
-
-  int get activeCount => _leases.length;
+  int get activeCount => _leases.where((l) => l.status == LeaseStatus.active).length;
+  int get totalLeasesCount => _totalLeases;
 
   bool addPendingLease(ActiveLease lease) {
     final exists = _leases.any((l) => l.productId == lease.productId);
     if (exists) return false;
-
     _leases.add(lease);
     notifyListeners();
     return true;
   }
 
+  void addActiveLease(ActiveLease lease) {
+    _leases.add(lease);
+    _totalLeases++;
+    notifyListeners();
+  }
+
   void activateLease(int productId, String name, int pricePerDay, int totalDays) {
     final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.pending);
     if (index != -1) {
-      final updated = ActiveLease(
+      _leases[index] = ActiveLease(
         productId: productId,
         name: name,
         pricePerDay: pricePerDay,
@@ -28,9 +34,8 @@ class ActiveLeasesProvider extends ChangeNotifier {
         totalDays: totalDays,
         status: LeaseStatus.active,
       );
-      _leases[index] = updated;
     } else {
-      _leases.add(ActiveLease(
+      addActiveLease(ActiveLease(
         productId: productId,
         name: name,
         pricePerDay: pricePerDay,
@@ -47,8 +52,8 @@ class ActiveLeasesProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeLease(ActiveLease lease) {
-    _leases.remove(lease);
+  void incrementTotalLeases() {
+    _totalLeases++;
     notifyListeners();
   }
 }

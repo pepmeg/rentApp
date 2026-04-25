@@ -8,6 +8,8 @@ import 'package:untitled/models/product.dart';
 import 'package:untitled/data/product_data.dart';
 import '../data/category.dart';
 import '../provider/AuthProvider.dart';
+import '../utils/form_fields.dart';
+import '../utils/snackbar_custom.dart';
 
 class AddProduct extends StatefulWidget {
   const AddProduct({super.key});
@@ -23,10 +25,14 @@ class _AddProductState extends State<AddProduct> {
   final TextEditingController daysController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController brandController = TextEditingController();
   final List<String> _imagePaths = [];
+  final _formKey = GlobalKey<FormState>();
 
   String? _selectedCategory;
   String? _selectedSubcategory;
+  bool _categoryError = false;
+  bool _subcategoryError = false;
 
   static const int maxImages = 10;
 
@@ -55,9 +61,7 @@ class _AddProductState extends State<AddProduct> {
 
     final remaining = maxImages - _imagePaths.length;
     if (remaining <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Достигнут лимит в 15 фотографий')),
-      );
+      SnackBarCustom.show(context, message: 'Достигнут лимит в 10 фотографий');
       return;
     }
 
@@ -72,23 +76,7 @@ class _AddProductState extends State<AddProduct> {
     setState(() {});
 
     if (added < pickedFiles.length) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-        SnackBar(
-          content: Text(
-          'Добавлено $added из ${pickedFiles.length}. Лимит 15 фото.',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.whiteAntique),
-        ),
-          backgroundColor: AppColors.oliveGray,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      SnackBarCustom.show(context, message: 'Добавлено $added из ${pickedFiles.length}. Лимит 10 фото.');
     }
   }
 
@@ -108,32 +96,52 @@ class _AddProductState extends State<AddProduct> {
     final currentUser = authProvider.currentUser;
 
     if (currentUser == null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-        SnackBar(content: const Text(
-            'Пользователь не авторизован',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.whiteAntique),
-        ),
-          backgroundColor: AppColors.oliveGray,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      SnackBarCustom.show(context, message: 'Пользователь не авторизован');
+      return;
+    }
+
+    setState(() {
+      _categoryError = false;
+      _subcategoryError = false;
+    });
+
+    final formValid = _formKey.currentState!.validate();
+
+    final catError = (_selectedCategory == null || _selectedCategory!.isEmpty);
+    final subError = (_selectedSubcategory == null || _selectedSubcategory!.isEmpty);
+    if (catError || subError) {
+      setState(() {
+        _categoryError = catError;
+        _subcategoryError = subError;
+      });
+    }
+
+    if (!formValid || catError || subError) {
+      final List<String> messages = [];
+      if (!formValid) messages.add('Поля заполнены неверно');
+      if (catError) messages.add('Выберите категорию');
+      if (subError) messages.add('Выберите подкатегорию');
+      SnackBarCustom.show(context, message: messages.join('\n'));
       return;
     }
 
     final name = nameController.text.trim();
     final price = int.tryParse(priceController.text.trim());
     if (name.isEmpty || price == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите название и цену')),
-      );
       return;
+    }
+
+    String location = locationController.text.trim();
+    if (location.isEmpty) {
+      if (currentUser.address != null && currentUser.address!.isNotEmpty) {
+        location = currentUser.address!;
+      } else {
+        SnackBarCustom.show(
+          context,
+          message: 'Укажите город/район или заполните адрес в профиле',
+        );
+        return;
+      }
     }
 
     final newProduct = Product(
@@ -141,37 +149,27 @@ class _AddProductState extends State<AddProduct> {
       ownerId: currentUser.id,
       name: name,
       price: price!,
-      location: locationController.text.trim().isEmpty ? 'Не указано' : locationController.text.trim(),
+      location: locationController.text.trim().isEmpty
+          ? 'Не указано'
+          : locationController.text.trim(),
       images: List<String>.from(_imagePaths),
       category: _selectedCategory ?? '',
       subcategory: _selectedSubcategory ?? '',
       description: descriptionController.text.trim(),
+      brand: brandController.text.trim(),
+      minRentDays: int.tryParse(daysController.text.trim()) ?? 1,
       createdAt: DateTime.now(),
     );
 
     ProductData.addProduct(newProduct);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-      SnackBar(content: const Text(
-          'Товар добавлен',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.whiteAntique),
-      ),
-      backgroundColor: AppColors.oliveGray,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 3),
-    ),
-    );
+    SnackBarCustom.show(context, message: 'Товар добавлен');
 
     nameController.clear();
     priceController.clear();
     daysController.clear();
     locationController.clear();
     descriptionController.clear();
+    brandController.clear();
     setState(() {
       _imagePaths.clear();
       _selectedCategory = null;
@@ -183,6 +181,7 @@ class _AddProductState extends State<AddProduct> {
   void dispose() {
     nameController.dispose();
     categoryController.dispose();
+    brandController.dispose();
     priceController.dispose();
     daysController.dispose();
     locationController.dispose();
@@ -195,6 +194,8 @@ class _AddProductState extends State<AddProduct> {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
+        child: Form(
+          key: _formKey,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,9 +203,10 @@ class _AddProductState extends State<AddProduct> {
               const Text(
                 'Добавить товар',
                 style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.oliveGray),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.oliveGray,
+                ),
               ),
               const SizedBox(height: 15),
               SizedBox(
@@ -216,19 +218,21 @@ class _AddProductState extends State<AddProduct> {
                     if (index == _imagePaths.length) {
                       return _imagePaths.length < maxImages
                           ? GestureDetector(
-                        onTap: _pickImages,
-                        child: Container(
-                          height: 100,
-                          width: 100,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.whiteAntique,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Icon(Icons.add_a_photo,
-                              color: AppColors.oliveGray),
-                        ),
-                      )
+                              onTap: _pickImages,
+                              child: Container(
+                                height: 100,
+                                width: 100,
+                                margin: const EdgeInsets.only(right: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.whiteAntique,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: const Icon(
+                                  Icons.add_a_photo,
+                                  color: AppColors.oliveGray,
+                                ),
+                              ),
+                            )
                           : const SizedBox.shrink();
                     }
                     return GestureDetector(
@@ -250,47 +254,73 @@ class _AddProductState extends State<AddProduct> {
                 ),
               ),
               const SizedBox(height: 10),
-              _buildField(nameController, 'Название товара'),
+              AppTextField(controller: nameController, hint: 'Название товара',
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Введите название' : null,),
               const SizedBox(height: 10),
-              _buildDropdown(
+              AppDropdownMenu(
                 value: _selectedCategory,
                 hint: 'Категория',
-                items: categories.map((cat) => DropdownMenuItem(value: cat.name, child: Text(cat.name))).toList(),
+                errorText: _categoryError ? 'Выберите категорию' : null,
+                options: categories.map((cat) => cat.name).toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value;
                     _selectedSubcategory = null;
+                    _categoryError = false;
+                    _subcategoryError = false;
                   });
                 },
               ),
               const SizedBox(height: 10),
-              _buildDropdown(
+              AppDropdownMenu(
+                key: ValueKey('subcategory_$_selectedCategory'),
                 value: _selectedSubcategory,
                 hint: 'Подкатегория',
-                items: _selectedCategory != null
+                errorText: _categoryError ? 'Выберите подкатегорию' : null,
+                options: _selectedCategory != null
                     ? categories
                     .firstWhere((c) => c.name == _selectedCategory)
                     .subcategories
-                    .map((sub) => DropdownMenuItem(value: sub, child: Text(sub)))
-                    .toList()
                     : [],
                 onChanged: _selectedCategory != null
-                    ? (value) => setState(() => _selectedSubcategory = value)
+                    ? (value) {
+                  setState(() {
+                    _selectedSubcategory = value;
+                    _subcategoryError = false;
+                  });
+                }
                     : null,
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(child: _buildField(priceController, '500 ₽')),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildField(daysController, 'Срок аренды (дни)')),
-                ],
+              AppTextField(controller: brandController, hint: 'Бренд'),
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: daysController,
+                hint: 'Минимальный срок аренды (дни)',
+                maxLines: 1,
               ),
               const SizedBox(height: 10),
-              _buildField(locationController, 'Город, район'),
+              AppTextField(
+                controller: priceController,
+                hint: 'Цена, ₽',
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Введите цену';
+                  if (int.tryParse(v.trim()) == null) return 'Цена должна быть числом';
+                  return null;
+                },
+              ),
               const SizedBox(height: 10),
-              _buildField(descriptionController,
-                  'Опишите товар, его состояние и условия аренды...'),
+              AppTextField(
+                controller: locationController,
+                hint: 'Город, район (необязательно)',
+              ),
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: descriptionController,
+                hint: 'Опишите товар, его состояние и условия аренды...',
+                maxLines: 10,
+                minLines: 1,
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _addProduct,
@@ -300,10 +330,11 @@ class _AddProductState extends State<AddProduct> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 child: const Text(
-                  'Создать',
+                  'Опубликовать',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -312,61 +343,6 @@ class _AddProductState extends State<AddProduct> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDropdown({
-    required String? value,
-    required String hint,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.whiteAntique,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey, width: 2),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          hint: Text(hint, style: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16)),
-          isExpanded: true,
-          icon: const Icon(Icons.arrow_drop_down, color: AppColors.oliveGray),
-          style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
-          items: items,
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-            color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
-        filled: true,
-        fillColor: AppColors.whiteAntique,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Colors.grey, width: 2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide:
-          const BorderSide(color: AppColors.oliveGray, width: 2),
-        ),
-        contentPadding:
-        const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       ),
     );
   }

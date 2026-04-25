@@ -8,6 +8,7 @@ import 'package:untitled/pages/favorite.dart';
 import 'package:untitled/pages/home.dart';
 import 'package:untitled/pages/person.dart';
 import 'package:untitled/pages/shopping_basket.dart';
+import 'package:untitled/provider/LeaseRequestProvider.dart';
 import 'package:untitled/provider/activeLeasesProvider.dart';
 import 'package:untitled/provider/basket_provider.dart';
 import 'package:untitled/provider/bottom_nav_provider.dart';
@@ -29,6 +30,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => BasketProvider()),
         ChangeNotifierProvider(create: (context) => ActiveLeasesProvider()),
         ChangeNotifierProvider(create: (context) => BottomNavProvider()),
+        ChangeNotifierProvider(create: (_) => LeaseRequestProvider()),
       ],
         child: MyApp(),
     ),

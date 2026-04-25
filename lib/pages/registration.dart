@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import '../models/user.dart';
 import '../utils/colors.dart';
+import '../utils/form_fields.dart';
+import '../utils/snackbar_custom.dart';
 
 class Registration extends StatefulWidget {
   @override
@@ -35,9 +37,7 @@ class RegistrationState extends State<Registration> {
     if (!formKey.currentState!.validate()) return;
 
     if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Пароли не совпадают')));
+      SnackBarCustom.show(context, message: 'Пароли не совпадают');
       return;
     }
 
@@ -56,9 +56,7 @@ class RegistrationState extends State<Registration> {
     if (success) {
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка регистрации. Попробуйте другой email.')),
-      );
+      SnackBarCustom.show(context, message: 'Ошибка регистрации. Попробуйте другой email.');
     }
   }
 
@@ -72,78 +70,75 @@ class RegistrationState extends State<Registration> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'Регистрация',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.oliveGray,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
               ),
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
               Row(
                 children: [
                   Expanded(
-                    child: buildInputField(
-                      firstNameController,
-                      'Имя',
+                    child: AppTextField(
+                      controller: firstNameController,
+                      hint: 'Имя',
                       validator: (v) => v!.isEmpty ? 'Введите имя' : null,
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: buildInputField(
-                      lastNameController,
-                      'Фамилия',
+                    child: AppTextField(
+                      controller: lastNameController,
+                      hint: 'Фамилия',
                       validator: (v) => v!.isEmpty ? 'Введите фамилию' : null,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 10),
-              buildInputField(
-                addressController,
-                'Адрес',
-                validator: (v) => v!.isEmpty ? 'Введите адрес' : null,
+              const SizedBox(height: 10),
+              // Адрес необязателен
+              AppTextField(
+                controller: addressController,
+                hint: 'Адрес',
               ),
-              SizedBox(height: 10),
-              buildInputField(
-                phoneNumberController,
-                '+79643435453',
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: phoneNumberController,
+                hint: '+79643435453',
                 validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
               ),
-              SizedBox(height: 10),
-              buildInputField(
-                emailController,
-                'yourmail@shrestha.com',
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: emailController,
+                hint: 'yourmail@shrestha.com',
+                keyboardType: TextInputType.emailAddress,
                 validator: (v) {
                   if (v!.isEmpty) return 'Введите email';
                   if (!v.contains('@')) return 'Введите корректный email';
                   return null;
                 },
               ),
-              SizedBox(height: 10),
-              buildInputField(
-                passwordController,
-                'Пароль',
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: passwordController,
+                hint: 'Пароль',
+                maxLines: 1,
                 obscure: true,
-                validator: (v) => v!.length < 6
-                    ? 'Пароль должен быть не менее 6 символов'
-                    : null,
+                validator: (v) =>
+                v!.length < 6 ? 'Пароль должен быть не менее 6 символов' : null,
               ),
-              SizedBox(height: 10),
-              buildInputField(
-                confirmPasswordController,
-                'Подтвердите пароль',
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: confirmPasswordController,
+                hint: 'Подтвердите пароль',
+                maxLines: 1,
                 obscure: true,
                 validator: (v) {
                   if (v!.isEmpty) return 'Подтвердите пароль';
-                  if (v != passwordController.text)
-                    return 'Пароли не совпадают';
+                  if (v != passwordController.text) return 'Пароли не совпадают';
                   return null;
                 },
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
                   return ElevatedButton(
@@ -152,25 +147,25 @@ class RegistrationState extends State<Registration> {
                       backgroundColor: AppColors.copper,
                       foregroundColor: AppColors.oliveGray,
                       minimumSize: const Size(double.infinity, 48),
-                      padding: const EdgeInsets.symmetric(vertical: 5,),
+                      padding: const EdgeInsets.symmetric(vertical: 5),
                     ),
                     child: authProvider.isLoading
                         ? CircularProgressIndicator()
-                        : Text(
-                            'Зарегистрироваться',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.spaceCream,
-                            ),
-                          ),
+                        : const Text(
+                      'Зарегистрироваться',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.spaceCream,
+                      ),
+                    ),
                   );
                 },
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Text(
+                child: const Text(
                   'вернуться',
                   style: TextStyle(
                     fontSize: 16,
@@ -181,40 +176,6 @@ class RegistrationState extends State<Registration> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildInputField(
-    TextEditingController controller,
-    String hint, {
-    bool obscure = false,
-    String? Function(String?)? validator,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.whiteAntique,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscure,
-        validator: validator,
-        style: TextStyle(
-          fontSize: 16,
-          color: AppColors.oliveGray,
-          fontWeight: FontWeight.normal,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(
-            fontSize: 16,
-            color: AppColors.oliveGray.withOpacity(0.5),
-            fontWeight: FontWeight.normal,
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/product_image.dart';
 import '../data/product_data.dart';
 import '../provider/favorite_provider.dart';
+import '../utils/snackbar_custom.dart';
 
 class FavoriteCard extends StatefulWidget {
   final int id;
@@ -41,9 +42,7 @@ class FavoriteCardState extends State<FavoriteCard> {
             MaterialPageRoute(builder: (context) => ProductScreen(product: product)),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Товар не найден')),
-          );
+          SnackBarCustom.show(context, message: 'Товар не найден');
         }
       },
       child: Card(

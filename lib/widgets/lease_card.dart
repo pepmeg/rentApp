@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/models/activeLease.dart';
+import 'package:untitled/widgets/plural.dart';
 
 class LeaseCard extends StatelessWidget {
   final ActiveLease lease;
@@ -101,21 +102,5 @@ class LeaseCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class Plural {
-  static String days(int count) {
-    if (count % 100 >= 11 && count % 100 <= 19) return 'дней';
-    switch (count % 10) {
-      case 1:
-        return 'день';
-      case 2:
-      case 3:
-      case 4:
-        return 'дня';
-      default:
-        return 'дней';
-    }
   }
 }

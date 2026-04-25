@@ -8,6 +8,8 @@ class Product {
   final String category;
   final String description;
   final String subcategory;
+  final String brand;
+  final int minRentDays;
   final DateTime createdAt;
 
   Product({
@@ -20,6 +22,8 @@ class Product {
     this.category = '',
     this.subcategory = '',
     this.description = '',
+    this.brand = '',
+    this.minRentDays = 1,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -34,6 +38,8 @@ class Product {
     'category': category,
     'description': description,
     'subcategory': subcategory,
+    'brand': brand,
+    'minRentDays': minRentDays,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -47,6 +53,8 @@ class Product {
     category: json['category'] as String,
     subcategory: json['subcategory'] as String? ?? '',
     description: json['description'] as String,
+    brand: json['brand'] as String? ?? '',
+    minRentDays: json['minRentDays'] as int? ?? 1,
     createdAt: DateTime.parse(json['createdAt'] as String),
   );
 }

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:untitled/pages/registration.dart';
 import 'package:untitled/utils/colors.dart';
 import '../provider/AuthProvider.dart';
+import '../utils/form_fields.dart';
+import '../utils/snackbar_custom.dart';
 
 class Login extends StatefulWidget {
   @override
@@ -30,9 +32,7 @@ class Login extends StatefulWidget {
     if (success) {
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Неверный email или пароль')),
-      );
+      SnackBarCustom.show(context, message: 'Неверный email или пароль');
     }
   }
 
@@ -59,30 +59,10 @@ class Login extends StatefulWidget {
                 ],
               ),
               SizedBox(height: 10,),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.whiteAntique,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.oliveGray,
-                    fontWeight: FontWeight.normal,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'yourmail@shrestha.com',
-                    hintStyle: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.oliveGray.withOpacity(0.5),
-                      fontWeight: FontWeight.normal,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
-                  ),
-                ),
+              AppTextField(
+                controller: emailController,
+                hint: 'yourmail@shrestha.com',
+                keyboardType: TextInputType.emailAddress,
               ),
               SizedBox(height: 30,),
               Row(
@@ -95,34 +75,12 @@ class Login extends StatefulWidget {
                 ],
               ),
               SizedBox(height: 10,),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.whiteAntique,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.oliveGray,
-                    fontWeight: FontWeight.normal,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '● ● ● ● ● ● ● ● ●',
-                    hintStyle: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.oliveGray.withOpacity(0.5),
-                      fontWeight: FontWeight.normal,
-                    ),
-                    suffixIcon: IconButton(
-                        onPressed: () {},
-                        icon: Icon(Icons.panorama_fish_eye, size: 25, color: AppColors.oliveGray,),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsetsGeometry.symmetric(vertical: 15, horizontal: 20),
-                  ),
-                ),
+              AppTextField(
+                controller: passwordController,
+                hint: '••••••••',
+                maxLines: 1,
+                obscure: true,
+                isPassword: true,
               ),
               SizedBox(height: 70,),
               Consumer<AuthProvider>(

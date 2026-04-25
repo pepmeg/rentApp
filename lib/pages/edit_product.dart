@@ -5,7 +5,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/models/product.dart';
 import 'package:untitled/data/product_data.dart';
+import 'package:untitled/utils/form_fields.dart';
 import '../data/category.dart';
+import '../utils/snackbar_custom.dart';
 
 class EditProduct extends StatefulWidget {
   final Product product;
@@ -18,15 +20,15 @@ class EditProduct extends StatefulWidget {
 
 class _EditProductState extends State<EditProduct> {
   late TextEditingController nameController;
-  late TextEditingController categoryController;
   late TextEditingController priceController;
   late TextEditingController daysController;
   late TextEditingController locationController;
   late TextEditingController descriptionController;
+  late TextEditingController brandController;
   late List<String> _imagePaths;
   String? _selectedCategory;
   String? _selectedSubcategory;
-  static const int maxImages = 15;
+  static const int maxImages = 10;
 
   Future<String> _saveImagePermanently(String sourcePath) async {
     try {
@@ -50,11 +52,11 @@ class _EditProductState extends State<EditProduct> {
     super.initState();
     final p = widget.product;
     nameController = TextEditingController(text: p.name);
-    categoryController = TextEditingController();
     priceController = TextEditingController(text: p.price.toString());
-    daysController = TextEditingController();
+    daysController = TextEditingController(text: p.minRentDays.toString());
     locationController = TextEditingController(text: p.location);
     descriptionController = TextEditingController(text: p.description);
+    brandController = TextEditingController(text: p.brand);
     _imagePaths = List.from(p.images);
     _selectedCategory = p.category.isEmpty ? null : p.category;
     _selectedSubcategory = p.subcategory.isEmpty ? null : p.subcategory;
@@ -63,11 +65,11 @@ class _EditProductState extends State<EditProduct> {
   @override
   void dispose() {
     nameController.dispose();
-    categoryController.dispose();
     priceController.dispose();
     daysController.dispose();
     locationController.dispose();
     descriptionController.dispose();
+    brandController.dispose();
     super.dispose();
   }
 
@@ -77,9 +79,7 @@ class _EditProductState extends State<EditProduct> {
     if (pickedFiles == null || pickedFiles.isEmpty) return;
     final remaining = maxImages - _imagePaths.length;
     if (remaining <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Лимит 15 фото')),
-      );
+      SnackBarCustom.show(context, message: 'Лимит 10 фото');
       return;
     }
     final filesToAdd = pickedFiles.take(remaining);
@@ -103,9 +103,7 @@ class _EditProductState extends State<EditProduct> {
     final name = nameController.text.trim();
     final price = int.tryParse(priceController.text.trim());
     if (name.isEmpty || price == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите название и цену')),
-      );
+      SnackBarCustom.show(context, message: 'Введите название и цену');
       return;
     }
     final updatedProduct = Product(
@@ -119,24 +117,12 @@ class _EditProductState extends State<EditProduct> {
       category: _selectedCategory ?? '',
       subcategory: _selectedSubcategory ?? '',
       description: descriptionController.text.trim(),
+      brand: brandController.text.trim(),
+      minRentDays: int.tryParse(daysController.text.trim()) ?? 1,
     );
 
     ProductData.updateProduct(widget.product.id, updatedProduct);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Товар обновлён',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.whiteAntique),
-        ),
-        backgroundColor: AppColors.oliveGray,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(16),
-        duration: Duration(seconds: 3),
-      ),
-    );
+    SnackBarCustom.show(context, message: 'Товар обновлён');
     Navigator.pop(context, true);
   }
 
@@ -160,20 +146,7 @@ class _EditProductState extends State<EditProduct> {
               ProductData.deleteProduct(widget.product.id);
               Navigator.pop(ctx);
               Navigator.pop(context, true);
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Товар удалён',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.whiteAntique),
-                    ),
-                    backgroundColor: AppColors.oliveGray,
-                    behavior: SnackBarBehavior.floating,
-                    margin: EdgeInsets.all(16),
-                    duration: Duration(seconds: 3),
-                  ),
-                );
+              SnackBarCustom.show(context, message: 'Товар удалён');
             },
             child: const Text('Удалить', style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper)),
           ),
@@ -206,7 +179,6 @@ class _EditProductState extends State<EditProduct> {
                 ],
               ),
               const SizedBox(height: 15),
-
               SizedBox(
                 height: 100,
                 child: ListView.builder(
@@ -249,39 +221,55 @@ class _EditProductState extends State<EditProduct> {
                 ),
               ),
               const SizedBox(height: 10),
-              _buildField(nameController, 'Название товара'),
+              AppTextField(controller: nameController, hint: 'Название товара'),
               const SizedBox(height: 10),
-              _buildDropdown(
+              AppDropdownMenu(
                 value: _selectedCategory,
                 hint: 'Категория',
-                items: categories.map((cat) => DropdownMenuItem(value: cat.name, child: Text(cat.name))).toList(),
-                onChanged: (value) => setState(() { _selectedCategory = value; _selectedSubcategory = null; }),
+                options: categories.map((cat) => cat.name).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value;
+                    _selectedSubcategory = null;
+                  });
+                },
               ),
               const SizedBox(height: 10),
-              _buildDropdown(
+              AppDropdownMenu(
+                key: ValueKey('subcategory_$_selectedCategory'),
                 value: _selectedSubcategory,
                 hint: 'Подкатегория',
-                items: _selectedCategory != null
+                options: _selectedCategory != null
                     ? categories
                     .firstWhere((c) => c.name == _selectedCategory)
                     .subcategories
-                    .map((sub) => DropdownMenuItem(value: sub, child: Text(sub)))
-                    .toList()
                     : [],
-                onChanged: _selectedCategory != null ? (value) => setState(() => _selectedSubcategory = value) : null,
+                onChanged: _selectedCategory != null
+                    ? (value) => setState(() => _selectedSubcategory = value)
+                    : null,
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(child: _buildField(priceController, 'Цена (₽)')),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildField(daysController, 'Срок аренды (дни)')),
-                ],
+              AppTextField(controller: brandController, hint: 'Бренд'),
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: daysController,
+                hint: 'Минимальный срок аренды (дни)',
+                maxLines: 1,
               ),
               const SizedBox(height: 10),
-              _buildField(locationController, 'Город, район'),
+              AppTextField(controller: priceController, hint: 'Цена (₽)'),
               const SizedBox(height: 10),
-              _buildField(descriptionController, 'Описание...'),
+              AppTextField(
+                controller: locationController,
+                hint: 'Город, район (необязательно)',
+              ),
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: descriptionController,
+                hint: 'Опишите товар, его состояние и условия аренды...',
+                maxLines: 10,
+                minLines: 1,
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _saveChanges,
@@ -309,59 +297,6 @@ class _EditProductState extends State<EditProduct> {
               const SizedBox(height: 20),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
-        filled: true,
-        fillColor: AppColors.whiteAntique,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Colors.grey, width: 2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: AppColors.oliveGray, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      ),
-    );
-  }
-
-  Widget _buildDropdown({
-    required String? value,
-    required String hint,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.whiteAntique,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey, width: 2),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          hint: Text(hint, style: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16)),
-          isExpanded: true,
-          icon: const Icon(Icons.arrow_drop_down, color: AppColors.oliveGray),
-          style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
-          items: items,
-          onChanged: onChanged,
         ),
       ),
     );

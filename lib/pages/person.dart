@@ -7,8 +7,11 @@ import 'package:untitled/pages/edit_profile.dart';
 import 'package:untitled/pages/user_orders.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/utils/colors.dart';
+import '../data/product_data.dart';
+import '../provider/LeaseRequestProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../widgets/lease_card.dart';
+import 'package:untitled/pages/notifications.dart';
 
 class Profile extends StatelessWidget {
   @override
@@ -17,8 +20,20 @@ class Profile extends StatelessWidget {
     final user = authProvider.currentUser;
     final leasesProvider = context.watch<ActiveLeasesProvider>();
     final leases = leasesProvider.leases;
+    final totalOrders = leasesProvider.totalLeasesCount;
+    final activeOrders = leasesProvider.activeCount;
+
+    final incomingCount = context.watch<LeaseRequestProvider>()
+        .getIncomingRequests(user!.id)
+        .length;
+
+    final userProductsCount = ProductData.products
+        .where((p) => p.ownerId == (user?.id ?? -1))
+        .length;
+
     return Scaffold(
-      body: Padding(
+        body: SingleChildScrollView(
+          child: Padding(
         padding: EdgeInsetsGeometry.only(left: 20, right: 20, top: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +48,29 @@ class Profile extends StatelessWidget {
                     color: AppColors.oliveGray,
                   ),
                 ),
-                Spacer(),
+                Spacer(),Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined, size: 28, color: AppColors.oliveGray),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                    ),
+                    if (incomingCount > 0)
+                      Positioned(
+                        right: 6, top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: AppColors.copper,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text('$incomingCount',
+                              style: const TextStyle(color: Colors.white, fontSize: 10),
+                              textAlign: TextAlign.center),
+                        ),
+                      ),
+                  ],
+                ),
                 GestureDetector(
                   onTap: () async {
                     final authProvider = context.read<AuthProvider>();
@@ -113,7 +150,7 @@ class Profile extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          '12',
+                          '$totalOrders',
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
@@ -122,7 +159,7 @@ class Profile extends StatelessWidget {
                         ),
                         SizedBox(height: 5),
                         Text(
-                          'Заказов',
+                          'Аренды',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.normal,
@@ -136,7 +173,7 @@ class Profile extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          '3',
+                          '$activeOrders',
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
@@ -212,17 +249,18 @@ class Profile extends StatelessWidget {
                     ),
                     const Spacer(),
                     Container(
-                      width: 25,
+                      constraints: const BoxConstraints(minWidth: 25),
                       height: 25,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: AppColors.spaceCream,
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(12.5),
                       ),
                       child: Text(
-                        '3',
+                        '$userProductsCount',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.normal,
                           color: AppColors.oliveGray.withOpacity(0.5),
                         ),
@@ -289,16 +327,18 @@ class Profile extends StatelessWidget {
               )
             else
               ...leases
+                  .take(3)
                   .map(
                     (lease) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: LeaseCard(lease: lease),
-                    ),
-                  )
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: LeaseCard(lease: lease),
+                ),
+              )
                   .toList(),
           ],
         ),
       ),
+        ),
     );
   }
 }
