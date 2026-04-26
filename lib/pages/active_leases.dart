@@ -4,12 +4,18 @@ import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/lease_card.dart';
 import 'package:untitled/provider/activeLeasesProvider.dart';
 
+import '../provider/AuthProvider.dart';
+
 class ActiveLeases extends StatelessWidget {
   const ActiveLeases({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final leases = context.watch<ActiveLeasesProvider>().leases;
+
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    final leases = context.watch<ActiveLeasesProvider>().getLeasesForUser(user.id);
 
     return Scaffold(
       body: Padding(

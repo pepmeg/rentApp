@@ -61,6 +61,23 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<UserModel?> getUserById(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      if (key.startsWith('user_')) {
+        final jsonString = prefs.getString(key);
+        if (jsonString != null) {
+          final userData = jsonDecode(jsonString);
+          if (userData['id'] == id) {
+            return UserModel.fromJson(userData);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> loadUserData() async{
     _setLoading(true);
 

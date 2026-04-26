@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/product_data.dart';
+import '../models/activeLease.dart';
 import '../models/product.dart';
 import '../provider/AuthProvider.dart';
+import '../provider/activeLeasesProvider.dart';
 import '../utils/colors.dart';
 import '../widgets/userOrders_card.dart';
 import 'edit_product.dart';
 
 class UserOrders extends StatefulWidget {
-  const UserOrders({super.key});
+  final int? ownerId;
+  const UserOrders({super.key, this.ownerId});
 
   @override
   State<UserOrders> createState() => UserOrdersState();
@@ -16,17 +19,33 @@ class UserOrders extends StatefulWidget {
 
 class UserOrdersState extends State<UserOrders> {
   String searchQuery = '';
+  bool _showActiveRents = false;
 
   List<Product> get filteredProducts {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return [];
-    final userProducts = ProductData.products
-        .where((p) => p.ownerId == user.id)
+
+    final targetId = widget.ownerId ?? user.id;
+    var userProducts = ProductData.products
+        .where((p) => p.ownerId == targetId)
         .toList();
-    if (searchQuery.isEmpty) return userProducts;
-    return userProducts
-        .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
-        .toList();
+
+    if (_showActiveRents) {
+      final activeLeases = context.read<ActiveLeasesProvider>()
+          .leases
+          .where((l) => l.status == LeaseStatus.active)
+          .toList();
+      final activeProductIds = activeLeases.map((l) => l.productId).toSet();
+      userProducts = userProducts.where((p) => activeProductIds.contains(p.id)).toList();
+    }
+
+    if (searchQuery.isNotEmpty) {
+      userProducts = userProducts
+          .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
+          .toList();
+    }
+
+    return userProducts;
   }
 
   Future<void> _openEditProduct(Product product) async {
@@ -75,12 +94,63 @@ class UserOrdersState extends State<UserOrders> {
               ],
             ),
             const SizedBox(height: 15),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showActiveRents = false),
+                    child: Text(
+                      'Все',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: !_showActiveRents
+                            ? AppColors.oliveGray
+                            : AppColors.oliveGray.withOpacity(0.4),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showActiveRents = true),
+                    child: Text(
+                      'Активные аренды',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _showActiveRents
+                            ? AppColors.oliveGray
+                            : AppColors.oliveGray.withOpacity(0.4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.oliveGray.withOpacity(0.2),
+            ),
+            const SizedBox(height: 10),
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 20),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
                   final product = filteredProducts[index];
+                  ActiveLease? activeLease;
+                  if (_showActiveRents) {
+                    final leases = context.read<ActiveLeasesProvider>().leases;
+                    activeLease = leases.cast<ActiveLease?>().firstWhere(
+                          (l) => l!.productId == product.id && l.status == LeaseStatus.active,
+                      orElse: () => null,
+                    );
+                  }
                   return UserOrdersCard(
                     id: product.id,
                     name: product.name,
@@ -88,6 +158,7 @@ class UserOrdersState extends State<UserOrders> {
                     location: product.location,
                     images: product.images,
                     createdAt: product.createdAt,
+                    activeLease: activeLease,
                     onEdit: () => _openEditProduct(product),
                   );
                 },

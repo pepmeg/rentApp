@@ -2,13 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/basket_card.dart';
-import 'package:untitled/models/lease_request.dart';
-import 'package:untitled/provider/AuthProvider.dart';
 import '../models/activeLease.dart';
-import 'package:untitled/provider/LeaseRequestProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../provider/basket_provider.dart';
-import '../provider/bottom_nav_provider.dart';
 import '../utils/snackbar_custom.dart';
 
 class ShoppingBasket extends StatefulWidget {
@@ -22,30 +18,8 @@ class BasketState extends State<ShoppingBasket> {
 
   void checkout(BuildContext context) {
     final basket = Provider.of<BasketProvider>(context, listen: false);
-    final leasesProvider = Provider.of<ActiveLeasesProvider>(context, listen: false);
-    final leaseRequests = context.read<LeaseRequestProvider>();   // ← добавить
-    final user = context.read<AuthProvider>().currentUser;
-
-    if (user == null) return;
-
-    for (var item in basket.items) {
-      leaseRequests.addRequest(LeaseRequest(
-        id: DateTime.now().millisecondsSinceEpoch,
-        productId: item.id,
-        productName: item.name,
-        pricePerDay: item.price,
-        totalDays: item.days,
-        requesterId: user.id,
-        ownerId: item.ownerId,
-        images: item.images,
-      ));
-    }
-
     basket.clearCart();
-    leasesProvider.incrementTotalLeases();
-
-    SnackBarCustom.show(context, message: 'Аренда оформлена!');
-    context.read<BottomNavProvider>().setIndex(4);
+    SnackBarCustom.show(context, message: 'Корзина очищена (оплата будет позже)');
   }
 
   @override
