@@ -116,7 +116,7 @@ class UserOrdersState extends State<UserOrders> {
                   child: GestureDetector(
                     onTap: () => setState(() => _showActiveRents = true),
                     child: Text(
-                      'Активные аренды',
+                      'Активные объявления',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,

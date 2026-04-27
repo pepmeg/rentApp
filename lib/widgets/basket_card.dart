@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:untitled/widgets/plural.dart';
+import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/product_image.dart';
-import '../utils/colors.dart';
+import 'package:untitled/widgets/plural.dart';
 
 class BasketCard extends StatelessWidget {
   final int id;
@@ -10,8 +9,6 @@ class BasketCard extends StatelessWidget {
   final int price;
   final List<String> images;
   final int days;
-  final Function(int) onDaysChanged;
-  final VoidCallback onRemove;
 
   const BasketCard({
     required this.id,
@@ -19,71 +16,58 @@ class BasketCard extends StatelessWidget {
     required this.price,
     required this.images,
     required this.days,
-    required this.onDaysChanged,
-    required this.onRemove,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    final int totalPrice = price * days;
+
     return Card(
       color: AppColors.whiteAntique,
       child: Container(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           color: AppColors.whiteAntique,
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                    child: ProductImage(
-                      images: images,
-                      width: 80,
-                      height: 80,
-                      backgroundColor: AppColors.whiteAntique,
-                    ),
+                  child: ProductImage(
+                    images: images,
+                    width: 80,
+                    height: 80,
+                    backgroundColor: AppColors.whiteAntique,
+                  ),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.normal,
-                              color: AppColors.oliveGray,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: onRemove,
-                            child: const Icon(
-                              Icons.delete_outline,
-                              size: 30,
-                              color: AppColors.oliveGray,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.normal,
+                          color: AppColors.oliveGray,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        '$price ₽ за день',
+                        '$price ₽ × $days ${Plural.days(days)} = $totalPrice ₽',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.normal,
-                          color: AppColors.oliveGray.withOpacity(0.5),
-                          overflow: TextOverflow.ellipsis,
+                          color: AppColors.oliveGray.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -91,60 +75,29 @@ class BasketCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              height: 1,
+              color: AppColors.oliveGray.withOpacity(0.1),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                color: AppColors.spaceCream,
+                color: AppColors.copper.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Text(
-                    'Срок аренды',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      if (days > 1) {
-                        onDaysChanged(days - 1);
-                      }
-                    },
-                    child: Icon(
-                      Icons.exposure_minus_1,
-                      size: 15,
-                      color: days > 1
-                          ? AppColors.oliveGray
-                          : AppColors.oliveGray.withOpacity(0.3),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      '$days ${Plural.days(days)}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.normal,
-                        color: AppColors.oliveGray,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  GestureDetector(
-                    onTap: () {
-                      if (days < 99) {
-                        onDaysChanged(days + 1);
-                      }
-                    },
-                    child: Icon(
-                      Icons.plus_one,
-                      size: 15,
-                      color: days < 99
-                          ? AppColors.oliveGray
-                          : AppColors.oliveGray.withOpacity(0.3),
+                  Icon(Icons.access_time, size: 18, color: AppColors.copper),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Оплатите в течение 24 часов',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.copper,
                     ),
                   ),
                 ],

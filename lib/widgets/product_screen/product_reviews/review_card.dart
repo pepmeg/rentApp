@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:untitled/models/review.dart';
 import 'package:untitled/utils/colors.dart';
 
-class ReviewCard extends StatelessWidget {
+class ReviewCard extends StatefulWidget {
   final Review review;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -17,9 +17,21 @@ class ReviewCard extends StatelessWidget {
   });
 
   @override
+  State<ReviewCard> createState() => _ReviewCardState();
+}
+
+class _ReviewCardState extends State<ReviewCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final review = widget.review;
     final dateFormatted = DateFormat('dd.MM.yyyy').format(review.createdAt);
-    final bool canModify = onEdit != null || onDelete != null;
+    final bool canModify = widget.onEdit != null || widget.onDelete != null;
+    final bool isLong = review.text.length > 150;
+    final displayText = (_expanded || !isLong)
+        ? review.text
+        : '${review.text.substring(0, 100)}...';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -32,11 +44,17 @@ class ReviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: review.userAvatarPath.isNotEmpty
-                    ? Image.file(File(review.userAvatarPath), width: 40, height: 40, fit: BoxFit.cover)
-                    : Image.asset('assets/silly_cat.jpg', width: 40, height: 40, fit: BoxFit.cover),
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.oliveGray.withOpacity(0.1),
+                backgroundImage: review.userAvatarPath.isNotEmpty
+                    ? (review.userAvatarPath.startsWith('assets/')
+                    ? AssetImage(review.userAvatarPath)
+                    : FileImage(File(review.userAvatarPath)))
+                    : null,
+                child: review.userAvatarPath.isEmpty
+                    ? Icon(Icons.person, color: AppColors.oliveGray, size: 24)
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -50,16 +68,16 @@ class ReviewCard extends StatelessWidget {
                 ),
               ),
               if (canModify) ...[
-                if (onEdit != null)
+                if (widget.onEdit != null)
                   IconButton(
                     icon: const Icon(Icons.edit, size: 18, color: AppColors.oliveGray),
-                    onPressed: onEdit,
+                    onPressed: widget.onEdit,
                     visualDensity: VisualDensity.compact,
                   ),
-                if (onDelete != null)
+                if (widget.onDelete != null)
                   IconButton(
                     icon: const Icon(Icons.delete, size: 18, color: AppColors.wildWatermelon),
-                    onPressed: onDelete,
+                    onPressed: widget.onDelete,
                     visualDensity: VisualDensity.compact,
                   ),
               ],
@@ -75,7 +93,33 @@ class ReviewCard extends StatelessWidget {
           ),
           if (review.text.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(review.text, style: const TextStyle(fontSize: 14, color: AppColors.oliveGray)),
+            Text(
+              displayText,
+              style: const TextStyle(fontSize: 14, color: AppColors.oliveGray),
+            ),
+            if (isLong) ...[
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Row(
+                  children: [
+                    Text(
+                      _expanded ? 'Свернуть' : 'Посмотреть полностью',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.copper,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      size: 16,
+                      color: AppColors.copper,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ],
       ),

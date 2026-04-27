@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled/models/lease_request.dart';
-import 'package:untitled/models/activeLease.dart';
 import 'package:untitled/provider/activeLeasesProvider.dart';
+import '../models/activeLease.dart';
+import '../models/cart_item.dart';
+import 'basket_provider.dart';
 
 class LeaseRequestProvider extends ChangeNotifier {
   final List<LeaseRequest> _requests = [];
@@ -36,20 +38,36 @@ class LeaseRequestProvider extends ChangeNotifier {
     if (index == -1) return;
 
     final request = _requests[index];
-    request.status = RequestStatus.accepted;
 
-    leasesProvider.addActiveLease(ActiveLease(
-      productId: request.productId,
-      name: request.productName,
-      pricePerDay: request.pricePerDay,
-      startDate: DateTime.now(),
-      totalDays: request.totalDays,
-      userId: request.requesterId,
-      userFirstName: request.requesterFirstName,
-      userLastName: request.requesterLastName,
+    final hasActiveLease = leasesProvider.leases.any(
+          (l) => l.productId == request.productId && l.status == LeaseStatus.active,
+    );
+    if (hasActiveLease) {
+      _requests[index].status = RequestStatus.rejected;
+      notifyListeners();
+      saveToPrefs();
+      return;
+    }
+
+    leasesProvider.activateLease(
+      request.productId,
+      request.productName,
+      request.pricePerDay,
+      request.totalDays,
+      request.requesterId,
+      request.ownerId,
+      request.requesterFirstName,
+      request.requesterLastName,
       userAvatarPath: request.requesterAvatarPath,
-      status: LeaseStatus.active,
-    ));
+    );
+
+    for (final r in _requests) {
+      if (r.productId == request.productId && r.status == RequestStatus.pending && r.id != requestId) {
+        r.status = RequestStatus.rejected;
+      }
+    }
+
+    request.status = RequestStatus.accepted;
 
     notifyListeners();
     saveToPrefs();
@@ -85,5 +103,64 @@ class LeaseRequestProvider extends ChangeNotifier {
       }
       notifyListeners();
     }
+  }
+
+  void acceptCompletion(int requestId, ActiveLeasesProvider leasesProvider, BasketProvider basketProvider) {
+    final index = _requests.indexWhere((r) => r.id == requestId);
+    if (index == -1) return;
+
+    final request = _requests[index];
+    request.status = RequestStatus.accepted;
+
+    final leaseIndex = leasesProvider.leases.indexWhere((l) =>
+    l.productId == request.productId && l.status == LeaseStatus.pendingCompletion);
+    if (leaseIndex == -1) {
+      print('Аренда не найдена');
+      notifyListeners();
+      saveToPrefs();
+      return;
+    }
+
+    final lease = leasesProvider.leases[leaseIndex];
+    if (lease.startDate == null) {
+      print('Аренда не имеет startDate');
+      notifyListeners();
+      saveToPrefs();
+      return;
+    }
+
+    final daysRented = DateTime.now().difference(lease.startDate!).inDays;
+    final totalDays = daysRented < 1 ? 1 : daysRented;
+
+    basketProvider.addToCartForUser(request.requesterId, CartItem(
+      id: request.productId,
+      name: request.productName,
+      price: request.pricePerDay,
+      images: request.images,
+      ownerId: request.requesterId,
+      days: totalDays,
+    ));
+
+    leasesProvider.finishLease(request.productId);
+
+    notifyListeners();
+    saveToPrefs();
+  }
+
+  void rejectCompletion(int requestId, ActiveLeasesProvider leasesProvider) {
+    final index = _requests.indexWhere((r) => r.id == requestId);
+    if (index != -1) {
+      _requests[index].status = RequestStatus.rejected;
+      final request = _requests[index];
+      leasesProvider.cancelCompletionRequest(request.productId);
+      notifyListeners();
+      saveToPrefs();
+    }
+  }
+
+  void deleteRequestsForUser(int userId) {
+    _requests.removeWhere((r) => r.requesterId == userId || r.ownerId == userId);
+    notifyListeners();
+    saveToPrefs();
   }
 }

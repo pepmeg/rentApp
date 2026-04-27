@@ -61,6 +61,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteAccount() async {
+    final current = _currentUser;
+    if (current != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final userKey = 'user_${current.email}';
+      await prefs.remove(userKey);
+      await prefs.remove('current_user_email');
+      _currentUser = null;
+      notifyListeners();
+    }
+  }
+
   Future<UserModel?> getUserById(int id) async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
@@ -122,5 +134,30 @@ class AuthProvider extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  Future<String?> changePassword(String oldPassword, String newPassword) async {
+    if (_currentUser == null) return 'Пользователь не найден';
+    if (_currentUser!.password != oldPassword) {
+      return 'Неверный старый пароль';
+    }
+    if (newPassword.length < 6) {
+      return 'Новый пароль должен быть не менее 6 символов';
+    }
+    final updatedUser = UserModel(
+      id: _currentUser!.id,
+      email: _currentUser!.email,
+      password: newPassword,
+      firstName: _currentUser!.firstName,
+      lastName: _currentUser!.lastName,
+      address: _currentUser!.address,
+      phoneNumber: _currentUser!.phoneNumber,
+      avatarPath: _currentUser!.avatarPath,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_${updatedUser.email}', jsonEncode(updatedUser.toJson()));
+    _currentUser = updatedUser;
+    notifyListeners();
+    return null;
   }
 }

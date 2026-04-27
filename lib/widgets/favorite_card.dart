@@ -85,6 +85,8 @@ class FavoriteCardState extends State<FavoriteCard> {
                     const SizedBox(height: 2),
                     Text(
                       widget.location,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.normal,

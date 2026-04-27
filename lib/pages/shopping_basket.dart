@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/basket_card.dart';
-import '../models/activeLease.dart';
-import '../provider/activeLeasesProvider.dart';
 import '../provider/basket_provider.dart';
+import '../provider/AuthProvider.dart';
 import '../utils/snackbar_custom.dart';
 
 class ShoppingBasket extends StatefulWidget {
@@ -15,25 +14,32 @@ class ShoppingBasket extends StatefulWidget {
 }
 
 class BasketState extends State<ShoppingBasket> {
+  @override
+  void initState() {
+    super.initState();
+    final user = context.read<AuthProvider>().currentUser;
+    if (user != null) {
+      context.read<BasketProvider>().loadForUser(user.id);
+    }
+  }
 
-  void checkout(BuildContext context) {
-    final basket = Provider.of<BasketProvider>(context, listen: false);
-    basket.clearCart();
-    SnackBarCustom.show(context, message: 'Корзина очищена (оплата будет позже)');
+  void _pay(BuildContext context) {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+    final basket = context.read<BasketProvider>();
+    if (basket.getItemsForUser(user.id).isEmpty) return;
+    basket.clearCartForUser(user.id);
+    SnackBarCustom.show(context, message: 'Оплата прошла успешно!');
   }
 
   @override
   Widget build(BuildContext context) {
-    final basketProvider = Provider.of<BasketProvider>(context);
-    final cartItems = basketProvider.items;
+    final user = context.watch<AuthProvider>().currentUser;
+    if (user == null) return const SizedBox.shrink();
 
-    final activeLeases = context.watch<ActiveLeasesProvider>().leases;
-    final hasInvalidDays = cartItems.any((item) => item.days <= 0);
-    final hasActiveLeaseConflict = cartItems.any((item) {
-      return activeLeases.any((lease) =>
-      lease.productId == item.id && lease.status == LeaseStatus.active);
-    });
-    final canCheckout = cartItems.isNotEmpty && !hasInvalidDays && !hasActiveLeaseConflict;
+    final basketProvider = context.watch<BasketProvider>();
+    final cartItems = basketProvider.getItemsForUser(user.id);
+    final totalPrice = basketProvider.totalPriceForUser(user.id);
 
     return Scaffold(
       body: Padding(
@@ -59,7 +65,37 @@ class BasketState extends State<ShoppingBasket> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
+              child: cartItems.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.shopping_cart_outlined,
+                      size: 80,
+                      color: AppColors.oliveGray.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Ваша корзина пуста',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.oliveGray.withOpacity(0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Завершённые аренды появятся здесь',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.oliveGray.withOpacity(0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+                  : ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 itemCount: cartItems.length,
                 itemBuilder: (context, index) {
@@ -70,18 +106,11 @@ class BasketState extends State<ShoppingBasket> {
                     price: item.price,
                     images: item.images,
                     days: item.days,
-                    onDaysChanged: (newDays) {
-                      basketProvider.updateDays(item.id, newDays);
-                    },
-                    onRemove: () {
-                      basketProvider.removeFromCart(item.id);
-                      context.read<ActiveLeasesProvider>().removePendingLeaseByProductId(item.id);
-                    },
                   );
                 },
               ),
             ),
-            if (basketProvider.items.isNotEmpty)
+            if (cartItems.isNotEmpty)
               Row(
                 children: [
                   const Text(
@@ -90,14 +119,16 @@ class BasketState extends State<ShoppingBasket> {
                   ),
                   const Spacer(),
                   Text(
-                    '${basketProvider.totalPrice} ₽',
+                    '$totalPrice ₽',
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                   ),
                 ],
               ),
             const SizedBox(height: 15),
             ElevatedButton(
-              onPressed: canCheckout ? () => checkout(context) : null,
+              onPressed: cartItems.isNotEmpty
+                  ? () => _pay(context)
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.copper,
                 disabledBackgroundColor: AppColors.oliveGray.withOpacity(0.3),
@@ -108,7 +139,7 @@ class BasketState extends State<ShoppingBasket> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               child: const Text(
-                'Оформить аренду',
+                'Оплатить',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),

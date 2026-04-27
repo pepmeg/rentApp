@@ -7,6 +7,9 @@ import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/models/user.dart';
 import 'package:untitled/utils/colors.dart';
 
+import '../utils/snackbar_custom.dart';
+import 'change_password.dart';
+
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
 
@@ -121,27 +124,15 @@ class _EditProfileState extends State<EditProfile> {
             const SizedBox(height: 15),
             GestureDetector(
               onTap: _pickImage,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: _avatarPath != null
-                    ? Image.file(
-                  File(_avatarPath!),
-                  height: 100,
-                  width: 100,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/silly_cat.jpg',
-                    height: 100,
-                    width: 100,
-                    fit: BoxFit.cover,
-                  ),
-                )
-                    : Image.asset(
-                  'assets/silly_cat.jpg',
-                  height: 100,
-                  width: 100,
-                  fit: BoxFit.cover,
-                ),
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: AppColors.oliveGray.withOpacity(0.1),
+                backgroundImage: _avatarPath != null
+                    ? FileImage(File(_avatarPath!))
+                    : null,
+                child: _avatarPath == null
+                    ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
+                    : null,
               ),
             ),
             const SizedBox(height: 20),
@@ -149,11 +140,12 @@ class _EditProfileState extends State<EditProfile> {
             const SizedBox(height: 10),
             _buildField(lastNameController, 'Фамилия'),
             const SizedBox(height: 10),
+            _buildField(emailController, 'Почта'),
+            const SizedBox(height: 10),
             _buildField(addressController, 'Адрес'),
             const SizedBox(height: 10),
             _buildField(phoneController, 'Номер телефона'),
-            const SizedBox(height: 10),
-            _buildField(emailController, 'Почта'),
+
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: save,
@@ -166,6 +158,26 @@ class _EditProfileState extends State<EditProfile> {
               ),
               child: const Text(
                 'Сохранить',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.oliveGray,
+                foregroundColor: AppColors.spaceCream,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+              child: const Text(
+                'Сменить пароль',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),

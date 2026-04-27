@@ -1,5 +1,7 @@
 enum RequestStatus { pending, accepted, rejected }
 
+enum RequestType { lease, completion }
+
 class LeaseRequest {
   final int id;
   final int productId;
@@ -13,6 +15,7 @@ class LeaseRequest {
   final int ownerId;
   final List<String> images;
   RequestStatus status;
+  final RequestType type;
 
   LeaseRequest({
     required this.id,
@@ -27,6 +30,7 @@ class LeaseRequest {
     required this.ownerId,
     this.images = const [],
     this.status = RequestStatus.pending,
+    this.type = RequestType.lease,
   });
 
   Map<String, dynamic> toJson() => {
@@ -42,6 +46,7 @@ class LeaseRequest {
     'ownerId': ownerId,
     'images': images,
     'status': status.index,
+    'type': type.index,
   };
 
   factory LeaseRequest.fromJson(Map<String, dynamic> json) => LeaseRequest(
@@ -51,11 +56,18 @@ class LeaseRequest {
     pricePerDay: json['pricePerDay'] as int,
     totalDays: json['totalDays'] as int,
     requesterId: json['requesterId'] as int,
-    requesterFirstName: json['requesterFirstName'] as String,
-    requesterLastName: json['requesterLastName'] as String,
+    requesterFirstName: json['requesterFirstName'] as String? ?? '',
+    requesterLastName: json['requesterLastName'] as String? ?? '',
     requesterAvatarPath: json['requesterAvatarPath'] as String?,
     ownerId: json['ownerId'] as int,
-    images: List<String>.from(json['images'] as List),
-    status: RequestStatus.values[json['status'] as int],
+    images: json['images'] != null
+        ? List<String>.from(json['images'] as List)
+        : [],
+    status: json['status'] != null
+        ? RequestStatus.values[json['status'] as int]
+        : RequestStatus.pending,
+    type: json['type'] != null
+        ? RequestType.values[json['type'] as int]
+        : RequestType.lease,
   );
 }

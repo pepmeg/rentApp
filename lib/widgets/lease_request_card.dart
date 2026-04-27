@@ -6,6 +6,7 @@ import 'package:untitled/provider/activeLeasesProvider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/product_image.dart';
 import '../models/lease_request.dart';
+import '../provider/basket_provider.dart';
 
 class LeaseRequestCard extends StatelessWidget {
   final LeaseRequest request;
@@ -85,26 +86,22 @@ class LeaseRequestCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: request.requesterAvatarPath != null
-                          ? Image.file(
-                        File(request.requesterAvatarPath!),
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.cover,
-                      )
-                          : Image.asset(
-                        'assets/silly_cat.jpg',
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.cover,
-                      ),
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: AppColors.oliveGray.withOpacity(0.1),
+                      backgroundImage: request.requesterAvatarPath != null
+                          ? (request.requesterAvatarPath!.startsWith('assets/')
+                          ? AssetImage(request.requesterAvatarPath!)
+                          : FileImage(File(request.requesterAvatarPath!)))
+                          : null,
+                      child: request.requesterAvatarPath == null
+                          ? Icon(Icons.person, color: AppColors.oliveGray, size: 18)
+                          : null,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${request.requesterFirstName} ${request.requesterLastName} хочет арендовать',
+                        _buildUserMessage(),
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.oliveGray.withOpacity(0.7),
@@ -124,56 +121,109 @@ class LeaseRequestCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      context.read<LeaseRequestProvider>().acceptRequest(
-                        request.id,
-                        context.read<ActiveLeasesProvider>(),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.copper,
-                      foregroundColor: AppColors.whiteAntique,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+            if (request.type == RequestType.lease)
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.read<LeaseRequestProvider>().acceptRequest(
+                          request.id,
+                          context.read<ActiveLeasesProvider>(),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.copper,
+                        foregroundColor: AppColors.whiteAntique,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'Принять',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      child: const Text(
+                        'Принять',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      context.read<LeaseRequestProvider>().rejectRequest(request.id);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.oliveGray,
-                      side: BorderSide(color: AppColors.oliveGray.withOpacity(0.3)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        context.read<LeaseRequestProvider>().rejectRequest(request.id);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.oliveGray,
+                        side: BorderSide(color: AppColors.oliveGray.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'Отклонить',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      child: const Text(
+                        'Отклонить',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else if (request.type == RequestType.completion)
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.read<LeaseRequestProvider>().acceptCompletion(
+                          request.id,
+                          context.read<ActiveLeasesProvider>(),
+                          context.read<BasketProvider>(),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.lightGreen,
+                        foregroundColor: AppColors.oliveGray,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Подтвердить'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        context.read<LeaseRequestProvider>().rejectCompletion(
+                          request.id,
+                          context.read<ActiveLeasesProvider>(),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.oliveGray,
+                        side: BorderSide(color: AppColors.oliveGray.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text('Отклонить'),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
     );
+  }
+
+  String _buildUserMessage() {
+    if (request.type == RequestType.completion) {
+      return '${request.requesterFirstName} ${request.requesterLastName} хочет завершить аренду';
+    }
+    return '${request.requesterFirstName} ${request.requesterLastName} хочет арендовать';
   }
 }

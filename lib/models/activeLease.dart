@@ -1,4 +1,4 @@
-enum LeaseStatus { active, pending }
+enum LeaseStatus { active, pending, pendingCompletion }
 
 class ActiveLease {
   final int productId;
@@ -9,9 +9,11 @@ class ActiveLease {
   final LeaseStatus status;
   final double progress;
   final int userId;
+  final int ownerId;
   final String userFirstName;
   final String userLastName;
   final String? userAvatarPath;
+  bool isCompleted;
 
   ActiveLease({
     required this.productId,
@@ -20,11 +22,13 @@ class ActiveLease {
     this.startDate,
     required this.totalDays,
     required this.userId,
+    required this.ownerId,
     required this.userFirstName,
     required this.userLastName,
     this.userAvatarPath,
     this.status = LeaseStatus.pending,
-  }) : progress = status == LeaseStatus.active
+    this.isCompleted = false,
+  }) : progress = (status == LeaseStatus.active || status == LeaseStatus.pendingCompletion)
       ? calculateProgress(startDate!, totalDays)
       : 0.0;
 
@@ -35,10 +39,12 @@ class ActiveLease {
     'startDate': startDate?.toIso8601String(),
     'totalDays': totalDays,
     'userId': userId,
+    'ownerId': ownerId,
     'userFirstName': userFirstName,
     'userLastName': userLastName,
     'userAvatarPath': userAvatarPath,
     'status': status.index,
+    'isCompleted': isCompleted,
   };
 
   factory ActiveLease.fromJson(Map<String, dynamic> json) => ActiveLease(
@@ -48,17 +54,31 @@ class ActiveLease {
     startDate: json['startDate'] != null ? DateTime.parse(json['startDate'] as String) : null,
     totalDays: json['totalDays'] as int,
     userId: json['userId'] as int,
-    userFirstName: json['userFirstName'] as String,
-    userLastName: json['userLastName'] as String,
+    ownerId: json['ownerId'] as int? ?? 0,
+    userFirstName: json['userFirstName'] as String? ?? '',
+    userLastName: json['userLastName'] as String? ?? '',
     userAvatarPath: json['userAvatarPath'] as String?,
-    status: LeaseStatus.values[json['status'] as int],
+    status: json['status'] != null
+        ? LeaseStatus.values[json['status'] as int]
+        : LeaseStatus.pending,
+    isCompleted: json['isCompleted'] as bool? ?? false,
   );
+
+  bool get isPending => status == LeaseStatus.pending;
+  bool get isActive => status == LeaseStatus.active && !isCompleted;
+  bool get isPendingCompletion => status == LeaseStatus.pendingCompletion;
 
   int get remainingDays {
     if (status == LeaseStatus.pending || startDate == null) return totalDays;
     final endDate = startDate!.add(Duration(days: totalDays));
     final diff = endDate.difference(DateTime.now()).inDays;
     return diff > 0 ? diff : 0;
+  }
+
+  int get currentDay {
+    if (startDate == null) return 1;
+    final diff = DateTime.now().difference(startDate!).inDays;
+    return diff + 1;
   }
 
   static double calculateProgress(DateTime start, int totalDays) {

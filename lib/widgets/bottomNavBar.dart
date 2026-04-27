@@ -14,7 +14,7 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsetsGeometry.only(top: 0),
+      padding: const EdgeInsets.only(bottom: 8),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex,
@@ -22,26 +22,24 @@ class BottomNavBar extends StatelessWidget {
         backgroundColor: AppColors.spaceCream,
         selectedItemColor: AppColors.copper,
         unselectedItemColor: AppColors.oliveGray.withOpacity(0.5),
+        iconSize: 28,
         elevation: 0,
-        selectedLabelStyle: TextStyle(
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        selectedLabelStyle: const TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 10,
         ),
-        unselectedLabelStyle: TextStyle(
+        unselectedLabelStyle: const TextStyle(
           fontWeight: FontWeight.normal,
-          fontSize: 12,
+          fontSize: 10,
         ),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Избранное',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.plus_one), label: ' '),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_basket),
-            label: 'Корзина',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Избранное'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Добавить'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Корзина'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Чат'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
         ],
       ),

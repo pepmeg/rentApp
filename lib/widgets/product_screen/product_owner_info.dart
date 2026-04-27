@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:untitled/models/user.dart';
 import 'package:untitled/utils/colors.dart';
+import 'package:untitled/pages/person.dart';
 
 class ProductOwnerInfo extends StatelessWidget {
   final Future<UserModel?> futureOwner;
@@ -19,31 +20,47 @@ class ProductOwnerInfo extends StatelessWidget {
         final owner = snapshot.data;
         if (owner == null) return const SizedBox.shrink();
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: owner.avatarPath != null
-                    ? Image.file(File(owner.avatarPath!), height: 100, width: 100, fit: BoxFit.cover)
-                    : Image.asset('assets/silly_cat.jpg', height: 100, width: 100, fit: BoxFit.cover),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => Profile(userId: owner.id),
               ),
-              const SizedBox(width: 30),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${owner.firstName} ${owner.lastName}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
-                    const SizedBox(height: 5),
-                    Text('${owner.phoneNumber}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
-                    const SizedBox(height: 5),
-                    Text('${owner.address}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray), softWrap: true, overflow: TextOverflow.visible),
-                  ],
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: AppColors.oliveGray.withOpacity(0.1),
+                  backgroundImage: owner.avatarPath != null
+                      ? (owner.avatarPath!.startsWith('assets/')
+                      ? AssetImage(owner.avatarPath!)
+                      : FileImage(File(owner.avatarPath!)))
+                      : null,
+                  child: owner.avatarPath == null
+                      ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
+                      : null,
                 ),
-              ),
-            ],
+                const SizedBox(width: 30),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${owner.firstName} ${owner.lastName}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+                      const SizedBox(height: 5),
+                      Text('${owner.phoneNumber}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/lease_card.dart';
 import 'package:untitled/provider/activeLeasesProvider.dart';
-
 import '../provider/AuthProvider.dart';
 
 class ActiveLeases extends StatelessWidget {
@@ -50,7 +49,10 @@ class ActiveLeases extends StatelessWidget {
                   final lease = leases[index];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: LeaseCard(lease: lease),
+                    child: LeaseCard(
+                        key: ValueKey('lease-${lease.productId}-${lease.status}'),
+                        lease: lease
+                    ),
                   );
                 },
               ),

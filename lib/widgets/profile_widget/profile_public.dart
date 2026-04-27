@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:untitled/pages/user_orders.dart';
 import 'package:untitled/utils/colors.dart';
 import '../../data/product_data.dart';
+import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
 import '../../models/user.dart';
 
@@ -29,7 +30,7 @@ class ProfilePublic extends StatelessWidget {
           const SizedBox(height: 20),
           _buildUserInfo(),
           const SizedBox(height: 20),
-          _buildStats(totalOrders, userProductsCount),
+          _buildStats(context, totalOrders, userProductsCount),
           const SizedBox(height: 20),
           _buildAdsButton(context, userProductsCount),
           const SizedBox(height: 20),
@@ -41,12 +42,6 @@ class ProfilePublic extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
-          onPressed: () => Navigator.pop(context),
-          constraints: const BoxConstraints(),
-        ),
-        const SizedBox(width: 5),
         const Text('Профиль пользователя',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
       ],
@@ -56,11 +51,17 @@ class ProfilePublic extends StatelessWidget {
   Widget _buildUserInfo() {
     return Row(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(50),
-          child: user.avatarPath != null
-              ? Image.file(File(user.avatarPath!), width: 100, height: 100, fit: BoxFit.cover)
-              : Image.asset('assets/silly_cat.jpg', width: 100, height: 100, fit: BoxFit.cover),
+        CircleAvatar(
+          radius: 50,
+          backgroundColor: AppColors.oliveGray.withOpacity(0.1),
+          backgroundImage: user.avatarPath != null
+              ? (user.avatarPath!.startsWith('assets/')
+              ? AssetImage(user.avatarPath!)
+              : FileImage(File(user.avatarPath!)))
+              : null,
+          child: user.avatarPath == null
+              ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
+              : null,
         ),
         const SizedBox(width: 20),
         Expanded(
@@ -80,7 +81,14 @@ class ProfilePublic extends StatelessWidget {
     );
   }
 
-  Widget _buildStats(int totalOrders, int productsCount) {
+  Widget _buildStats(BuildContext context, int totalOrders, int productsCount) {
+    final reviewsProvider = context.watch<ReviewsProvider>();
+    final userProducts = ProductData.products.where((p) => p.ownerId == user.id).toList();
+    final userReviews = reviewsProvider.reviews.where((r) => userProducts.any((p) => p.id == r.productId)).toList();
+    final double avgRating = userReviews.isEmpty
+        ? 0.0
+        : userReviews.map((r) => r.rating).reduce((a, b) => a + b) / userReviews.length;
+    final String ratingText = userReviews.isEmpty ? '0' : avgRating.toStringAsFixed(1);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       decoration: BoxDecoration(
@@ -92,7 +100,7 @@ class ProfilePublic extends StatelessWidget {
         children: [
           _buildStatColumn('$totalOrders', 'Аренды'),
           _buildStatColumn('$productsCount', 'Объявления'),
-          _buildStatColumn('4.8', 'Рейтинг'),
+          _buildStatColumn(ratingText, 'Рейтинг'),
         ],
       ),
     );

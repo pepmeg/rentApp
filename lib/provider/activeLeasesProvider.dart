@@ -21,8 +21,6 @@ class ActiveLeasesProvider extends ChangeNotifier {
   }
 
   bool addPendingLease(ActiveLease lease) {
-    final exists = _leases.any((l) => l.productId == lease.productId);
-    if (exists) return false;
     _leases.add(lease);
     notifyListeners();
     saveToPrefs();
@@ -42,38 +40,26 @@ class ActiveLeasesProvider extends ChangeNotifier {
       int pricePerDay,
       int totalDays,
       int userId,
+      int ownerId,
       String userFirstName,
       String userLastName, {
         String? userAvatarPath,
       }) {
-    final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.pending);
-    if (index != -1) {
-      _leases[index] = ActiveLease(
-        productId: productId,
-        name: name,
-        pricePerDay: pricePerDay,
-        startDate: DateTime.now(),
-        totalDays: totalDays,
-        userId: userId,
-        userFirstName: userFirstName,
-        userLastName: userLastName,
-        userAvatarPath: userAvatarPath,
-        status: LeaseStatus.active,
-      );
-    } else {
-      addActiveLease(ActiveLease(
-        productId: productId,
-        name: name,
-        pricePerDay: pricePerDay,
-        startDate: DateTime.now(),
-        totalDays: totalDays,
-        userId: userId,
-        userFirstName: userFirstName,
-        userLastName: userLastName,
-        userAvatarPath: userAvatarPath,
-        status: LeaseStatus.active,
-      ));
-    }
+    _leases.removeWhere((l) => l.productId == productId && l.status == LeaseStatus.pending);
+    _leases.add(ActiveLease(
+      productId: productId,
+      name: name,
+      pricePerDay: pricePerDay,
+      startDate: DateTime.now(),
+      totalDays: totalDays,
+      userId: userId,
+      ownerId: ownerId,
+      userFirstName: userFirstName,
+      userLastName: userLastName,
+      userAvatarPath: userAvatarPath,
+      status: LeaseStatus.active,
+    ));
+    _totalLeases++;
     notifyListeners();
     saveToPrefs();
   }
@@ -88,6 +74,67 @@ class ActiveLeasesProvider extends ChangeNotifier {
     _totalLeases++;
     notifyListeners();
     saveToPrefs();
+  }
+
+  void requestCompleteLease(int productId) {
+    final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.active);
+    if (index != -1) {
+      final old = _leases[index];
+      _leases[index] = ActiveLease(
+        productId: old.productId,
+        name: old.name,
+        pricePerDay: old.pricePerDay,
+        startDate: old.startDate,
+        totalDays: old.totalDays,
+        userId: old.userId,
+        ownerId: old.ownerId,
+        userFirstName: old.userFirstName,
+        userLastName: old.userLastName,
+        userAvatarPath: old.userAvatarPath,
+        status: LeaseStatus.pendingCompletion,
+      );
+      notifyListeners();
+      saveToPrefs();
+    }
+  }
+
+  void finishLease(int productId) {
+    final index = _leases.indexWhere((l) =>
+    l.productId == productId && l.status == LeaseStatus.pendingCompletion);
+    if (index != -1) {
+      _leases.removeAt(index);
+      notifyListeners();
+      saveToPrefs();
+    } else {
+      final anyIndex = _leases.indexWhere((l) => l.productId == productId);
+      if (anyIndex != -1) {
+        _leases.removeAt(anyIndex);
+        notifyListeners();
+        saveToPrefs();
+      }
+    }
+  }
+
+  void cancelCompletionRequest(int productId) {
+    final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.pendingCompletion);
+    if (index != -1) {
+      final old = _leases[index];
+      _leases[index] = ActiveLease(
+        productId: old.productId,
+        name: old.name,
+        pricePerDay: old.pricePerDay,
+        startDate: old.startDate,
+        totalDays: old.totalDays,
+        userId: old.userId,
+        ownerId: old.ownerId,
+        userFirstName: old.userFirstName,
+        userLastName: old.userLastName,
+        userAvatarPath: old.userAvatarPath,
+        status: LeaseStatus.active,
+      );
+      notifyListeners();
+      saveToPrefs();
+    }
   }
 
   Future<void> saveToPrefs() async {
@@ -112,5 +159,11 @@ class ActiveLeasesProvider extends ChangeNotifier {
       _totalLeases = _leases.length;
       notifyListeners();
     }
+  }
+
+  void deleteLeasesForUser(int userId) {
+    _leases.removeWhere((lease) => lease.userId == userId || lease.ownerId == userId);
+    notifyListeners();
+    saveToPrefs();
   }
 }

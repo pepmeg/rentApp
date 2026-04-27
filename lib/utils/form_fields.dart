@@ -11,6 +11,7 @@ class AppTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final int? minLines;
   final int? maxLines;
+  final int? maxLength;
 
   const AppTextField({
     super.key,
@@ -23,6 +24,7 @@ class AppTextField extends StatefulWidget {
     this.keyboardType,
     this.minLines,
     this.maxLines,
+    this.maxLength,
   });
 
   @override
@@ -51,6 +53,7 @@ class _AppTextFieldState extends State<AppTextField> {
       style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
       decoration: InputDecoration(
         hintText: widget.hint,
+        counterText: widget.maxLength != null ? '' : null,
         hintStyle: TextStyle(
           color: AppColors.oliveGray.withOpacity(0.5),
           fontSize: 16,

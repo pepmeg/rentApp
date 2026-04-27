@@ -149,9 +149,7 @@ class _AddProductState extends State<AddProduct> {
       ownerId: currentUser.id,
       name: name,
       price: price!,
-      location: locationController.text.trim().isEmpty
-          ? 'Не указано'
-          : locationController.text.trim(),
+      location: location,
       images: List<String>.from(_imagePaths),
       category: _selectedCategory ?? '',
       subcategory: _selectedSubcategory ?? '',
@@ -254,8 +252,16 @@ class _AddProductState extends State<AddProduct> {
                 ),
               ),
               const SizedBox(height: 10),
-              AppTextField(controller: nameController, hint: 'Название товара',
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Введите название' : null,),
+              AppTextField(
+                controller: nameController,
+                hint: 'Название товара',
+                maxLength: 100,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Введите название';
+                  if (v.trim().length < 3) return 'Название должно быть не менее 3 символов';
+                  return null;
+                },
+              ),
               const SizedBox(height: 10),
               AppDropdownMenu(
                 value: _selectedCategory,
@@ -292,20 +298,37 @@ class _AddProductState extends State<AddProduct> {
                     : null,
               ),
               const SizedBox(height: 10),
-              AppTextField(controller: brandController, hint: 'Бренд'),
+              AppTextField(
+                controller: brandController,
+                hint: 'Бренд',
+                maxLength: 50,
+              ),
               const SizedBox(height: 10),
               AppTextField(
                 controller: daysController,
                 hint: 'Минимальный срок аренды (дни)',
                 maxLines: 1,
+                keyboardType: TextInputType.number,
+                maxLength: 3,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Укажите срок';
+                  final days = int.tryParse(v.trim());
+                  if (days == null || days < 1) return 'Срок должен быть ≥ 1';
+                  if (days > 365) return 'Максимум 365 дней';
+                  return null;
+                },
               ),
               const SizedBox(height: 10),
               AppTextField(
                 controller: priceController,
                 hint: 'Цена, ₽',
+                keyboardType: TextInputType.number,
+                maxLength: 7,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Введите цену';
-                  if (int.tryParse(v.trim()) == null) return 'Цена должна быть числом';
+                  final price = int.tryParse(v.trim());
+                  if (price == null || price < 1) return 'Цена должна быть ≥ 1 ₽';
+                  if (price > 999999) return 'Слишком высокая цена';
                   return null;
                 },
               ),
@@ -313,6 +336,7 @@ class _AddProductState extends State<AddProduct> {
               AppTextField(
                 controller: locationController,
                 hint: 'Город, район (необязательно)',
+                maxLength: 200,
               ),
               const SizedBox(height: 10),
               AppTextField(
@@ -320,6 +344,7 @@ class _AddProductState extends State<AddProduct> {
                 hint: 'Опишите товар, его состояние и условия аренды...',
                 maxLines: 10,
                 minLines: 1,
+                maxLength: 500,
               ),
               const SizedBox(height: 20),
               ElevatedButton(

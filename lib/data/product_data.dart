@@ -93,6 +93,11 @@ class ProductData {
     }
   }
 
+  static void deleteProductsByOwner(int ownerId) {
+    products.removeWhere((p) => p.ownerId == ownerId);
+    _saveToPrefs();
+  }
+
   static Future<void> _saveToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = jsonEncode(products.map((p) => p.toJson()).toList());

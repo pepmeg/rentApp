@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/review_card.dart';
+import 'package:untitled/widgets/product_screen/product_reviews/review_card.dart';
 import '../provider/ReviewsProvider.dart';
 
 class ProductReviewsPage extends StatelessWidget {

@@ -8,7 +8,7 @@ import '../widgets/product_screen/product_details_section.dart';
 import '../widgets/product_screen/product_image_gallery.dart';
 import '../widgets/product_screen/product_info_section.dart';
 import '../widgets/product_screen/product_owner_info.dart';
-import '../widgets/product_screen/product_reviews_section.dart';
+import '../widgets/product_screen/product_reviews/product_reviews_section.dart';
 
 class ProductScreen extends StatelessWidget {
   final Product product;

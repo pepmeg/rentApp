@@ -57,4 +57,43 @@ class Product {
     minRentDays: json['minRentDays'] as int? ?? 1,
     createdAt: DateTime.parse(json['createdAt'] as String),
   );
+
+  String get region {
+    if (location.isEmpty) return '';
+    final parts = location.split(',');
+    final first = parts.first.trim();
+    final regionKeywords = ['область', 'край', 'республика', 'округ'];
+    for (final keyword in regionKeywords) {
+      if (first.toLowerCase().contains(keyword)) {
+        String cleaned = first.replaceFirst(RegExp('\\s*$keyword\\s*', caseSensitive: false), ' ').trim();
+        return cleaned;
+      }
+    }
+    if (parts.length > 1) {
+      return first;
+    }
+    return '';
+  }
+
+  String get city {
+    if (location.isEmpty) return '';
+    final parts = location.split(',');
+    final first = parts.first.trim();
+    final second = parts.length > 1 ? parts[1].trim() : '';
+
+    String cleanCity(String raw) {
+      return raw.replaceFirst(RegExp(r'^(г\.\s*|город\s*)', caseSensitive: false), '').trim();
+    }
+    if (region.isNotEmpty) {
+      if (second.isNotEmpty) {
+        return cleanCity(second);
+      }
+      return '';
+    }
+    if (parts.length > 1) {
+      return cleanCity(second);
+    } else {
+      return cleanCity(first);
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/activeLease.dart';
 import '../models/review.dart';
 import '../provider/activeLeasesProvider.dart';
 
@@ -17,7 +18,9 @@ class ReviewsProvider extends ChangeNotifier {
 
   bool canUserReview(int userId, int productId, ActiveLeasesProvider leases) {
     return leases.leases.any((lease) =>
-    lease.productId == productId && lease.userId == userId
+    lease.productId == productId &&
+        lease.userId == userId &&
+        (lease.status == LeaseStatus.active || lease.isCompleted)
     );
   }
 
@@ -72,6 +75,12 @@ class ReviewsProvider extends ChangeNotifier {
 
   void deleteReview(int reviewId) {
     _reviews.removeWhere((r) => r.id == reviewId);
+    notifyListeners();
+    saveToPrefs();
+  }
+
+  void deleteReviewsByUser(int userId) {
+    _reviews.removeWhere((r) => r.userId == userId);
     notifyListeners();
     saveToPrefs();
   }

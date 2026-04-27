@@ -68,20 +68,34 @@ class FavoriteState extends State<Favorite> {
               ),
             ),
             const SizedBox(height: 15),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: CategoryFilterBar(
-              onFilterChanged: (category, subcategory) {
-                setState(() {
-                  filterCategory = category;
-                  filterSubcategory = subcategory;
-                });
-              },
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CategoryFilterBar(
+                onFilterChanged: (category, subcategory) {
+                  setState(() {
+                    filterCategory = category;
+                    filterSubcategory = subcategory;
+                  });
+                },
+              ),
             ),
-      ),
             const SizedBox(height: 10),
             Expanded(
-              child: ListView.builder(
+              child: favoriteProducts.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.favorite_border, size: 64, color: AppColors.oliveGray.withOpacity(0.3)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Нет избранных товаров',
+                      style: TextStyle(fontSize: 18, color: AppColors.oliveGray.withOpacity(0.5)),
+                    ),
+                  ],
+                ),
+              )
+                  : ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 itemCount: favoriteProducts.length,
                 itemBuilder: (context, index) {

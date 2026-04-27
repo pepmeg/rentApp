@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:untitled/provider/ReviewsProvider.dart';
 import 'package:untitled/provider/favorite_provider.dart';
 import 'package:untitled/utils/colors.dart';
 
@@ -31,8 +32,18 @@ class ProductCardState extends State<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
-  final favoriteProvider = Provider.of<FavoriteProvider>(context);
-  final isFavorite = favoriteProvider.isFavorite(widget.id);
+    final favoriteProvider = context.watch<FavoriteProvider>();
+    final isFavorite = favoriteProvider.isFavorite(widget.id);
+
+    final reviews = context.watch<ReviewsProvider>()
+        .getReviewsForProduct(widget.id);
+    final double avgRating = reviews.isEmpty
+        ? 0.0
+        : reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
+    final String ratingText = reviews.isEmpty
+        ? '—'
+        : avgRating.toStringAsFixed(1);
+
     return GestureDetector(
       onTap: widget.onTap,
       child: Card(
@@ -48,23 +59,23 @@ class ProductCardState extends State<ProductCard> {
                       ? (widget.images[0].startsWith('assets/')
                       ? Image.asset(
                     widget.images[0],
-                    height: 120,
+                    height: 110,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   )
                       : Image.file(
                     File(widget.images[0]),
-                    height: 120,
+                    height: 110,
                     width: double.infinity,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      height: 120,
+                      height: 110,
                       color: AppColors.oliveGray,
                       child: const Icon(Icons.image_not_supported),
                     ),
                   ))
                       : Container(
-                    height: 120,
+                    height: 110,
                     width: double.infinity,
                     color: AppColors.oliveGray,
                     child: const Icon(Icons.image_not_supported),
@@ -95,28 +106,31 @@ class ProductCardState extends State<ProductCard> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        widget.name,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.oliveGray,
+                      Expanded(
+                        child: Text(
+                          widget.name,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.oliveGray,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      Spacer(),
-                      Icon(
+                      const SizedBox(width: 4),
+                      const Icon(
                         Icons.star,
                         color: AppColors.yellowSchoolBus,
-                        size: 20,
+                        size: 18,
                       ),
+                      const SizedBox(width: 2),
                       Text(
-                        '4.8',
+                        ratingText,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.normal,
-                          color: AppColors.oliveGray.withOpacity(0.5),
+                          color: AppColors.oliveGray.withOpacity(0.7),
                         ),
                       ),
                     ],
