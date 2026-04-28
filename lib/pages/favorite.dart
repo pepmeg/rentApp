@@ -106,6 +106,7 @@ class FavoriteState extends State<Favorite> {
                     price: product.price,
                     location: product.location,
                     images: product.images,
+                    isPricePerHour: product.isPricePerHour,
                   );
                 },
               ),

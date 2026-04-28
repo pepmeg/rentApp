@@ -28,6 +28,7 @@ class _EditProductState extends State<EditProduct> {
   late List<String> _imagePaths;
   String? _selectedCategory;
   String? _selectedSubcategory;
+  late bool _isPricePerHour;
   static const int maxImages = 10;
 
   Future<String> _saveImagePermanently(String sourcePath) async {
@@ -60,6 +61,7 @@ class _EditProductState extends State<EditProduct> {
     _imagePaths = List.from(p.images);
     _selectedCategory = p.category.isEmpty ? null : p.category;
     _selectedSubcategory = p.subcategory.isEmpty ? null : p.subcategory;
+    _isPricePerHour = p.isPricePerHour;
   }
 
   @override
@@ -111,7 +113,10 @@ class _EditProductState extends State<EditProduct> {
       ownerId: widget.product.ownerId,
       name: name,
       price: price,
-      location: locationController.text.trim().isEmpty ? 'Не указано' : locationController.text.trim(),
+      isPricePerHour: _isPricePerHour,
+      location: locationController.text.trim().isEmpty
+          ? 'Не указано'
+          : locationController.text.trim(),
       images: List.from(_imagePaths),
       createdAt: widget.product.createdAt,
       category: _selectedCategory ?? '',
@@ -134,12 +139,24 @@ class _EditProductState extends State<EditProduct> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
-        title: const Text('Удалить товар', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
-        content: const Text('Вы уверены? Товар исчезнет навсегда.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+        title: const Text('Удалить товар',
+            style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.oliveGray)),
+        content: const Text('Вы уверены? Товар исчезнет навсегда.',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+                color: AppColors.oliveGray)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена', style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+            child: const Text('Отмена',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: AppColors.oliveGray)),
           ),
           TextButton(
             onPressed: () {
@@ -148,7 +165,11 @@ class _EditProductState extends State<EditProduct> {
               Navigator.pop(context, true);
               SnackBarCustom.show(context, message: 'Товар удалён');
             },
-            child: const Text('Удалить', style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.copper)),
+            child: const Text('Удалить',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                    color: AppColors.copper)),
           ),
         ],
       ),
@@ -157,6 +178,11 @@ class _EditProductState extends State<EditProduct> {
 
   @override
   Widget build(BuildContext context) {
+    final priceText = priceController.text.trim();
+    final price = int.tryParse(priceText);
+    final commission = price != null ? Product.commissionForPrice(price) : null;
+    final commissionRate = price != null ? (price > 1000 ? 3 : 5) : null;
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
@@ -167,14 +193,18 @@ class _EditProductState extends State<EditProduct> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                    icon: const Icon(Icons.arrow_back,
+                        size: 24, color: AppColors.oliveGray),
                     onPressed: () => Navigator.pop(context),
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(width: 5),
                   const Text(
                     'Редактировать товар',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.oliveGray),
                   ),
                 ],
               ),
@@ -197,7 +227,8 @@ class _EditProductState extends State<EditProduct> {
                             color: AppColors.whiteAntique,
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          child: const Icon(Icons.add_a_photo, color: AppColors.oliveGray),
+                          child: const Icon(Icons.add_a_photo,
+                              color: AppColors.oliveGray),
                         ),
                       )
                           : const SizedBox.shrink();
@@ -224,6 +255,7 @@ class _EditProductState extends State<EditProduct> {
               AppTextField(controller: nameController, hint: 'Название товара'),
               const SizedBox(height: 10),
               AppDropdownMenu(
+                key: ValueKey('category_$_selectedCategory'),
                 value: _selectedCategory,
                 hint: 'Категория',
                 options: categories.map((cat) => cat.name).toList(),
@@ -252,12 +284,142 @@ class _EditProductState extends State<EditProduct> {
               AppTextField(controller: brandController, hint: 'Бренд'),
               const SizedBox(height: 10),
               AppTextField(
-                controller: daysController,
-                hint: 'Минимальный срок аренды (дни)',
-                maxLines: 1,
+                controller: priceController,
+                hint: 'Цена, ₽',
+                keyboardType: TextInputType.number,
+                maxLength: 7,
+                onChanged: (_) => setState(() {}),
+              ),
+              if (commission != null && commissionRate != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Сервисный сбор $commissionRate% (~ $commission ₽)',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.oliveGray.withOpacity(0.6)),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isPricePerHour = false),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _isPricePerHour
+                              ? Colors.transparent
+                              : AppColors.copper,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isPricePerHour
+                                ? AppColors.oliveGray.withOpacity(0.3)
+                                : AppColors.copper,
+                            width: 1.5,
+                          ),
+                          boxShadow: _isPricePerHour
+                              ? []
+                              : [
+                            BoxShadow(
+                              color: AppColors.copper.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.calendar_today,
+                                size: 18,
+                                color: _isPricePerHour
+                                    ? AppColors.oliveGray
+                                    : Colors.white),
+                            const SizedBox(width: 8),
+                            Text('за день',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _isPricePerHour
+                                        ? AppColors.oliveGray
+                                        : Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isPricePerHour = true),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _isPricePerHour
+                              ? AppColors.copper
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isPricePerHour
+                                ? AppColors.copper
+                                : AppColors.oliveGray.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          boxShadow: _isPricePerHour
+                              ? [
+                            BoxShadow(
+                              color: AppColors.copper.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                              : [],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.schedule,
+                                size: 18,
+                                color: _isPricePerHour
+                                    ? Colors.white
+                                    : AppColors.oliveGray),
+                            const SizedBox(width: 8),
+                            Text('за час',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _isPricePerHour
+                                        ? Colors.white
+                                        : AppColors.oliveGray)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              AppTextField(controller: priceController, hint: 'Цена (₽)'),
+              AppTextField(
+                controller: daysController,
+                hint: _isPricePerHour
+                    ? 'Минимальный срок (часы)'
+                    : 'Минимальный срок (дни)',
+                maxLines: 1,
+                keyboardType: TextInputType.number,
+                maxLength: 3,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  final value = int.tryParse(v.trim());
+                  final maxVal = _isPricePerHour ? 720 : 365;
+                  final unit = _isPricePerHour ? 'час' : 'день';
+                  if (value == null || value < 1)
+                    return 'Срок должен быть ≥ 1 $unit';
+                  if (value > maxVal) return 'Максимум $maxVal $unit';
+                  return null;
+                },
+              ),
               const SizedBox(height: 10),
               AppTextField(
                 controller: locationController,
@@ -278,9 +440,11 @@ class _EditProductState extends State<EditProduct> {
                   foregroundColor: AppColors.spaceCream,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text('Сохранить изменения', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                child: const Text('Сохранить изменения',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -290,9 +454,11 @@ class _EditProductState extends State<EditProduct> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text('Удалить товар', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                child: const Text('Удалить товар',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
             ],

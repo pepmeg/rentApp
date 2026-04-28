@@ -131,6 +131,39 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void editMessage(String chatId, int index, String newText, {List<String>? newImages}) {
+    final chat = _chats[chatId];
+    if (chat == null || index < 0 || index >= chat.messages.length) return;
+    final old = chat.messages[index];
+    chat.messages[index] = Message(
+      senderId: old.senderId,
+      text: newText,
+      timestamp: old.timestamp,
+      images: newImages ?? old.images,
+      edited: true,
+    );
+    notifyListeners();
+    _saveToPrefs();
+  }
+
+  void deleteMessage(String chatId, int index) {
+    final chat = _chats[chatId];
+    if (chat == null || index < 0 || index >= chat.messages.length) return;
+    chat.messages.removeAt(index);
+    notifyListeners();
+    _saveToPrefs();
+  }
+
+  void deleteChats(Set<String> chatIds) {
+    for (final id in chatIds) {
+      _chats.remove(id);
+      _lastReadTimestamps.removeWhere((key, value) => key.startsWith('${id}_'));
+    }
+    notifyListeners();
+    _saveToPrefs();
+    _saveLastReadToPrefs();
+  }
+
   void deleteChatsForUser(int userId) {
     _chats.removeWhere((key, chat) => chat.user1Id == userId || chat.user2Id == userId);
     _lastReadTimestamps.removeWhere((key, value) => key.endsWith('_$userId'));

@@ -187,6 +187,7 @@ class HomeState extends State<Home> {
                     price: product.price,
                     location: product.location,
                     images: product.images,
+                    isPricePerHour: product.isPricePerHour,
                     onTap: () {
                       Navigator.push(
                         context,

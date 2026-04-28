@@ -55,6 +55,7 @@ class LeaseRequestCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: AppColors.oliveGray,
                           letterSpacing: -0.2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

@@ -101,11 +101,13 @@ class BasketState extends State<ShoppingBasket> {
                 itemBuilder: (context, index) {
                   final item = cartItems[index];
                   return BasketCard(
-                    id: item.id,
+                  id: item.id,
                     name: item.name,
                     price: item.price,
                     images: item.images,
                     days: item.days,
+                    isHourly: item.isHourly,
+                    extraHours: item.extraHours,
                   );
                 },
               ),

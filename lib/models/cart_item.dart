@@ -4,7 +4,9 @@ class CartItem {
   final int price;
   final List<String> images;
   final int ownerId;
-  int _days;
+  int days;
+  int extraHours;
+  final bool isHourly;
 
   CartItem({
     required this.id,
@@ -12,12 +14,16 @@ class CartItem {
     required this.price,
     required this.images,
     required this.ownerId,
-    int days = 1,
-  }) : _days = (days < 1) ? 1 : days;
+    this.days = 0,
+    this.extraHours = 0,
+    this.isHourly = false,
+  });
 
-  int get days => _days;
-  set days(int value) {
-    _days = (value < 1) ? 1 : value;
+  int get totalAmount {
+    if (isHourly) return price * days;
+    final daysCost = price * days;
+    final hoursCost = (price * extraHours / 24).round();
+    return daysCost + hoursCost;
   }
 
   Map<String, dynamic> toJson() => {
@@ -26,7 +32,9 @@ class CartItem {
     'price': price,
     'images': images,
     'ownerId': ownerId,
-    'days': _days,
+    'days': days,
+    'extraHours': extraHours,
+    'isHourly': isHourly,
   };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
@@ -35,6 +43,8 @@ class CartItem {
     price: json['price'] as int,
     images: List<String>.from(json['images'] as List),
     ownerId: json['ownerId'] as int,
-    days: json['days'] as int,
+    days: json['days'] as int? ?? 0,
+    extraHours: json['extraHours'] as int? ?? 0,
+    isHourly: json['isHourly'] as bool? ?? false,
   );
 }

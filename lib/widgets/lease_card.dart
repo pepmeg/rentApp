@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/utils/colors.dart';
@@ -10,19 +11,92 @@ import '../provider/LeaseRequestProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../utils/snackbar_custom.dart';
 
-class LeaseCard extends StatelessWidget {
+class LeaseCard extends StatefulWidget {
   final ActiveLease lease;
-
   const LeaseCard({required this.lease, super.key});
 
   @override
+  State<LeaseCard> createState() => _LeaseCardState();
+}
+
+class _LeaseCardState extends State<LeaseCard> {
+  late Timer _timer;
+  String _durationText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _updateDuration();
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _updateDuration());
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _updateDuration() {
+    final lease = widget.lease;
+    if (lease.startDate != null) {
+      final now = DateTime.now();
+      final diff = now.difference(lease.startDate!);
+      final days = diff.inDays;
+      final hours = diff.inHours % 24;
+      final product = ProductData.getProductById(lease.productId);
+      final isHourly = product?.isPricePerHour ?? false;
+
+      if (isHourly) {
+        final totalHours = diff.inHours;
+        if (totalHours > 0) {
+          _durationText = '$totalHours ч.';
+        } else {
+          _durationText = 'менее часа';
+        }
+      } else {
+        if (days > 0) {
+          _durationText = '$days дн. ${hours}ч';
+        } else if (hours > 0) {
+          _durationText = '$hours ч.';
+        } else {
+          _durationText = 'менее часа';
+        }
+      }
+    } else {
+      _durationText = '';
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _cancelPendingLease() {
+    final lease = widget.lease;
+    if (lease.status != LeaseStatus.pending) return;
+    context.read<ActiveLeasesProvider>().removePendingLeaseByProductId(lease.productId);
+    final requestProvider = context.read<LeaseRequestProvider>();
+    final requests = requestProvider.requests;
+    final relatedRequest = requests.cast<LeaseRequest?>().firstWhere(
+          (r) => r!.productId == lease.productId && r.status == RequestStatus.pending,
+      orElse: () => null,
+    );
+    if (relatedRequest != null) {
+      requestProvider.rejectRequest(relatedRequest.id);
+    }
+    SnackBarCustom.show(context, message: 'Запрос отменён');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final lease = widget.lease;
     final bool isPending = lease.status == LeaseStatus.pending;
     final bool isActive = lease.status == LeaseStatus.active && !lease.isCompleted;
 
+    final product = ProductData.getProductById(lease.productId);
+    final bool isHourly = product?.isPricePerHour ?? false;
+    final String priceUnit = isHourly ? '₽/час' : '₽/день';
+    final String totalUnit = isHourly ? 'Часов' : 'Дней';
+
     return InkWell(
       onTap: () {
-        final product = ProductData.getProductById(lease.productId);
         if (product != null) {
           Navigator.push(
             context,
@@ -48,6 +122,7 @@ class LeaseCard extends StatelessWidget {
                   child: Text(
                     lease.name,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -75,17 +150,34 @@ class LeaseCard extends StatelessWidget {
               children: [
                 Text(
                   isPending
-                      ? 'Дней: ${lease.totalDays}'
-                      : 'Дней с начала: ${lease.currentDay}',
+                      ? '$totalUnit: ${lease.totalDays}'
+                      : 'Времени с начала: ${_durationText.isNotEmpty ? _durationText : (isHourly ? '${lease.currentDay} ч.' : '${lease.currentDay} дн.')}',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
                 ),
                 const Spacer(),
                 Text(
-                  '${lease.pricePerDay} ₽/день',
+                  '${lease.pricePerDay} $priceUnit',
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
                 ),
               ],
             ),
+            if (isPending) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.oliveGray,
+                    side: BorderSide(color: AppColors.oliveGray.withOpacity(0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Отменить запрос', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  onPressed: _cancelPendingLease,
+                ),
+              ),
+            ],
             if (lease.isPendingCompletion) ...[
               const SizedBox(height: 12),
               Container(
@@ -103,6 +195,33 @@ class LeaseCard extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.oliveGray,
+                    side: BorderSide(color: AppColors.oliveGray.withOpacity(0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.undo, size: 18),
+                  label: const Text('Отменить запрос на завершение', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  onPressed: () {
+                    final leaseRequestProvider = context.read<LeaseRequestProvider>();
+                    final leasesProvider = context.read<ActiveLeasesProvider>();
+                    final requests = leaseRequestProvider.requests;
+                    final completionRequest = requests.cast<LeaseRequest?>().firstWhere(
+                          (r) => r!.productId == lease.productId && r.type == RequestType.completion && r.status == RequestStatus.pending,
+                      orElse: () => null,
+                    );
+                    if (completionRequest != null) {
+                      leaseRequestProvider.rejectCompletion(completionRequest.id, leasesProvider);
+                      SnackBarCustom.show(context, message: 'Запрос на завершение отменён');
+                    }
+                  },
                 ),
               ),
             ],

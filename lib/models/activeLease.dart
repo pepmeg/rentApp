@@ -6,7 +6,7 @@ class ActiveLease {
   final int pricePerDay;
   final DateTime? startDate;
   final int totalDays;
-  final LeaseStatus status;
+  LeaseStatus status;
   final double progress;
   final int userId;
   final int ownerId;

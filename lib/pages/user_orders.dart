@@ -60,6 +60,10 @@ class UserOrdersState extends State<UserOrders> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = context.read<AuthProvider>().currentUser;
+    final targetId = widget.ownerId ?? currentUser?.id;
+    final isOwner = targetId == currentUser?.id;
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
@@ -94,49 +98,51 @@ class UserOrdersState extends State<UserOrders> {
               ],
             ),
             const SizedBox(height: 15),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _showActiveRents = false),
-                    child: Text(
-                      'Все',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: !_showActiveRents
-                            ? AppColors.oliveGray
-                            : AppColors.oliveGray.withOpacity(0.4),
+            if (isOwner) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _showActiveRents = false),
+                      child: Text(
+                        'Все',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: !_showActiveRents
+                              ? AppColors.oliveGray
+                              : AppColors.oliveGray.withOpacity(0.4),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _showActiveRents = true),
-                    child: Text(
-                      'Активные объявления',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: _showActiveRents
-                            ? AppColors.oliveGray
-                            : AppColors.oliveGray.withOpacity(0.4),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _showActiveRents = true),
+                      child: Text(
+                        'Активные объявления',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _showActiveRents
+                              ? AppColors.oliveGray
+                              : AppColors.oliveGray.withOpacity(0.4),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.oliveGray.withOpacity(0.2),
-            ),
-            const SizedBox(height: 10),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.oliveGray.withOpacity(0.2),
+              ),
+              const SizedBox(height: 10),
+            ],
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -144,7 +150,7 @@ class UserOrdersState extends State<UserOrders> {
                 itemBuilder: (context, index) {
                   final product = filteredProducts[index];
                   ActiveLease? activeLease;
-                  if (_showActiveRents) {
+                  if (_showActiveRents && isOwner) {
                     final leases = context.read<ActiveLeasesProvider>().leases;
                     activeLease = leases.cast<ActiveLease?>().firstWhere(
                           (l) => l!.productId == product.id && l.status == LeaseStatus.active,
@@ -159,7 +165,8 @@ class UserOrdersState extends State<UserOrders> {
                     images: product.images,
                     createdAt: product.createdAt,
                     activeLease: activeLease,
-                    onEdit: () => _openEditProduct(product),
+                    isOwner: isOwner,
+                    onEdit: isOwner ? () => _openEditProduct(product) : () {},
                   );
                 },
               ),

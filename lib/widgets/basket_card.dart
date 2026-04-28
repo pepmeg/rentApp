@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/product_image.dart';
-import 'package:untitled/widgets/plural.dart';
 
 class BasketCard extends StatelessWidget {
   final int id;
@@ -9,6 +8,8 @@ class BasketCard extends StatelessWidget {
   final int price;
   final List<String> images;
   final int days;
+  final int extraHours;
+  final bool isHourly;
 
   const BasketCard({
     required this.id,
@@ -16,12 +17,33 @@ class BasketCard extends StatelessWidget {
     required this.price,
     required this.images,
     required this.days,
+    this.extraHours = 0,
+    this.isHourly = false,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final int totalPrice = price * days;
+    final int totalPrice = isHourly
+        ? price * days
+        : price * days + (price * extraHours / 24).round();
+
+    String priceLabel;
+    if (isHourly) {
+      final hoursWord = _plural(days, 'час', 'часа', 'часов');
+      priceLabel = '$price ₽ × $days $hoursWord = $totalPrice ₽';
+    } else {
+      String text = '$price ₽/день';
+      if (days > 0) {
+        final daysWord = _plural(days, 'день', 'дня', 'дней');
+        text += ' × $days $daysWord';
+      }
+      if (extraHours > 0) {
+        final hoursWord = _plural(extraHours, 'час', 'часа', 'часов');
+        text += ' × $extraHours $hoursWord';
+      }
+      priceLabel = '$text = $totalPrice ₽';
+    }
 
     return Card(
       color: AppColors.whiteAntique,
@@ -63,7 +85,7 @@ class BasketCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        '$price ₽ × $days ${Plural.days(days)} = $totalPrice ₽',
+                        priceLabel,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.normal,
@@ -107,5 +129,12 @@ class BasketCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _plural(int n, String one, String two, String five) {
+    if (n % 100 >= 11 && n % 100 <= 19) return five;
+    if (n % 10 == 1) return one;
+    if (n % 10 >= 2 && n % 10 <= 4) return two;
+    return five;
   }
 }

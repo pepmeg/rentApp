@@ -67,6 +67,7 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
+    - assets/AppRent.jpg
     - assets/drill.png
     - assets/silly_cat.jpg
     - assets/add_product.svg

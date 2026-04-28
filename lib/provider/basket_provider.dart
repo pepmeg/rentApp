@@ -10,7 +10,7 @@ class BasketProvider extends ChangeNotifier {
 
   int totalPriceForUser(int userId) {
     final items = getItemsForUser(userId);
-    return items.fold(0, (sum, item) => sum + (item.price * item.days));
+    return items.fold(0, (sum, item) => sum + item.totalAmount);
   }
 
   void addToCartForUser(int userId, CartItem item) {
@@ -46,4 +46,5 @@ class BasketProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
 }

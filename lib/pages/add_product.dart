@@ -28,11 +28,11 @@ class _AddProductState extends State<AddProduct> {
   final TextEditingController brandController = TextEditingController();
   final List<String> _imagePaths = [];
   final _formKey = GlobalKey<FormState>();
-
   String? _selectedCategory;
   String? _selectedSubcategory;
   bool _categoryError = false;
   bool _subcategoryError = false;
+  bool _isPricePerHour = false;
 
   static const int maxImages = 10;
 
@@ -172,6 +172,7 @@ class _AddProductState extends State<AddProduct> {
       _imagePaths.clear();
       _selectedCategory = null;
       _selectedSubcategory = null;
+      _isPricePerHour = false;
     });
   }
 
@@ -189,6 +190,11 @@ class _AddProductState extends State<AddProduct> {
 
   @override
   Widget build(BuildContext context) {
+    final priceText = priceController.text.trim();
+    final price = int.tryParse(priceText);
+    final commission = price != null ? Product.commissionForPrice(price) : null;
+    final commissionRate = price != null ? (price > 1000 ? 3 : 5) : null;
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
@@ -264,6 +270,7 @@ class _AddProductState extends State<AddProduct> {
               ),
               const SizedBox(height: 10),
               AppDropdownMenu(
+                key: ValueKey('category_$_selectedCategory'),
                 value: _selectedCategory,
                 hint: 'Категория',
                 errorText: _categoryError ? 'Выберите категорию' : null,
@@ -305,30 +312,129 @@ class _AddProductState extends State<AddProduct> {
               ),
               const SizedBox(height: 10),
               AppTextField(
-                controller: daysController,
-                hint: 'Минимальный срок аренды (дни)',
-                maxLines: 1,
-                keyboardType: TextInputType.number,
-                maxLength: 3,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Укажите срок';
-                  final days = int.tryParse(v.trim());
-                  if (days == null || days < 1) return 'Срок должен быть ≥ 1';
-                  if (days > 365) return 'Максимум 365 дней';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              AppTextField(
                 controller: priceController,
                 hint: 'Цена, ₽',
                 keyboardType: TextInputType.number,
                 maxLength: 7,
+                onChanged: (_) => setState(() {}),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Введите цену';
                   final price = int.tryParse(v.trim());
                   if (price == null || price < 1) return 'Цена должна быть ≥ 1 ₽';
                   if (price > 999999) return 'Слишком высокая цена';
+                  return null;
+                },
+              ),
+              if (commission != null && commissionRate != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Сервисный сбор $commissionRate% (~ $commission ₽)',
+                    style: TextStyle(fontSize: 13, color: AppColors.oliveGray.withOpacity(0.6)),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isPricePerHour = false),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _isPricePerHour ? Colors.transparent : AppColors.copper,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isPricePerHour ? AppColors.oliveGray.withOpacity(0.3) : AppColors.copper,
+                            width: 1.5,
+                          ),
+                          boxShadow: _isPricePerHour
+                              ? []
+                              : [
+                            BoxShadow(
+                              color: AppColors.copper.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.calendar_today,
+                                size: 18,
+                                color: _isPricePerHour ? AppColors.oliveGray : Colors.white),
+                            const SizedBox(width: 8),
+                            Text('за день',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _isPricePerHour ? AppColors.oliveGray : Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isPricePerHour = true),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _isPricePerHour ? AppColors.copper : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isPricePerHour ? AppColors.copper : AppColors.oliveGray.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          boxShadow: _isPricePerHour
+                              ? [
+                            BoxShadow(
+                              color: AppColors.copper.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                              : [],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.schedule,
+                                size: 18,
+                                color: _isPricePerHour ? Colors.white : AppColors.oliveGray),
+                            const SizedBox(width: 8),
+                            Text('за час',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _isPricePerHour ? Colors.white : AppColors.oliveGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              AppTextField(
+                controller: daysController,
+                hint: _isPricePerHour ? 'Минимальный срок (часы)' : 'Минимальный срок (дни)',
+                maxLines: 1,
+                keyboardType: TextInputType.number,
+                maxLength: _isPricePerHour ? 3 : 3,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return null;
+                  final value = int.tryParse(v.trim());
+                  final maxVal = _isPricePerHour ? 720 : 365;
+                  final unit = _isPricePerHour ? 'час' : 'день';
+                  if (value == null || value < 1) return 'Срок должен быть ≥ 1 $unit';
+                  if (value > maxVal) return 'Максимум $maxVal $unit';
                   return null;
                 },
               ),

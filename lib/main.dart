@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled/pages/chat_list_screen.dart';
 import 'package:untitled/pages/login.dart';
 import 'package:untitled/pages/registration.dart';
+import 'package:untitled/pages/splash_screen.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/pages/add_product.dart';
 import 'package:untitled/pages/favorite.dart';
@@ -19,11 +21,10 @@ import 'package:untitled/provider/chat_provider.dart';
 import 'package:untitled/provider/favorite_provider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/bottomNavBar.dart';
-import 'data/product_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ProductData.loadFromPrefs();
+  await initializeDateFormatting('ru', null);
 
   final prefs = await SharedPreferences.getInstance();
   final currentUserEmail = prefs.getString('current_user_email');
@@ -56,8 +57,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      initialRoute: initialRoute,
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/login': (context) => Login(),
         '/register': (context) => Registration(),
         '/home': (context) => MainScreen(),

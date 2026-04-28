@@ -13,6 +13,7 @@ class FavoriteCard extends StatefulWidget {
   final int price;
   final List<String> images;
   final String location;
+  final bool isPricePerHour;
 
   const FavoriteCard({
     required this.id,
@@ -20,6 +21,7 @@ class FavoriteCard extends StatefulWidget {
     required this.price,
     required this.images,
     required this.location,
+    this.isPricePerHour = false,
     super.key,
   });
 
@@ -75,7 +77,9 @@ class FavoriteCardState extends State<FavoriteCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${widget.price} ₽ в день',
+                      widget.isPricePerHour
+                          ? '${widget.price} ₽ в час'
+                          : '${widget.price} ₽ в день',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.normal,

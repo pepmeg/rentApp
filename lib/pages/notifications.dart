@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/person.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import 'package:untitled/provider/LeaseRequestProvider.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/widgets/lease_request_card.dart';
+
+import '../provider/bottom_nav_provider.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -48,12 +49,8 @@ class NotificationsScreen extends StatelessWidget {
                   return LeaseRequestCard(
                     request: request,
                     onUserTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => Profile(userId: request.requesterId),
-                        ),
-                      );
+                      context.read<BottomNavProvider>().showUserProfile(request.requesterId);
+                      Navigator.pop(context);
                     },
                   );
                 },

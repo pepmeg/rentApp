@@ -260,9 +260,11 @@ class ProfileOwn extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${user.firstName} ${user.lastName}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
               const SizedBox(height: 2),
-              Text(user.email, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal)),
+              Text(user.email, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal), overflow: TextOverflow.ellipsis),
             ],
           ),
         ],

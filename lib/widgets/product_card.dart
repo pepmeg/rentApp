@@ -11,6 +11,7 @@ class ProductCard extends StatefulWidget {
   final int price;
   final String location;
   final List<String> images;
+  final bool isPricePerHour;
   final VoidCallback? onTap;
 
   const ProductCard({
@@ -19,6 +20,7 @@ class ProductCard extends StatefulWidget {
     required this.price,
     required this.location,
     required this.images,
+    this.isPricePerHour = false,
     this.onTap,
     super.key,
   });
@@ -137,7 +139,9 @@ class ProductCardState extends State<ProductCard> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '${widget.price} ₽/день',
+                    widget.isPricePerHour
+                        ? '${widget.price} ₽/час'
+                        : '${widget.price} ₽/день',
                     style: TextStyle(fontSize: 15, color: AppColors.oliveGray),
                   ),
                   SizedBox(height: 4),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:untitled/provider/AuthProvider.dart';
 import '../models/user.dart';
@@ -82,6 +83,7 @@ class RegistrationState extends State<Registration> {
                       child: AppTextField(
                         controller: firstNameController,
                         hint: 'Имя',
+                        maxLines: 1,
                         validator: (v) => v!.isEmpty ? 'Введите имя' : null,
                       ),
                     ),
@@ -90,6 +92,7 @@ class RegistrationState extends State<Registration> {
                       child: AppTextField(
                         controller: lastNameController,
                         hint: 'Фамилия',
+                        maxLines: 1,
                         validator: (v) => v!.isEmpty ? 'Введите фамилию' : null,
                       ),
                     ),
@@ -99,17 +102,26 @@ class RegistrationState extends State<Registration> {
                 AppTextField(
                   controller: addressController,
                   hint: 'Регион, город',
+                  minLines: 1,
+                  maxLines: 2,
                 ),
                 const SizedBox(height: 10),
                 AppTextField(
                   controller: phoneNumberController,
                   hint: '+79643435453',
+                  maxLength: 12,
+                  maxLines: 1,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d\+]')),
+                  ],
                   validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
                 ),
                 const SizedBox(height: 10),
                 AppTextField(
                   controller: emailController,
                   hint: 'yourmail@shrestha.com',
+                  maxLines: 1,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
                     if (v!.isEmpty) return 'Введите email';

@@ -114,24 +114,11 @@ class ActiveLeasesProvider extends ChangeNotifier {
       }
     }
   }
-
   void cancelCompletionRequest(int productId) {
     final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.pendingCompletion);
     if (index != -1) {
-      final old = _leases[index];
-      _leases[index] = ActiveLease(
-        productId: old.productId,
-        name: old.name,
-        pricePerDay: old.pricePerDay,
-        startDate: old.startDate,
-        totalDays: old.totalDays,
-        userId: old.userId,
-        ownerId: old.ownerId,
-        userFirstName: old.userFirstName,
-        userLastName: old.userLastName,
-        userAvatarPath: old.userAvatarPath,
-        status: LeaseStatus.active,
-      );
+      _leases[index].status = LeaseStatus.active;
+      _leases[index].isCompleted = false;
       notifyListeners();
       saveToPrefs();
     }

@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:untitled/models/user.dart';
 import 'package:untitled/utils/colors.dart';
 import 'package:untitled/pages/person.dart';
+
+import '../../provider/bottom_nav_provider.dart';
 
 class ProductOwnerInfo extends StatelessWidget {
   final Future<UserModel?> futureOwner;
@@ -21,13 +24,9 @@ class ProductOwnerInfo extends StatelessWidget {
         if (owner == null) return const SizedBox.shrink();
 
         return GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => Profile(userId: owner.id),
-              ),
-            );
+            onTap: () {
+              context.read<BottomNavProvider>().showUserProfile(owner.id);
+              Navigator.pop(context);
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -52,10 +51,12 @@ class ProductOwnerInfo extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${owner.firstName} ${owner.lastName}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 5),
                       Text('${owner.phoneNumber}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray), overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),

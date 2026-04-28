@@ -3,6 +3,7 @@ class Product {
   final int ownerId;
   final String name;
   final int price;
+  final bool isPricePerHour;
   final String location;
   final List<String> images;
   final String category;
@@ -17,6 +18,7 @@ class Product {
     required this.ownerId,
     required this.name,
     required this.price,
+    this.isPricePerHour = false,
     required this.location,
     required this.images,
     this.category = '',
@@ -33,6 +35,7 @@ class Product {
     'ownerId': ownerId,
     'name': name,
     'price': price,
+    'isPricePerHour': isPricePerHour,
     'location': location,
     'images': images,
     'category': category,
@@ -48,6 +51,7 @@ class Product {
     ownerId: json['ownerId'] as int,
     name: json['name'] as String,
     price: json['price'] as int,
+    isPricePerHour: json['isPricePerHour'] as bool? ?? false,
     location: json['location'] as String,
     images: List<String>.from(json['images'] as List),
     category: json['category'] as String,
@@ -73,6 +77,21 @@ class Product {
       return first;
     }
     return '';
+  }
+
+  static int commissionForPrice(int price) {
+    if (price > 1000) {
+      return (price * 0.03).round();
+    } else {
+      return (price * 0.05).round();
+    }
+  }
+
+  int get commission => Product.commissionForPrice(price);
+
+  String get commissionText {
+    final rate = price > 1000 ? 3 : 5;
+    return 'Сервисный сбор $rate% (~ $commission ₽)';
   }
 
   String get city {

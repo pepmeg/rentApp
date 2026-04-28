@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:untitled/models/lease_request.dart';
 import 'package:untitled/provider/activeLeasesProvider.dart';
+import '../data/product_data.dart';
 import '../models/activeLease.dart';
 import '../models/cart_item.dart';
 import 'basket_provider.dart';
@@ -129,20 +130,41 @@ class LeaseRequestProvider extends ChangeNotifier {
       return;
     }
 
-    final daysRented = DateTime.now().difference(lease.startDate!).inDays;
-    final totalDays = daysRented < 1 ? 1 : daysRented;
+    final product = ProductData.getProductById(request.productId);
+    final bool isHourly = product?.isPricePerHour ?? false;
 
-    basketProvider.addToCartForUser(request.requesterId, CartItem(
-      id: request.productId,
-      name: request.productName,
-      price: request.pricePerDay,
-      images: request.images,
-      ownerId: request.requesterId,
-      days: totalDays,
-    ));
+    final diff = DateTime.now().difference(lease.startDate!);
+    final int totalHours = diff.inHours < 1 ? 1 : diff.inHours; // минимум 1 час
+
+    if (isHourly) {
+      basketProvider.addToCartForUser(request.requesterId, CartItem(
+        id: request.productId,
+        name: request.productName,
+        price: request.pricePerDay,
+        images: request.images,
+        ownerId: request.requesterId,
+        days: totalHours,
+        isHourly: true,
+      ));
+    } else {
+      final int fullDays = totalHours ~/ 24;
+      final int remainingHours = totalHours % 24;
+      final int days = fullDays;
+      final int extraHours = (fullDays >= 1) ? remainingHours : totalHours;
+
+      basketProvider.addToCartForUser(request.requesterId, CartItem(
+        id: request.productId,
+        name: request.productName,
+        price: request.pricePerDay,
+        images: request.images,
+        ownerId: request.requesterId,
+        days: days,
+        extraHours: extraHours,
+        isHourly: false,
+      ));
+    }
 
     leasesProvider.finishLease(request.productId);
-
     notifyListeners();
     saveToPrefs();
   }
