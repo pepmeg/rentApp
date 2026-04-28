@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/models/product.dart';
-import 'package:untitled/provider/favorite_provider.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/utils/colors.dart';
+import '../models/product.dart';
+import '../provider/favorite_provider.dart';
+import '../provider/AuthProvider.dart';
+import '../utils/colors.dart';
 import '../widgets/product_screen/product_details_section.dart';
 import '../widgets/product_screen/product_image_gallery.dart';
 import '../widgets/product_screen/product_info_section.dart';

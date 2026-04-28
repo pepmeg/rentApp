@@ -1,11 +1,11 @@
 import 'dart:io';
+import 'package:AppRent/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/product_image.dart';
-import 'package:untitled/models/activeLease.dart';
+import '../models/activeLease.dart';
 import '../provider/bottom_nav_provider.dart';
+import '../utils/colors.dart';
 
 class UserOrdersCard extends StatelessWidget {
   final int id;

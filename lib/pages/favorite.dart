@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/data/product_data.dart';
-import 'package:untitled/provider/favorite_provider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/favorite_card.dart';
-import 'package:untitled/widgets/category_filter_bar.dart';
-import '../models/product.dart';
-
+import '../data/product_data.dart';
+import '../provider/favorite_provider.dart';
+import '../utils/colors.dart';
+import '../widgets/category_filter_bar.dart';
+import '../widgets/favorite_card.dart';
 class Favorite extends StatefulWidget {
   const Favorite({super.key});
 

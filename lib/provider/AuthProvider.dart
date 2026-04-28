@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:untitled/models/user.dart';
+import '../models/user.dart';
 
 class AuthProvider extends ChangeNotifier {
 
@@ -34,6 +34,11 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       return false;
     }
+  }
+
+  Future<bool> isEmailRegistered(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey('user_$email');
   }
 
   Future<bool> login(String email, String password) async {

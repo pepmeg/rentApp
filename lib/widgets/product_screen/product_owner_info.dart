@@ -1,11 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/models/user.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/pages/person.dart';
-
+import '../../models/user.dart';
 import '../../provider/bottom_nav_provider.dart';
+import '../../utils/colors.dart';
 
 class ProductOwnerInfo extends StatelessWidget {
   final Future<UserModel?> futureOwner;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/registration.dart';
-import 'package:untitled/utils/colors.dart';
+import '../pages/registration.dart';
+import '../utils/colors.dart';
 import '../provider/AuthProvider.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';

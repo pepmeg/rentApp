@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled/utils/colors.dart';
+import '../utils/colors.dart';
 
 class SnackBarCustom {
   static void show(

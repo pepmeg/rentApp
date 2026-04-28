@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/provider/AuthProvider.dart';
 import '../models/user.dart';
+import '../provider/AuthProvider.dart';
 import '../utils/colors.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
@@ -35,6 +35,13 @@ class RegistrationState extends State<Registration> {
   }
 
   Future<void> register() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final emailTaken = await authProvider.isEmailRegistered(emailController.text.trim());
+    if (emailTaken) {
+      SnackBarCustom.show(context, message: 'Пользователь с таким email уже зарегистрирован');
+      return;
+    }
+
     if (!formKey.currentState!.validate()) return;
 
     if (passwordController.text != confirmPasswordController.text) {
@@ -42,7 +49,6 @@ class RegistrationState extends State<Registration> {
       return;
     }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final newUser = UserModel(
       id: DateTime.now().millisecondsSinceEpoch,
       email: emailController.text.trim(),

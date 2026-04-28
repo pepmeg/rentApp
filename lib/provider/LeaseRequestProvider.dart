@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:untitled/models/lease_request.dart';
-import 'package:untitled/provider/activeLeasesProvider.dart';
+import '../models/lease_request.dart';
+import '../provider/activeLeasesProvider.dart';
 import '../data/product_data.dart';
 import '../models/activeLease.dart';
 import '../models/cart_item.dart';

@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/models/activeLease.dart';
-import 'package:untitled/pages/productScreen.dart';
-import 'package:untitled/data/product_data.dart';
+import '../data/product_data.dart';
+import '../models/activeLease.dart';
 import '../models/lease_request.dart';
+import '../pages/productScreen.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/LeaseRequestProvider.dart';
 import '../provider/activeLeasesProvider.dart';
+import '../utils/colors.dart';
 import '../utils/snackbar_custom.dart';
 
 class LeaseCard extends StatefulWidget {

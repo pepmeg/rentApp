@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/provider/ReviewsProvider.dart';
-import 'package:untitled/provider/favorite_provider.dart';
-import 'package:untitled/utils/colors.dart';
+import '../provider/ReviewsProvider.dart';
+import '../provider/favorite_provider.dart';
+import '../utils/colors.dart';
 
 class ProductCard extends StatefulWidget {
   final int id;

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:untitled/utils/colors.dart';
+import '../../utils/colors.dart';
 
 class ProductImageGallery extends StatefulWidget {
   final List<String> images;

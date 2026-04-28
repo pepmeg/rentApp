@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/models/product.dart';
-import 'package:untitled/data/product_data.dart';
 import '../data/category.dart';
+import '../data/product_data.dart';
+import '../models/product.dart';
 import '../provider/AuthProvider.dart';
+import '../utils/colors.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
 

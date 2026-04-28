@@ -1,12 +1,12 @@
 import 'dart:io';
+import 'package:AppRent/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/provider/LeaseRequestProvider.dart';
-import 'package:untitled/provider/activeLeasesProvider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/product_image.dart';
 import '../models/lease_request.dart';
+import '../provider/LeaseRequestProvider.dart';
+import '../provider/activeLeasesProvider.dart';
 import '../provider/basket_provider.dart';
+import '../utils/colors.dart';
 
 class LeaseRequestCard extends StatelessWidget {
   final LeaseRequest request;

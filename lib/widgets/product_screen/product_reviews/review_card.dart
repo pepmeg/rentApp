@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:untitled/models/review.dart';
-import 'package:untitled/utils/colors.dart';
+import '../../../models/review.dart';
+import '../../../utils/colors.dart';
 
 class ReviewCard extends StatefulWidget {
   final Review review;

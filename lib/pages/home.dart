@@ -1,11 +1,11 @@
+import 'package:AppRent/pages/productScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/productScreen.dart';
-import 'package:untitled/utils/colors.dart';
 import '../data/product_data.dart';
 import '../models/activeLease.dart';
 import '../models/product.dart';
 import '../provider/activeLeasesProvider.dart';
+import '../utils/colors.dart';
 import '../widgets/product_card.dart';
 import '../widgets/category_filter.dart';
 import '../provider/ReviewsProvider.dart';

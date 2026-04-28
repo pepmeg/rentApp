@@ -1,6 +1,6 @@
+import 'package:AppRent/widgets/product_image.dart';
 import 'package:flutter/material.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/product_image.dart';
+import '../utils/colors.dart';
 
 class BasketCard extends StatelessWidget {
   final int id;

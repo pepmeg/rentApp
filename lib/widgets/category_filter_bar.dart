@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled/utils/colors.dart';
+import '../utils/colors.dart';
 import '../data/category.dart';
 
 class CategoryFilterBar extends StatefulWidget {

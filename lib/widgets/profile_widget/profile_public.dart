@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/user_orders.dart';
-import 'package:untitled/utils/colors.dart';
+import '../../pages/user_orders.dart';
 import '../../data/product_data.dart';
 import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
 import '../../models/user.dart';
+import '../../utils/colors.dart';
 
 class ProfilePublic extends StatelessWidget {
   final UserModel user;

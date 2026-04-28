@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/models/product.dart';
-import 'package:untitled/models/lease_request.dart';
-import 'package:untitled/models/activeLease.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/provider/LeaseRequestProvider.dart';
-import 'package:untitled/provider/ReviewsProvider.dart';
-import 'package:untitled/provider/activeLeasesProvider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/utils/snackbar_custom.dart';
-
+import '../../models/product.dart';
+import '../../models/lease_request.dart';
+import '../../models/activeLease.dart';
+import '../../provider/AuthProvider.dart';
+import '../../provider/LeaseRequestProvider.dart';
+import '../../provider/ReviewsProvider.dart';
+import '../../provider/activeLeasesProvider.dart';
+import '../../utils/colors.dart';
+import '../../utils/snackbar_custom.dart';
 import '../../pages/chat_screen.dart';
 import '../../provider/chat_provider.dart';
 

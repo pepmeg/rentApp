@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/provider/AuthProvider.dart';
+import '../provider/AuthProvider.dart';
 import '../models/user.dart';
 import '../widgets/profile_widget/profile_own.dart';
 import '../widgets/profile_widget/profile_public.dart';

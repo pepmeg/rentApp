@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/models/product.dart';
-import 'package:untitled/models/review.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/provider/activeLeasesProvider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/utils/snackbar_custom.dart';
-import 'package:untitled/widgets/product_screen/product_reviews/review_card.dart';
+import '../../../models/product.dart';
+import '../../../../models/review.dart';
+import '../../../provider/AuthProvider.dart';
+import '../../../provider/activeLeasesProvider.dart';
+import '../../../utils/colors.dart';
+import '../../../utils/snackbar_custom.dart';
+import '../../../widgets/product_screen/product_reviews/review_card.dart';
 import '../../../pages/product_reviews.dart';
 import '../../../provider/ReviewsProvider.dart';
 

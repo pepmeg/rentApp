@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/provider/LeaseRequestProvider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/lease_request_card.dart';
-
+import '../provider/AuthProvider.dart';
+import '../provider/LeaseRequestProvider.dart';
+import '../utils/colors.dart';
+import '../widgets/lease_request_card.dart';
 import '../provider/bottom_nav_provider.dart';
 
 class NotificationsScreen extends StatelessWidget {

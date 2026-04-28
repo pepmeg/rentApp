@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/basket_card.dart';
+import '../utils/colors.dart';
+import '../widgets/basket_card.dart';
 import '../provider/basket_provider.dart';
 import '../provider/AuthProvider.dart';
 import '../utils/snackbar_custom.dart';

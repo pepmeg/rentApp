@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:untitled/models/message.dart';
-import 'package:untitled/models/user.dart';
-import 'package:untitled/utils/colors.dart';
+import '../../models/message.dart';
+import '../../models/user.dart';
+import '../../utils/colors.dart';
 
 class ChatMessageWidget extends StatelessWidget {
   final Message message;

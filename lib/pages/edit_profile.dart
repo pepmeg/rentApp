@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/models/user.dart';
-import 'package:untitled/utils/colors.dart';
-
-import '../utils/snackbar_custom.dart';
+import '../models/user.dart';
+import '../provider/AuthProvider.dart';
+import '../utils/colors.dart';
 import 'change_password.dart';
 
 class EditProfile extends StatefulWidget {

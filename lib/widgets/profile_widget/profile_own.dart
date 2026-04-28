@@ -1,12 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/active_leases.dart';
-import 'package:untitled/pages/edit_profile.dart';
-import 'package:untitled/pages/user_orders.dart';
-import 'package:untitled/pages/notifications.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/utils/colors.dart';
+import '../../pages/active_leases.dart';
+import '../../pages/edit_profile.dart';
+import '../../pages/user_orders.dart';
+import '../../pages/notifications.dart';
+import '../../provider/AuthProvider.dart';
 import '../../data/product_data.dart';
 import '../../models/activeLease.dart';
 import '../../provider/LeaseRequestProvider.dart';
@@ -14,6 +13,7 @@ import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
 import '../../provider/basket_provider.dart';
 import '../../provider/chat_provider.dart';
+import '../../utils/colors.dart';
 import '../lease_card.dart';
 import '../../models/user.dart';
 

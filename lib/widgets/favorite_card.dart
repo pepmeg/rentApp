@@ -1,10 +1,10 @@
+import 'package:AppRent/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/productScreen.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/product_image.dart';
 import '../data/product_data.dart';
+import '../pages/productScreen.dart';
 import '../provider/favorite_provider.dart';
+import '../utils/colors.dart';
 import '../utils/snackbar_custom.dart';
 
 class FavoriteCard extends StatefulWidget {

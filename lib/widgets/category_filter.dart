@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/models/product.dart';
-import 'package:untitled/utils/form_fields.dart';
-import 'package:untitled/utils/snackbar_custom.dart';
 import '../data/product_data.dart';
 import '../data/category.dart';
+import '../models/product.dart';
+import '../utils/colors.dart';
+import '../utils/form_fields.dart';
 
 class CategoryFilterSheet extends StatefulWidget {
   final String? initialCategory;

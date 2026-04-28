@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled/pages/chat_screen.dart';
-import 'package:untitled/provider/AuthProvider.dart';
-import 'package:untitled/provider/chat_provider.dart';
-import 'package:untitled/models/user.dart';
-import 'package:untitled/utils/colors.dart';
 import 'dart:io';
 import '../models/chat.dart';
+import '../models/user.dart';
+import '../provider/AuthProvider.dart';
+import '../provider/chat_provider.dart';
+import '../utils/colors.dart';
+import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});

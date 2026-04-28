@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:untitled/models/product.dart';
-import 'package:untitled/utils/colors.dart';
-import 'package:untitled/widgets/plural.dart';
+import '../../models/product.dart';
+import '../../utils/colors.dart';
+import '../../widgets/plural.dart';
 
 class ProductDetailsSection extends StatelessWidget {
   final Product product;
