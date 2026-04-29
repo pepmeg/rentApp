@@ -15,26 +15,30 @@ class ProfilePublic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final leasesProvider = context.watch<ActiveLeasesProvider>();
+    final userLeases = leasesProvider.getLeasesForUser(user.id);
+    final totalOrders = userLeases.length;
+
     final userProductsCount = ProductData.products
         .where((p) => p.ownerId == user.id)
         .length;
-    final leasesProvider = context.read<ActiveLeasesProvider>();
-    final totalOrders = leasesProvider.totalLeasesCount;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 20),
-          _buildUserInfo(),
-          const SizedBox(height: 20),
-          _buildStats(context, totalOrders, userProductsCount),
-          const SizedBox(height: 20),
-          _buildAdsButton(context, userProductsCount),
-          const SizedBox(height: 20),
-        ],
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            const SizedBox(height: 20),
+            _buildUserInfo(),
+            const SizedBox(height: 20),
+            _buildStats(context, totalOrders, userProductsCount),
+            const SizedBox(height: 20),
+            _buildAdsButton(context, userProductsCount),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
@@ -91,6 +95,7 @@ class ProfilePublic extends StatelessWidget {
         ? 0.0
         : userReviews.map((r) => r.rating).reduce((a, b) => a + b) / userReviews.length;
     final String ratingText = userReviews.isEmpty ? '0' : avgRating.toStringAsFixed(1);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       decoration: BoxDecoration(
@@ -136,7 +141,7 @@ class ProfilePublic extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_box, size: 22, color: AppColors.oliveGray),
+            const Icon(Icons.list_alt_rounded, size: 22, color: AppColors.oliveGray),
             const SizedBox(width: 15),
             const Text('Объявления пользователя',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
@@ -154,7 +159,7 @@ class ProfilePublic extends StatelessWidget {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
             ),
             const SizedBox(width: 15),
-            const Icon(Icons.arrow_circle_right_sharp, size: 14, color: AppColors.oliveGray),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.oliveGray),
           ],
         ),
       ),

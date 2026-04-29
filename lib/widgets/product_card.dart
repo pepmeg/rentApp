@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../provider/AuthProvider.dart';
 import '../provider/ReviewsProvider.dart';
 import '../provider/favorite_provider.dart';
 import '../utils/colors.dart';
@@ -34,8 +35,10 @@ class ProductCardState extends State<ProductCard> {
 
   @override
   Widget build(BuildContext context) {
-    final favoriteProvider = context.watch<FavoriteProvider>();
-    final isFavorite = favoriteProvider.isFavorite(widget.id);
+    final favoriteProvider = Provider.of<FavoriteProvider>(context);
+    final authProvider = context.read<AuthProvider>();
+    final userId = authProvider.currentUser?.id;
+    final isFavorite = userId != null ? favoriteProvider.isFavorite(userId, widget.id) : false;
 
     final reviews = context.watch<ReviewsProvider>()
         .getReviewsForProduct(widget.id);
@@ -88,9 +91,9 @@ class ProductCardState extends State<ProductCard> {
                   right: 10,
                   child: GestureDetector(
                     onTap: () {
-                      setState(() {
-                        favoriteProvider.toggleFavorite(widget.id);
-                      });
+                      if (userId != null) {
+                        favoriteProvider.toggleFavorite(userId, widget.id);
+                      }
                     },
                     child: Icon(
                       isFavorite ? Icons.favorite : Icons.favorite_border,

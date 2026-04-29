@@ -34,6 +34,13 @@ class LeaseRequestProvider extends ChangeNotifier {
     saveToPrefs();
   }
 
+  bool hasPendingOrAcceptedRequest(int userId, int productId) {
+    return _requests.any((r) =>
+    r.requesterId == userId &&
+        r.productId == productId &&
+        (r.status == RequestStatus.pending || r.status == RequestStatus.accepted));
+  }
+
   void acceptRequest(int requestId, ActiveLeasesProvider leasesProvider) {
     final index = _requests.indexWhere((r) => r.id == requestId);
     if (index == -1) return;
@@ -134,7 +141,7 @@ class LeaseRequestProvider extends ChangeNotifier {
     final bool isHourly = product?.isPricePerHour ?? false;
 
     final diff = DateTime.now().difference(lease.startDate!);
-    final int totalHours = diff.inHours < 1 ? 1 : diff.inHours; // минимум 1 час
+    final int totalHours = diff.inHours < 1 ? 1 : diff.inHours;
 
     if (isHourly) {
       basketProvider.addToCartForUser(request.requesterId, CartItem(

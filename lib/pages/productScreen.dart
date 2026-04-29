@@ -18,8 +18,11 @@ class ProductScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final favoriteProvider = context.watch<FavoriteProvider>();
-    final isFavorite = favoriteProvider.isFavorite(product.id);
-    final authProvider = context.read<AuthProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    final currentUser = authProvider.currentUser;
+    final userId = currentUser?.id;
+
+    final isFavorite = userId != null && favoriteProvider.isFavorite(userId, product.id);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -36,18 +39,18 @@ class ProductScreen extends StatelessWidget {
                     constraints: const BoxConstraints(),
                   ),
                   const Spacer(),
-                  GestureDetector(
-                    onTap: () => favoriteProvider.toggleFavorite(product.id),
-                    child: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? AppColors.copper : AppColors.oliveGray,
-                      size: 20,
+                  if (userId != null)
+                    GestureDetector(
+                      onTap: () => favoriteProvider.toggleFavorite(userId, product.id),
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? AppColors.copper : AppColors.oliveGray,
+                        size: 20,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
-
             ProductImageGallery(images: product.images),
             const SizedBox(height: 20),
             ProductInfoSection(product: product),

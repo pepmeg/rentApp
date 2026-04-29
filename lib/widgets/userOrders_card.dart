@@ -15,6 +15,7 @@ class UserOrdersCard extends StatelessWidget {
   final String location;
   final DateTime createdAt;
   final ActiveLease? activeLease;
+  final bool isPricePerHour;
   final VoidCallback onEdit;
   final bool isOwner;
 
@@ -26,6 +27,7 @@ class UserOrdersCard extends StatelessWidget {
     required this.location,
     required this.createdAt,
     this.activeLease,
+    required this.isPricePerHour,
     required this.onEdit,
     this.isOwner = false,
     super.key,
@@ -66,12 +68,10 @@ class UserOrdersCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$price ₽ в день',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.normal,
-                          color: AppColors.oliveGray,
-                        ),
+                        isPricePerHour
+                            ? '$price ₽/час'
+                            : '$price ₽/день',
+                        style: TextStyle(fontSize: 15, color: AppColors.oliveGray),
                       ),
                       const SizedBox(height: 2),
                       Row(

@@ -156,11 +156,14 @@ class _AddProductState extends State<AddProduct> {
       description: descriptionController.text.trim(),
       brand: brandController.text.trim(),
       minRentDays: int.tryParse(daysController.text.trim()) ?? 1,
+      minRentHours: _isPricePerHour ? (int.tryParse(daysController.text.trim()) ?? 1) : 0,
+      isPricePerHour: _isPricePerHour,
       createdAt: DateTime.now(),
     );
 
     ProductData.addProduct(newProduct);
     SnackBarCustom.show(context, message: 'Товар добавлен');
+    context.read<AuthProvider>().notifyListeners();
 
     nameController.clear();
     priceController.clear();

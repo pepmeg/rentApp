@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:AppRent/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../data/product_data.dart';
 import '../models/lease_request.dart';
 import '../provider/LeaseRequestProvider.dart';
 import '../provider/activeLeasesProvider.dart';
@@ -18,8 +19,18 @@ class LeaseRequestCard extends StatelessWidget {
     super.key,
   });
 
+  List<String> _getDisplayImages() {
+    if (request.images.isNotEmpty) {
+      return request.images;
+    }
+    final product = ProductData.getProductById(request.productId);
+    return product?.images ?? [];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final displayImages = _getDisplayImages();
+
     return Card(
       elevation: 2,
       shadowColor: AppColors.oliveGray.withOpacity(0.12),
@@ -37,7 +48,7 @@ class LeaseRequestCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: ProductImage(
-                    images: request.images,
+                    images: displayImages,
                     width: 80,
                     height: 80,
                     backgroundColor: AppColors.spaceCream,
@@ -55,7 +66,6 @@ class LeaseRequestCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: AppColors.oliveGray,
                           letterSpacing: -0.2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -102,7 +112,9 @@ class LeaseRequestCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        _buildUserMessage(),
+                        request.type == RequestType.completion
+                            ? '${request.requesterFirstName} ${request.requesterLastName} хочет завершить аренду'
+                            : '${request.requesterFirstName} ${request.requesterLastName} хочет арендовать',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.oliveGray.withOpacity(0.7),
@@ -219,12 +231,5 @@ class LeaseRequestCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _buildUserMessage() {
-    if (request.type == RequestType.completion) {
-      return '${request.requesterFirstName} ${request.requesterLastName} хочет завершить аренду';
-    }
-    return '${request.requesterFirstName} ${request.requesterLastName} хочет арендовать';
   }
 }

@@ -99,87 +99,89 @@ class _EditProfileState extends State<EditProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 5),
-                const Text(
-                  'Редактировать',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-                backgroundImage: _avatarPath != null
-                    ? FileImage(File(_avatarPath!))
-                    : null,
-                child: _avatarPath == null
-                    ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
-                    : null,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Редактировать',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
-            _buildField(firstNameController, 'Имя'),
-            const SizedBox(height: 10),
-            _buildField(lastNameController, 'Фамилия'),
-            const SizedBox(height: 10),
-            _buildField(emailController, 'Почта'),
-            const SizedBox(height: 10),
-            _buildField(addressController, 'Адрес'),
-            const SizedBox(height: 10),
-            _buildField(phoneController, 'Номер телефона'),
+              const SizedBox(height: 15),
+              GestureDetector(
+                onTap: _pickImage,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: AppColors.oliveGray.withOpacity(0.1),
+                  backgroundImage: _avatarPath != null
+                      ? FileImage(File(_avatarPath!))
+                      : null,
+                  child: _avatarPath == null
+                      ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildField(firstNameController, 'Имя'),
+              const SizedBox(height: 10),
+              _buildField(lastNameController, 'Фамилия'),
+              const SizedBox(height: 10),
+              _buildField(emailController, 'Почта'),
+              const SizedBox(height: 10),
+              _buildField(addressController, 'Адрес'),
+              const SizedBox(height: 10),
+              _buildField(phoneController, 'Номер телефона'),
 
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.copper,
-                foregroundColor: AppColors.spaceCream,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.copper,
+                  foregroundColor: AppColors.spaceCream,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                child: const Text(
+                  'Сохранить',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
-              child: const Text(
-                'Сохранить',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.oliveGray,
+                  foregroundColor: AppColors.spaceCream,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                child: const Text(
+                  'Сменить пароль',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.oliveGray,
-                foregroundColor: AppColors.spaceCream,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              child: const Text(
-                'Сменить пароль',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

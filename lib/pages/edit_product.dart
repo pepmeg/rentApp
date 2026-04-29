@@ -2,9 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import '../data/category.dart';
 import '../data/product_data.dart';
 import '../models/product.dart';
+import '../provider/AuthProvider.dart';
 import '../utils/colors.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
@@ -54,7 +56,10 @@ class _EditProductState extends State<EditProduct> {
     final p = widget.product;
     nameController = TextEditingController(text: p.name);
     priceController = TextEditingController(text: p.price.toString());
-    daysController = TextEditingController(text: p.minRentDays.toString());
+    // Для почасового товара в поле показываем minRentHours, иначе minRentDays
+    daysController = TextEditingController(
+      text: (p.isPricePerHour ? p.minRentHours : p.minRentDays).toString(),
+    );
     locationController = TextEditingController(text: p.location);
     descriptionController = TextEditingController(text: p.description);
     brandController = TextEditingController(text: p.brand);
@@ -108,26 +113,49 @@ class _EditProductState extends State<EditProduct> {
       SnackBarCustom.show(context, message: 'Введите название и цену');
       return;
     }
+
+    final authProvider = context.read<AuthProvider>();
+    final currentUser = authProvider.currentUser;
+    String location = locationController.text.trim();
+    if (location.isEmpty &&
+        currentUser != null &&
+        currentUser.address != null &&
+        currentUser.address!.isNotEmpty) {
+      location = currentUser.address!;
+      locationController.text = location;
+    }
+
+    final int rentDays;
+    final int rentHours;
+    final int daysValue = int.tryParse(daysController.text.trim()) ?? 1;
+    if (_isPricePerHour) {
+      rentHours = daysValue.clamp(1, 720);
+      rentDays = 1;
+    } else {
+      rentDays = daysValue.clamp(1, 365);
+      rentHours = 0;
+    }
+
     final updatedProduct = Product(
       id: widget.product.id,
       ownerId: widget.product.ownerId,
       name: name,
       price: price,
-      isPricePerHour: _isPricePerHour,
-      location: locationController.text.trim().isEmpty
-          ? 'Не указано'
-          : locationController.text.trim(),
+      location: location.isEmpty ? 'Не указано' : location,
       images: List.from(_imagePaths),
       createdAt: widget.product.createdAt,
       category: _selectedCategory ?? '',
       subcategory: _selectedSubcategory ?? '',
       description: descriptionController.text.trim(),
       brand: brandController.text.trim(),
-      minRentDays: int.tryParse(daysController.text.trim()) ?? 1,
+      minRentDays: rentDays,
+      minRentHours: rentHours,
+      isPricePerHour: _isPricePerHour,
     );
 
     ProductData.updateProduct(widget.product.id, updatedProduct);
     SnackBarCustom.show(context, message: 'Товар обновлён');
+    context.read<AuthProvider>().notifyListeners();
     Navigator.pop(context, true);
   }
 
@@ -161,6 +189,7 @@ class _EditProductState extends State<EditProduct> {
           TextButton(
             onPressed: () {
               ProductData.deleteProduct(widget.product.id);
+              context.read<AuthProvider>().notifyListeners();
               Navigator.pop(ctx);
               Navigator.pop(context, true);
               SnackBarCustom.show(context, message: 'Товар удалён');

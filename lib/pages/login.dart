@@ -30,7 +30,7 @@ class Login extends StatefulWidget {
      );
 
      if (success) {
-       Navigator.pushReplacementNamed(context, '/home');
+       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
      } else {
        SnackBarCustom.show(context, message: 'Неверный email или пароль');
      }

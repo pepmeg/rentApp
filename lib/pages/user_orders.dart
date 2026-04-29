@@ -166,6 +166,7 @@ class UserOrdersState extends State<UserOrders> {
                     createdAt: product.createdAt,
                     activeLease: activeLease,
                     isOwner: isOwner,
+                    isPricePerHour: product.isPricePerHour,
                     onEdit: isOwner ? () => _openEditProduct(product) : () {},
                   );
                 },

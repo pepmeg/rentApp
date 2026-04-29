@@ -17,6 +17,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => HomeState();
 }
 
+
 class HomeState extends State<Home> {
   String searchQuery = '';
   String? selectedCategory;
@@ -27,6 +28,51 @@ class HomeState extends State<Home> {
   String? regionFilter;
   String? cityFilter;
   String? sortMode;
+
+  int _visibleCount = 8;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      _loadMore();
+    }
+  }
+
+  bool _isLoading = false;
+
+  void _loadMore() async {
+    if (_isLoading) return;
+    final total = filteredProducts.length;
+    if (_visibleCount >= total) return;
+
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (!mounted) return;
+    setState(() {
+      _visibleCount = (_visibleCount + 8).clamp(0, total);
+      _isLoading = false;
+    });
+  }
+
+  void _resetPagination() {
+    _visibleCount = 8;
+  }
 
   List<Product> get filteredProducts {
     var list = ProductData.getAllProducts();
@@ -115,6 +161,7 @@ class HomeState extends State<Home> {
             regionFilter = region;
             cityFilter = city;
             sortMode = sort;
+            _resetPagination();
           });
         },
       ),
@@ -123,7 +170,10 @@ class HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    final products = filteredProducts;
+    final allProducts = filteredProducts;
+    final visibleProducts = allProducts.take(_visibleCount).toList();
+    final hasMore = _visibleCount < allProducts.length;
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
@@ -136,7 +186,12 @@ class HomeState extends State<Home> {
                 borderRadius: BorderRadius.circular(30),
               ),
               child: TextField(
-                onChanged: (value) => setState(() => searchQuery = value),
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                    _resetPagination();
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: 'Поиск',
                   hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
@@ -152,7 +207,7 @@ class HomeState extends State<Home> {
             ),
             const SizedBox(height: 15),
             Expanded(
-              child: products.isEmpty
+              child: allProducts.isEmpty
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -172,15 +227,16 @@ class HomeState extends State<Home> {
                 ),
               )
                   : GridView.builder(
+                controller: _scrollController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                   childAspectRatio: 0.84,
                 ),
-                itemCount: products.length,
+                itemCount: visibleProducts.length,
                 itemBuilder: (context, index) {
-                  final product = products[index];
+                  final product = visibleProducts[index];
                   return ProductCard(
                     id: product.id,
                     name: product.name,
@@ -200,6 +256,13 @@ class HomeState extends State<Home> {
                 },
               ),
             ),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.copper),
+                ),
+              ),
           ],
         ),
       ),

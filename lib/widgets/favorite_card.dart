@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/product_data.dart';
 import '../pages/productScreen.dart';
+import '../provider/AuthProvider.dart';
 import '../provider/favorite_provider.dart';
 import '../utils/colors.dart';
 import '../utils/snackbar_custom.dart';
@@ -33,7 +34,9 @@ class FavoriteCardState extends State<FavoriteCard> {
   @override
   Widget build(BuildContext context) {
     final favoriteProvider = Provider.of<FavoriteProvider>(context);
-    final isFavorite = favoriteProvider.isFavorite(widget.id);
+    final authProvider = context.read<AuthProvider>();
+    final userId = authProvider.currentUser?.id;
+    final isFavorite = userId != null ? favoriteProvider.isFavorite(userId, widget.id) : false;
 
     return GestureDetector(
       onTap: () {
@@ -102,9 +105,9 @@ class FavoriteCardState extends State<FavoriteCard> {
               ),
               GestureDetector(
                 onTap: () {
-                  setState(() {
-                    favoriteProvider.toggleFavorite(widget.id);
-                  });
+                  if (userId != null) {
+                    favoriteProvider.toggleFavorite(userId, widget.id);
+                  }
                 },
                 child: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,

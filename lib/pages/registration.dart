@@ -61,7 +61,7 @@ class RegistrationState extends State<Registration> {
 
     final success = await authProvider.register(newUser);
     if (success) {
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } else {
       SnackBarCustom.show(context, message: 'Ошибка регистрации. Попробуйте другой email.');
     }

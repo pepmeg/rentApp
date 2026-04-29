@@ -148,17 +148,28 @@ class _LeaseCardState extends State<LeaseCard> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text(
-                  isPending
-                      ? '$totalUnit: ${lease.totalDays}'
-                      : 'Времени с начала: ${_durationText.isNotEmpty ? _durationText : (isHourly ? '${lease.currentDay} ч.' : '${lease.currentDay} дн.')}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
-                ),
-                const Spacer(),
-                Text(
-                  '${lease.pricePerDay} $priceUnit',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
-                ),
+                if (!isPending)
+                  Expanded(
+                    child: Text(
+                      'Времени с начала: ${_durationText.isNotEmpty ? _durationText : (isHourly ? '${lease.currentDay} ч.' : '${lease.currentDay} дн.')}',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                    ),
+                  ),
+                if (isPending)
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${lease.pricePerDay} $priceUnit',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    '${lease.pricePerDay} $priceUnit',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                  ),
               ],
             ),
             if (isPending) ...[

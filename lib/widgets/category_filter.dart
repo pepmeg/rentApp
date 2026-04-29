@@ -371,6 +371,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
             const SizedBox(height: 8),
             AppDropdownMenu(
+              key: ValueKey('brand_$selectedBrand'),
               value: selectedBrand,
               hint: 'Бренд',
               options: ['Все бренды', ...brandOptions],
@@ -381,6 +382,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
             const SizedBox(height: 8),
             AppDropdownMenu(
+              key: ValueKey('region_$selectedRegion'),
               value: selectedRegion,
               hint: 'Регион',
               options: ['Все регионы', ...regionOptions],
@@ -403,6 +405,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                     .toList()
                   ..sort();
                 return AppDropdownMenu(
+                  key: ValueKey('city_$selectedCity'),
                   value: selectedCity,
                   hint: 'Город',
                   options: ['Все города', ...cities],

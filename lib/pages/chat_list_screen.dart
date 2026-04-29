@@ -220,7 +220,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                       name,
                                       style: const TextStyle(
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.bold,
                                           color: AppColors.oliveGray),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -231,9 +231,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         productName,
                                         style: TextStyle(
                                             fontSize: 13,
+                                            fontWeight: FontWeight.normal,
                                             color: AppColors
-                                                .oliveGray
-                                                .withOpacity(0.7)),
+                                                .oliveGray),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -248,7 +248,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: AppColors.oliveGray
-                                            .withOpacity(0.6),
+                                            .withOpacity(0.5),
                                         fontWeight: isUnread
                                             ? FontWeight.w600
                                             : FontWeight.normal,

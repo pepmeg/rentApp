@@ -29,7 +29,12 @@ class ProductDetailsSection extends StatelessWidget {
             const SizedBox(height: 5),
             _buildRow('Бренд:', product.brand.isNotEmpty ? product.brand : 'Не указан'),
             const SizedBox(height: 5),
-            _buildRow('Мин. срок аренды:', '${product.minRentDays} ${Plural.days(product.minRentDays)}'),
+            _buildRow(
+              'Мин. срок аренды:',
+              product.isPricePerHour
+                  ? '${product.minRentHours} ${Plural.hours(product.minRentHours)}'
+                  : '${product.minRentDays} ${Plural.days(product.minRentDays)}',
+            ),
             const SizedBox(height: 5),
             const Text('Описание', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
             const SizedBox(height: 10),

@@ -13,21 +13,25 @@ import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
 import '../../provider/basket_provider.dart';
 import '../../provider/chat_provider.dart';
+import '../../provider/favorite_provider.dart';
 import '../../utils/colors.dart';
 import '../lease_card.dart';
 import '../../models/user.dart';
 
 class ProfileOwn extends StatelessWidget {
-  final UserModel user;
-
-  const ProfileOwn({required this.user, super.key});
+  const ProfileOwn({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final user = authProvider.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
     final leasesProvider = context.watch<ActiveLeasesProvider>();
     final leases = leasesProvider.getLeasesForUser(user.id);
     final totalOrders = leases.length;
     final activeOrders = leases.where((l) => l.status == LeaseStatus.active).length;
+
 
     final incomingCount = context.watch<LeaseRequestProvider>()
         .getIncomingRequests(user.id)
@@ -46,9 +50,9 @@ class ProfileOwn extends StatelessWidget {
             children: [
               _buildHeader(context, incomingCount),
               const SizedBox(height: 30),
-              _buildUserInfo(context),
+              _buildUserInfo(context, user),
               const SizedBox(height: 30),
-              _buildStats(context, totalOrders, activeOrders),
+              _buildStats(context, user, totalOrders, activeOrders),
               const SizedBox(height: 15),
               _buildMyAdsButton(context, userProductsCount),
               const SizedBox(height: 20),
@@ -187,6 +191,7 @@ class ProfileOwn extends StatelessWidget {
   }
 
   void _confirmDeleteAccount(BuildContext context) {
+    final userId = context.read<AuthProvider>().currentUser!.id;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -212,13 +217,13 @@ class ProfileOwn extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final userId = user.id;
               ProductData.deleteProductsByOwner(userId);
               context.read<ChatProvider>().deleteChatsForUser(userId);
               context.read<ActiveLeasesProvider>().deleteLeasesForUser(userId);
               context.read<LeaseRequestProvider>().deleteRequestsForUser(userId);
               context.read<BasketProvider>().clearCartForUser(userId);
               context.read<ReviewsProvider>().deleteReviewsByUser(userId);
+              context.read<FavoriteProvider>().clearFavoritesForUser(userId);
               final auth = context.read<AuthProvider>();
               await auth.deleteAccount();
               if (context.mounted) {
@@ -238,7 +243,7 @@ class ProfileOwn extends StatelessWidget {
     );
   }
 
-  Widget _buildUserInfo(BuildContext context) {
+  Widget _buildUserInfo(BuildContext context, UserModel user) {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfile())),
       child: Row(
@@ -272,7 +277,7 @@ class ProfileOwn extends StatelessWidget {
     );
   }
 
-  Widget _buildStats(BuildContext context, int totalOrders, int activeOrders) {
+  Widget _buildStats(BuildContext context, UserModel user, int totalOrders, int activeOrders) {
     final reviewsProvider = context.watch<ReviewsProvider>();
     final userProducts = ProductData.products.where((p) => p.ownerId == user.id).toList();
     final userReviews = reviewsProvider.reviews.where((r) => userProducts.any((p) => p.id == r.productId)).toList();

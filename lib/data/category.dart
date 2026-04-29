@@ -20,7 +20,6 @@ final List<Category> categories = [
   Category(
     name: 'Транспорт',
     subcategories: [
-      'Автомобили',
       'Мотоциклы и мототехника',
       'Спортивный транспорт',
       'Грузовики и спецтехника',

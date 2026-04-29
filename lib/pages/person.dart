@@ -16,7 +16,7 @@ class Profile extends StatelessWidget {
     final currentUser = authProvider.currentUser;
 
     if (userId == null || userId == currentUser?.id) {
-      return ProfileOwn(user: currentUser!);
+      return const ProfileOwn();
     }
 
     return Scaffold(

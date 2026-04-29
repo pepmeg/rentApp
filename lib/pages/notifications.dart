@@ -31,7 +31,7 @@ class NotificationsScreen extends StatelessWidget {
                   constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 5),
-                const Text('Запросы на аренду',
+                const Text('Запросы',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
               ],
             ),

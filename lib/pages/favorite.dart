@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/product_data.dart';
+import '../provider/AuthProvider.dart';
 import '../provider/favorite_provider.dart';
 import '../utils/colors.dart';
 import '../widgets/category_filter_bar.dart';
 import '../widgets/favorite_card.dart';
+
 class Favorite extends StatefulWidget {
   const Favorite({super.key});
 
@@ -18,12 +20,24 @@ class FavoriteState extends State<Favorite> {
   String? filterSubcategory;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        context.read<FavoriteProvider>().loadFavoritesForUser(user.id);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final favoriteProvider = Provider.of<FavoriteProvider>(context);
+    final favoriteProvider = context.watch<FavoriteProvider>();
     final allProducts = ProductData.getAllProducts();
+    final user = context.watch<AuthProvider>().currentUser;
 
     var favoriteProducts = allProducts
-        .where((product) => favoriteProvider.isFavorite(product.id))
+        .where((product) => user != null && favoriteProvider.isFavorite(user.id, product.id))
         .toList();
 
     if (filterCategory != null) {
