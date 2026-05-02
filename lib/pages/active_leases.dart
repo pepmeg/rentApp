@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../utils/colors.dart';
-import '../widgets/lease_card.dart';
+import '../widgets/lease_card/lease_card.dart';
 
 class ActiveLeases extends StatelessWidget {
   const ActiveLeases({super.key});

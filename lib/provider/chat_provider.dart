@@ -49,6 +49,7 @@ class ChatProvider extends ChangeNotifier {
     final chat = _chats[chatId];
     if (chat != null) {
       chat.messages.add(message);
+      markChatAsRead(chatId, message.senderId);
       notifyListeners();
       _saveToPrefs();
     }
@@ -75,7 +76,10 @@ class ChatProvider extends ChangeNotifier {
   }
 
   int unreadChatsCount(int userId) {
-    return _chats.values.where((chat) => isChatUnread(chat.id, userId)).length;
+    return _chats.values
+        .where((chat) => chat.user1Id == userId || chat.user2Id == userId)
+        .where((chat) => isChatUnread(chat.id, userId))
+        .length;
   }
 
   int unreadMessageCount(String chatId, int userId) {
@@ -88,6 +92,12 @@ class ChatProvider extends ChangeNotifier {
     return chat.messages
         .where((m) => m.senderId != userId && m.timestamp.isAfter(lastRead))
         .length;
+  }
+
+  void clearReadTimestampsForUser(int userId) {
+    _lastReadTimestamps.removeWhere((key, value) => key.endsWith('_$userId'));
+    notifyListeners();
+    _saveLastReadToPrefs();
   }
 
   bool isChatUnread(String chatId, int userId) {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/user.dart';
 import '../provider/AuthProvider.dart';
+import '../provider/chat_provider.dart';
 import '../utils/colors.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
@@ -37,6 +38,8 @@ class RegistrationState extends State<Registration> {
   Future<void> register() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final emailTaken = await authProvider.isEmailRegistered(emailController.text.trim());
+    final oldUserId = authProvider.currentUser?.id;
+
     if (emailTaken) {
       SnackBarCustom.show(context, message: 'Пользователь с таким email уже зарегистрирован');
       return;
@@ -61,6 +64,9 @@ class RegistrationState extends State<Registration> {
 
     final success = await authProvider.register(newUser);
     if (success) {
+      if (oldUserId != null) {
+        context.read<ChatProvider>().clearReadTimestampsForUser(oldUserId);
+      }
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } else {
       SnackBarCustom.show(context, message: 'Ошибка регистрации. Попробуйте другой email.');

@@ -17,9 +17,9 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final chatProvider = context.watch<ChatProvider>();
     final userId = auth.currentUser?.id;
-
+    // Слушаем весь ChatProvider для гарантированного обновления
+    final chatProvider = context.watch<ChatProvider>();
     final unreadChats = userId != null ? chatProvider.unreadChatsCount(userId) : 0;
 
     return Padding(

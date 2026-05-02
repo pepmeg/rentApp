@@ -15,7 +15,7 @@ import '../../provider/basket_provider.dart';
 import '../../provider/chat_provider.dart';
 import '../../provider/favorite_provider.dart';
 import '../../utils/colors.dart';
-import '../lease_card.dart';
+import '../lease_card/lease_card.dart';
 import '../../models/user.dart';
 
 class ProfileOwn extends StatelessWidget {

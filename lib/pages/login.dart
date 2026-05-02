@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../pages/registration.dart';
+import '../provider/chat_provider.dart';
 import '../utils/colors.dart';
 import '../provider/AuthProvider.dart';
 import '../utils/form_fields.dart';
@@ -24,12 +25,16 @@ class Login extends StatefulWidget {
 
    Future<void> _login() async {
      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+     final oldUserId = authProvider.currentUser?.id;
      final success = await authProvider.login(
        emailController.text.trim(),
        passwordController.text,
      );
 
      if (success) {
+       if (oldUserId != null && oldUserId != authProvider.currentUser?.id) {
+         context.read<ChatProvider>().clearReadTimestampsForUser(oldUserId);
+       }
        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
      } else {
        SnackBarCustom.show(context, message: 'Неверный email или пароль');
