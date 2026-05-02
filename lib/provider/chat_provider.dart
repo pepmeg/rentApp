@@ -74,6 +74,22 @@ class ChatProvider extends ChangeNotifier {
     _saveLastReadToPrefs();
   }
 
+  int unreadChatsCount(int userId) {
+    return _chats.values.where((chat) => isChatUnread(chat.id, userId)).length;
+  }
+
+  int unreadMessageCount(String chatId, int userId) {
+    final chat = _chats[chatId];
+    if (chat == null || chat.messages.isEmpty) return 0;
+    final lastRead = _lastReadTimestamps['${chatId}_$userId'];
+    if (lastRead == null) {
+      return chat.messages.where((m) => m.senderId != userId).length;
+    }
+    return chat.messages
+        .where((m) => m.senderId != userId && m.timestamp.isAfter(lastRead))
+        .length;
+  }
+
   bool isChatUnread(String chatId, int userId) {
     final chat = _chats[chatId];
     if (chat == null || chat.messages.isEmpty) return false;

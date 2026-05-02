@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../provider/AuthProvider.dart';
+import '../provider/chat_provider.dart';
 import '../utils/colors.dart';
 
 class BottomNavBar extends StatelessWidget {
@@ -13,6 +16,12 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final chatProvider = context.watch<ChatProvider>();
+    final userId = auth.currentUser?.id;
+
+    final unreadChats = userId != null ? chatProvider.unreadChatsCount(userId) : 0;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: BottomNavigationBar(
@@ -34,15 +43,67 @@ class BottomNavBar extends StatelessWidget {
           fontWeight: FontWeight.normal,
           fontSize: 10,
         ),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Избранное'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Добавить'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Корзина'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Чат'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+        items: [
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Главная',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Избранное',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Добавить',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: 'Корзина',
+          ),
+          BottomNavigationBarItem(
+            icon: _buildChatIcon(unreadChats),
+            label: 'Чат',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Профиль',
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChatIcon(int unreadCount) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Icon(Icons.chat),
+        if (unreadCount > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: AppColors.copper,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                unreadCount > 99 ? '99+' : '$unreadCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

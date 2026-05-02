@@ -53,6 +53,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
     _exitSelectionMode();
   }
 
+  String _formatLastMessageTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+    if (messageDate == today) {
+      return DateFormat('HH:mm').format(dateTime);
+    } else if (messageDate == yesterday) {
+      return 'Вчера';
+    } else if (dateTime.year == now.year) {
+      return DateFormat('d MMMM', 'ru').format(dateTime);
+    } else {
+      return DateFormat('d MMMM yyyy', 'ru').format(dateTime);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.read<AuthProvider>().currentUser;
@@ -111,7 +128,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   final isUnread = lastMessage != null &&
                       chatProvider.isChatUnread(chat.id, user.id);
                   final timeText = lastMessage != null
-                      ? DateFormat('HH:mm').format(lastMessage.timestamp)
+                      ? _formatLastMessageTime(lastMessage.timestamp)
                       : '';
                   final productName = chat.productName ?? '';
                   final companionId = chat.user1Id == user.id
@@ -159,6 +176,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           final name = companion != null
                               ? '${companion.firstName} ${companion.lastName}'
                               : (chat.companionName ?? 'Собеседник');
+                          final unreadCount = chatProvider.unreadMessageCount(chat.id, user.id);
 
                           Widget leading = CircleAvatar(
                             radius: 26,
@@ -204,17 +222,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                               );
                             }
                           }
-
                           return Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               leading,
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       name,
@@ -232,8 +247,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.normal,
-                                            color: AppColors
-                                                .oliveGray),
+                                            color: AppColors.oliveGray),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -247,8 +261,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: 14,
-                                        color: AppColors.oliveGray
-                                            .withOpacity(0.5),
+                                        color: AppColors.oliveGray.withOpacity(0.5),
                                         fontWeight: isUnread
                                             ? FontWeight.w600
                                             : FontWeight.normal,
@@ -259,8 +272,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                               ),
                               const SizedBox(width: 8),
                               Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   if (timeText.isNotEmpty)
                                     Text(
@@ -269,23 +281,30 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                         fontSize: 12,
                                         color: isUnread
                                             ? AppColors.copper
-                                            : AppColors.oliveGray
-                                            .withOpacity(0.5),
+                                            : AppColors.oliveGray.withOpacity(0.5),
                                         fontWeight: isUnread
                                             ? FontWeight.w600
                                             : FontWeight.normal,
                                       ),
                                     ),
                                   const SizedBox(height: 4),
-                                  if (isUnread)
+                                  if (unreadCount > 0)
                                     Container(
-                                      width: 8,
-                                      height: 8,
-                                      margin:
-                                      const EdgeInsets.only(top: 2),
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      margin: const EdgeInsets.only(top: 2),
+                                      decoration: BoxDecoration(
                                         color: AppColors.copper,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        unreadCount > 99 ? '99+' : '$unreadCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                 ],
