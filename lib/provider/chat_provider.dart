@@ -82,6 +82,10 @@ class ChatProvider extends ChangeNotifier {
         .length;
   }
 
+  Future<void> saveLastReadToPrefs() async {
+    await _saveLastReadToPrefs();
+  }
+
   int unreadMessageCount(String chatId, int userId) {
     final chat = _chats[chatId];
     if (chat == null || chat.messages.isEmpty) return 0;

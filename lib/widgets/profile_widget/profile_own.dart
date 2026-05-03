@@ -184,7 +184,8 @@ class ProfileOwn extends StatelessWidget {
 
   void _logoutAndNavigate(BuildContext context) async {
     final auth = context.read<AuthProvider>();
-    await auth.logout();
+    final chatProvider = context.read<ChatProvider>();
+    await auth.logout(chatProvider: chatProvider);
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, '/login');
     }

@@ -61,9 +61,10 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<void> logout() async {
+  Future<void> logout({required ChatProvider chatProvider}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('current_user_email');
+    await chatProvider.saveLastReadToPrefs();
     notifyListeners();
   }
 
