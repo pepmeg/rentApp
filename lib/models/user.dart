@@ -1,5 +1,7 @@
 class UserModel {
   final int id;
+  final String role;
+  final bool blocked;
   final String email;
   final String password;
   final String firstName;
@@ -10,6 +12,8 @@ class UserModel {
 
   UserModel({
     required this.id,
+    this.role = 'user',
+    this.blocked = false,
     required this.email,
     required this.password,
     required this.firstName,
@@ -22,6 +26,8 @@ class UserModel {
   Map<String, dynamic> toJson() =>
       {
         'id': id,
+        'role': role,
+        'blocked': blocked,
         'email': email,
         'password': password,
         'firstName': firstName,
@@ -33,14 +39,16 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-        id: json['id'] ?? '',
-        email: json['email'] ?? '',
-        password: json['password'] ?? '',
-        firstName: json['firstName'] ?? '',
-        lastName: json['lastName'] ?? '',
-        address: json['address'] ?? '',
-        phoneNumber: json['phoneNumber'] ?? '',
-        avatarPath: json['avatarPath'],
+      id: json['id'] as int? ?? 0,
+      email: json['email'] as String? ?? '',
+      password: json['password'] as String? ?? '',
+      firstName: json['firstName'] as String? ?? '',
+      lastName: json['lastName'] as String? ?? '',
+      address: json['address'] as String? ?? '',
+      phoneNumber: json['phoneNumber'] as String? ?? '',
+      avatarPath: json['avatarPath'] as String?,
+      role: json['role'] as String? ?? 'user',
+      blocked: json['blocked'] as bool? ?? false,
     );
   }
 }

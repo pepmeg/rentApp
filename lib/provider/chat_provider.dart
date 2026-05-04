@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/chat.dart';
-import '../models/message.dart';
+import '../models/messager_model/chat.dart';
+import '../models/messager_model/message.dart';
 
 class ChatProvider extends ChangeNotifier {
   final Map<String, Chat> _chats = {};
@@ -44,6 +44,8 @@ class ChatProvider extends ChangeNotifier {
     _saveToPrefs();
     return chat;
   }
+
+  List<Chat> getAllChats() => _chats.values.toList();
 
   void sendMessage(String chatId, Message message) {
     final chat = _chats[chatId];
@@ -200,5 +202,21 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
     _saveToPrefs();
     _saveLastReadToPrefs();
+  }
+
+  void moderateDeleteMessage(String chatId, int index) {
+    final chat = _chats[chatId];
+    if (chat == null || index < 0 || index >= chat.messages.length) return;
+    final old = chat.messages[index];
+    chat.messages[index] = Message(
+      senderId: old.senderId,
+      text: '',
+      timestamp: old.timestamp,
+      images: null,
+      edited: true,
+      moderated: true,
+    );
+    notifyListeners();
+    _saveToPrefs();
   }
 }

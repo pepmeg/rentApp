@@ -48,7 +48,11 @@ class NotificationsScreen extends StatelessWidget {
                   return LeaseRequestCard(
                     request: request,
                     onUserTap: () {
-                      context.read<BottomNavProvider>().showUserProfile(request.requesterId);
+                      final isUser = context.read<AuthProvider>().isUser;
+                      context.read<BottomNavProvider>().showUserProfile(
+                        request.requesterId,
+                        isUser: isUser,
+                      );
                       Navigator.pop(context);
                     },
                   );

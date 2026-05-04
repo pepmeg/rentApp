@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../models/message.dart';
+import '../../models/messager_model/message.dart';
 import '../../models/user.dart';
 import '../../utils/colors.dart';
 

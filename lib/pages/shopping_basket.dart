@@ -17,10 +17,17 @@ class BasketState extends State<ShoppingBasket> {
   @override
   void initState() {
     super.initState();
-    final user = context.read<AuthProvider>().currentUser;
-    if (user != null) {
-      context.read<BasketProvider>().loadForUser(user.id);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!context.read<AuthProvider>().isUser) {
+        Navigator.pushReplacementNamed(context, '/home');
+        return;
+      }
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        context.read<BasketProvider>().loadForUser(user.id);
+      }
+    });
   }
 
   void _pay(BuildContext context) {
@@ -34,6 +41,10 @@ class BasketState extends State<ShoppingBasket> {
 
   @override
   Widget build(BuildContext context) {
+    if (!context.watch<AuthProvider>().isUser) {
+      return const SizedBox.shrink();
+    }
+
     final user = context.watch<AuthProvider>().currentUser;
     if (user == null) return const SizedBox.shrink();
 

@@ -13,6 +13,7 @@ class Product {
   final int minRentDays;
   final int minRentHours;
   final DateTime createdAt;
+  final String moderationStatus;
 
   Product({
     required this.id,
@@ -29,6 +30,7 @@ class Product {
     this.minRentDays = 1,
     this.minRentHours = 1,
     DateTime? createdAt,
+    this.moderationStatus = 'active',
   }) : createdAt = createdAt ?? DateTime.now();
 
 
@@ -47,6 +49,7 @@ class Product {
     'minRentDays': minRentDays,
     'minRentHours': minRentHours,
     'createdAt': createdAt.toIso8601String(),
+    'moderationStatus': moderationStatus,
   };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -64,6 +67,7 @@ class Product {
     minRentDays: json['minRentDays'] as int? ?? 1,
     minRentHours: json['minRentHours'] ?? 1,
     createdAt: DateTime.parse(json['createdAt'] as String),
+    moderationStatus: json['moderationStatus'] as String,
   );
 
   String get region {

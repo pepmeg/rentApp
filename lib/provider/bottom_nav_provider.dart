@@ -12,9 +12,9 @@ class BottomNavProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void showUserProfile(int userId) {
+  void showUserProfile(int userId, {required bool isUser}) {
     profileUserId = userId;
-    _currentIndex = 5;
+    _currentIndex = isUser ? 5 : 2;
     notifyListeners();
   }
 }

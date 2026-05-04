@@ -5,10 +5,12 @@ import '../models/user.dart';
 import 'chat_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
-
   UserModel? _currentUser;
+  UserModel? _supportUser;
   bool _isLoading = false;
-
+  bool get isUser => _currentUser?.role == 'user';
+  bool get isSupport => _currentUser?.role == 'support';
+  bool get isAdmin => _currentUser?.role == 'admin';
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
 
@@ -97,30 +99,28 @@ class AuthProvider extends ChangeNotifier {
     return null;
   }
 
-  Future<void> loadUserData() async{
+  Future<void> loadUserData() async {
     _setLoading(true);
-
-    try{
+    try {
       final prefs = await SharedPreferences.getInstance();
       final String? currentUserEmail = prefs.getString('current_user_email');
-
       if (currentUserEmail != null) {
         final String? userJsonString = prefs.getString('user_$currentUserEmail');
-
-        if(userJsonString != null) {{
+        if (userJsonString != null) {
           final Map<String, dynamic> userData = jsonDecode(userJsonString);
           _currentUser = UserModel.fromJson(userData);
         }
-        }
       }
+      await _loadSupportUser();
     } catch (e) {
-      print('Ошибка загрузки данных пользователя: $e');
+      debugPrint('Ошибка загрузки данных пользователя: $e');
     }
     _setLoading(false);
     notifyListeners();
   }
 
   bool get isAuthenticated => _currentUser != null;
+
 
   Future<void> updateUser(UserModel updatedUser) async {
     final prefs = await SharedPreferences.getInstance();
@@ -166,5 +166,69 @@ class AuthProvider extends ChangeNotifier {
     _currentUser = updatedUser;
     notifyListeners();
     return null;
+  }
+
+  Future<UserModel?> getSupportUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    const supportEmail = 'support@rentapp.local';
+    final jsonString = prefs.getString('user_$supportEmail');
+    if (jsonString != null) {
+      final data = jsonDecode(jsonString);
+      return UserModel.fromJson(data);
+    }
+    // Создаём поддержку
+    final support = UserModel(
+      id: 0,
+      email: supportEmail,
+      password: '',
+      firstName: 'Support',
+      lastName: 'Team',
+      address: '',
+      phoneNumber: '',
+      role: 'support',   // специальная роль
+    );
+    await prefs.setString('user_$supportEmail', jsonEncode(support.toJson()));
+    return support;
+  }
+
+  UserModel? getSupportUserSync() {
+    return _supportUser;
+  }
+
+  Future<void> _loadSupportUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    const supportEmail = 'support@rentapp.local';
+    final jsonString = prefs.getString('user_$supportEmail');
+    if (jsonString != null) {
+      _supportUser = UserModel.fromJson(jsonDecode(jsonString));
+    } else {
+      _supportUser = UserModel(
+        id: 0,
+        email: supportEmail,
+        password: '',
+        firstName: 'Support',
+        lastName: 'Team',
+        address: '',
+        phoneNumber: '',
+        role: 'support',
+      );
+      await prefs.setString('user_$supportEmail', jsonEncode(_supportUser!.toJson()));
+    }
+  }
+
+  Future<List<UserModel>> getAllUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    final List<UserModel> users = [];
+    for (final key in keys) {
+      if (key.startsWith('user_')) {
+        final jsonString = prefs.getString(key);
+        if (jsonString != null) {
+          final userData = jsonDecode(jsonString);
+          users.add(UserModel.fromJson(userData));
+        }
+      }
+    }
+    return users;
   }
 }

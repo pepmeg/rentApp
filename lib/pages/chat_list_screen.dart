@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
-import '../models/chat.dart';
-import '../models/user.dart';
-import '../provider/AuthProvider.dart';
-import '../provider/chat_provider.dart';
-import '../utils/colors.dart';
+import '../../models/messager_model/chat.dart';
+import '../../models/user.dart';
+import '../../provider/AuthProvider.dart';
+import '../../provider/chat_provider.dart';
+import '../../utils/colors.dart';
+import '../utils/avatar.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -70,22 +71,128 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
   }
 
+  Widget _buildLastMessagePreview(Chat chat) {
+    if (chat.messages.isEmpty) return const Text('Нет сообщений');
+    final last = chat.messages.last;
+
+    if (last.text.isNotEmpty) {
+      return Text(
+        last.text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.oliveGray.withOpacity(0.5),
+          fontWeight: FontWeight.normal,
+        ),
+      );
+    }
+
+    if (last.images != null && last.images!.isNotEmpty) {
+      final images = last.images!;
+      final count = images.length;
+      final label = count == 1 ? 'Фотоография' : '$count фото';
+
+      final thumbnails = images.take(3).toList();
+
+      return Row(
+        children: [
+          ...thumbnails.map((path) => Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: path.startsWith('assets/')
+                  ? Image.asset(
+                path,
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              )
+                  : Image.file(
+                File(path),
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              ),
+            ),
+          )),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.oliveGray.withOpacity(0.5),
+              fontWeight: FontWeight.normal,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return const Text('Нет сообщений');
+  }
+
+  Chat? _getOrCreateChatBetween(int userId1, int userId2, BuildContext context, String companionName) {
+    final chatProvider = context.read<ChatProvider>();
+    final existingChat = chatProvider.getChatsForUser(userId1).cast<Chat?>().firstWhere(
+          (c) => (c!.user1Id == userId1 && c.user2Id == userId2) ||
+          (c.user1Id == userId2 && c.user2Id == userId1),
+      orElse: () => null,
+    );
+    if (existingChat != null) return existingChat;
+
+    return chatProvider.getOrCreateChat(
+      userId1,
+      userId2,
+      productId: null,
+      companionName: companionName,
+      companionAvatar: null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return const SizedBox.shrink();
 
     final chatProvider = context.watch<ChatProvider>();
-    final chats = List<Chat>.from(chatProvider.getChatsForUser(user.id))
-      ..sort((a, b) {
-        final aTime = a.messages.isNotEmpty
-            ? a.messages.last.timestamp
-            : DateTime(0);
-        final bTime = b.messages.isNotEmpty
-            ? b.messages.last.timestamp
-            : DateTime(0);
-        return bTime.compareTo(aTime);
-      });
+    final List<Chat> allUserChats = List<Chat>.from(chatProvider.getChatsForUser(user.id));
+    final role = user.role;
+
+    final List<Chat> pinnedChats = [];
+
+    if (role == 'support') {
+      const adminId = 999;
+      final adminChat = _getOrCreateChatBetween(user.id, adminId, context, 'Администратор');
+      if (adminChat != null && !pinnedChats.any((c) => c.id == adminChat.id)) {
+        pinnedChats.add(adminChat);
+      }
+    } else if (role == 'admin') {
+      const supportId = 0;
+      final supportChat = _getOrCreateChatBetween(user.id, supportId, context, 'Поддержка');
+      if (supportChat != null && !pinnedChats.any((c) => c.id == supportChat.id)) {
+        pinnedChats.add(supportChat);
+      }
+    } else if (role == 'user') {
+      final supportUser = context.read<AuthProvider>().getSupportUserSync();
+      if (supportUser != null) {
+        final supportChat = _getOrCreateChatBetween(user.id, supportUser.id, context, 'Поддержка');
+        if (supportChat != null && !pinnedChats.any((c) => c.id == supportChat.id)) {
+          pinnedChats.add(supportChat);
+        }
+      }
+    }
+
+    final Set<String> pinnedIds = pinnedChats.map((c) => c.id).toSet();
+    final List<Chat> regularChats = allUserChats.where((c) => !pinnedIds.contains(c.id)).toList();
+
+    regularChats.sort((a, b) {
+      final aTime = a.messages.isNotEmpty ? a.messages.last.timestamp : DateTime(0);
+      final bTime = b.messages.isNotEmpty ? b.messages.last.timestamp : DateTime(0);
+      return bTime.compareTo(aTime);
+    });
+
+    final List<Chat> chats = [...pinnedChats, ...regularChats];
 
     return Scaffold(
       body: Padding(
@@ -102,18 +209,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.chat_bubble_outline,
-                        size: 64,
-                        color: AppColors.oliveGray.withOpacity(0.3)),
+                        size: 64, color: AppColors.oliveGray.withOpacity(0.3)),
                     const SizedBox(height: 16),
                     Text('Нет сообщений',
                         style: TextStyle(
-                            fontSize: 18,
-                            color: AppColors.oliveGray.withOpacity(0.5))),
+                            fontSize: 18, color: AppColors.oliveGray.withOpacity(0.5))),
                     const SizedBox(height: 8),
                     Text('Напишите продавцу, чтобы начать общение',
                         style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.oliveGray.withOpacity(0.4))),
+                            fontSize: 14, color: AppColors.oliveGray.withOpacity(0.4))),
                   ],
                 ),
               )
@@ -122,21 +226,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final chat = chats[index];
-                  final lastMessage = chat.messages.isNotEmpty
-                      ? chat.messages.last
-                      : null;
-                  final isUnread = lastMessage != null &&
-                      chatProvider.isChatUnread(chat.id, user.id);
-                  final timeText = lastMessage != null
-                      ? _formatLastMessageTime(lastMessage.timestamp)
-                      : '';
+                  final lastMessage = chat.messages.isNotEmpty ? chat.messages.last : null;
+                  final isUnread = lastMessage != null && chatProvider.isChatUnread(chat.id, user.id);
+                  final timeText = lastMessage != null ? _formatLastMessageTime(lastMessage.timestamp) : '';
                   final productName = chat.productName ?? '';
-                  final companionId = chat.user1Id == user.id
-                      ? chat.user2Id
-                      : chat.user1Id;
-                  final futureUser = context
-                      .read<AuthProvider>()
-                      .getUserById(companionId);
+                  final companionId = chat.user1Id == user.id ? chat.user2Id : chat.user1Id;
+                  final futureUser = context.read<AuthProvider>().getUserById(companionId);
                   final isSelected = _selectedChatIds.contains(chat.id);
 
                   return GestureDetector(
@@ -178,50 +273,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                               : (chat.companionName ?? 'Собеседник');
                           final unreadCount = chatProvider.unreadMessageCount(chat.id, user.id);
 
-                          Widget leading = CircleAvatar(
+                          final leading = buildUserAvatar(
+                            companion,
+                            fallbackImage: chat.productImage,
+                            fallbackIcon: Icons.chat,
                             radius: 26,
-                            backgroundColor:
-                            AppColors.oliveGray.withOpacity(0.1),
-                            child: const Icon(Icons.chat,
-                                color: AppColors.oliveGray, size: 24),
                           );
 
-                          if (chat.productImage != null &&
-                              chat.productImage!.isNotEmpty) {
-                            final path = chat.productImage!;
-                            if (path.startsWith('assets/')) {
-                              leading = ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.asset(path,
-                                    width: 52,
-                                    height: 52,
-                                    fit: BoxFit.cover),
-                              );
-                            } else {
-                              leading = ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(File(path),
-                                    width: 52,
-                                    height: 52,
-                                    fit: BoxFit.cover),
-                              );
-                            }
-                          } else if (companion?.avatarPath != null &&
-                              companion!.avatarPath!.isNotEmpty) {
-                            final avatarPath = companion.avatarPath!;
-                            if (avatarPath.startsWith('assets/')) {
-                              leading = CircleAvatar(
-                                radius: 26,
-                                backgroundImage: AssetImage(avatarPath),
-                              );
-                            } else {
-                              leading = CircleAvatar(
-                                radius: 26,
-                                backgroundImage:
-                                FileImage(File(avatarPath)),
-                              );
-                            }
-                          }
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
@@ -242,8 +300,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                     ),
                                     if (productName.isNotEmpty) ...[
                                       const SizedBox(height: 2),
-                                      Text(
-                                        productName,
+                                      Text(productName,
                                         style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.normal,
@@ -253,20 +310,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                       ),
                                     ],
                                     const SizedBox(height: 4),
-                                    Text(
-                                      lastMessage != null
-                                          ? lastMessage.text
-                                          : 'Нет сообщений',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.oliveGray.withOpacity(0.5),
-                                        fontWeight: isUnread
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    _buildLastMessagePreview(chat),
                                   ],
                                 ),
                               ),
@@ -275,18 +319,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   if (timeText.isNotEmpty)
-                                    Text(
-                                      timeText,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isUnread
-                                            ? AppColors.copper
-                                            : AppColors.oliveGray.withOpacity(0.5),
-                                        fontWeight: isUnread
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    Text(timeText,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isUnread ? AppColors.copper : AppColors.oliveGray.withOpacity(0.5),
+                                          fontWeight: isUnread ? FontWeight.w600 : FontWeight.normal,
+                                        )),
                                   const SizedBox(height: 4),
                                   if (unreadCount > 0)
                                     Container(

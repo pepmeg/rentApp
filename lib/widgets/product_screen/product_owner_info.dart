@@ -1,8 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/user.dart';
+import '../../provider/AuthProvider.dart';
 import '../../provider/bottom_nav_provider.dart';
+import '../../utils/avatar.dart';
 import '../../utils/colors.dart';
 
 class ProductOwnerInfo extends StatelessWidget {
@@ -22,27 +23,17 @@ class ProductOwnerInfo extends StatelessWidget {
         if (owner == null) return const SizedBox.shrink();
 
         return GestureDetector(
-            onTap: () {
-              context.read<BottomNavProvider>().showUserProfile(owner.id);
-              Navigator.pop(context);
+          onTap: () {
+            final isUser = context.read<AuthProvider>().isUser;
+            context.read<BottomNavProvider>().showUserProfile(owner.id, isUser: isUser);
+            Navigator.pop(context);
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-                  backgroundImage: owner.avatarPath != null
-                      ? (owner.avatarPath!.startsWith('assets/')
-                      ? AssetImage(owner.avatarPath!)
-                      : FileImage(File(owner.avatarPath!)))
-                      : null,
-                  child: owner.avatarPath == null
-                      ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
-                      : null,
-                ),
+                buildUserAvatar(owner, radius: 50),
                 const SizedBox(width: 30),
                 Expanded(
                   child: Column(

@@ -61,6 +61,31 @@ class ProductData {
     }
   }
 
+  static void updateProductStatus(int productId, String newStatus) {
+    final index = products.indexWhere((p) => p.id == productId);
+    if (index != -1) {
+      final old = products[index];
+      products[index] = Product(
+        id: old.id,
+        ownerId: old.ownerId,
+        name: old.name,
+        price: old.price,
+        isPricePerHour: old.isPricePerHour,
+        location: old.location,
+        images: old.images,
+        category: old.category,
+        subcategory: old.subcategory,
+        description: old.description,
+        brand: old.brand,
+        minRentDays: old.minRentDays,
+        minRentHours: old.minRentHours,
+        createdAt: old.createdAt,
+        moderationStatus: newStatus,
+      );
+      _saveToPrefs();
+    }
+  }
+
   static void deleteProductsByOwner(int ownerId) {
     products.removeWhere((p) => p.ownerId == ownerId);
     _saveToPrefs();

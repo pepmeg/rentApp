@@ -75,6 +75,16 @@ class _AddProductState extends State<AddProduct> {
 
     setState(() {});
 
+    @override
+    void initState() {
+      super.initState();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !context.read<AuthProvider>().isUser) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      });
+    }
+
     if (added < pickedFiles.length) {
       SnackBarCustom.show(context, message: 'Добавлено $added из ${pickedFiles.length}. Лимит 10 фото.');
     }
@@ -197,6 +207,10 @@ class _AddProductState extends State<AddProduct> {
     final price = int.tryParse(priceText);
     final commission = price != null ? Product.commissionForPrice(price) : null;
     final commissionRate = price != null ? (price > 1000 ? 3 : 5) : null;
+
+    if (!context.watch<AuthProvider>().isUser) {
+      return const SizedBox.shrink();
+    }
 
     return Scaffold(
       body: Padding(

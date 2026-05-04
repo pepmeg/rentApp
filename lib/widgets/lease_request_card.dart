@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/product_data.dart';
 import '../models/lease_request.dart';
+import '../models/user.dart';
 import '../provider/LeaseRequestProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../provider/basket_provider.dart';
+import '../utils/avatar.dart';
 import '../utils/colors.dart';
 
 class LeaseRequestCard extends StatelessWidget {
@@ -97,18 +99,20 @@ class LeaseRequestCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-                      backgroundImage: request.requesterAvatarPath != null
-                          ? (request.requesterAvatarPath!.startsWith('assets/')
-                          ? AssetImage(request.requesterAvatarPath!)
-                          : FileImage(File(request.requesterAvatarPath!)))
-                          : null,
-                      child: request.requesterAvatarPath == null
-                          ? Icon(Icons.person, color: AppColors.oliveGray, size: 18)
-                          : null,
-                    ),
+                    Builder(builder: (context) {
+                      final requesterUser = UserModel(
+                        id: request.requesterId,
+                        email: '',
+                        password: '',
+                        firstName: request.requesterFirstName,
+                        lastName: request.requesterLastName,
+                        address: '',
+                        phoneNumber: '',
+                        avatarPath: request.requesterAvatarPath,
+                        role: 'user',
+                      );
+                      return buildUserAvatar(requesterUser, radius: 16);
+                    }),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(

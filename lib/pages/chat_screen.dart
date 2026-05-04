@@ -7,13 +7,14 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../data/product_data.dart';
-import '../models/chat.dart';
-import '../models/message.dart';
+import '../models/messager_model/chat.dart';
+import '../models/messager_model/message.dart';
 import '../models/product.dart';
 import '../models/user.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/bottom_nav_provider.dart';
 import '../provider/chat_provider.dart';
+import '../utils/avatar.dart';
 import '../utils/colors.dart';
 import '../widgets/chat/chat_input_widget.dart';
 import '../widgets/chat/chat_message_widget.dart';
@@ -39,8 +40,9 @@ class _ChatScreenState extends State<ChatScreen> {
   static const int maxImagesPerMessage = 10;
   int? _selectedImageMessageIndex;
   Set<int> _selectedImageIndices = {};
-
   List<String> _currentImagePaths = [];
+  bool _isAdmin = false;
+  bool _isSupport = false;
 
   @override
   void initState() {
@@ -48,7 +50,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _loadData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
-      final user = context.read<AuthProvider>().currentUser;
+      final auth = context.read<AuthProvider>();
+      _isAdmin = auth.isAdmin;
+      _isSupport = auth.isSupport;
+      final user = auth.currentUser;
       if (user != null) {
         context.read<ChatProvider>().markChatAsRead(widget.chat.id, user.id);
       }
@@ -258,13 +263,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final provider = context.read<ChatProvider>();
     if (_editingIndex != null) {
       if (text.isEmpty && (images == null || images.isEmpty)) return;
-
-      provider.editMessage(
-        widget.chat.id,
-        _editingIndex!,
-        text,
-        newImages: images,
-      );
+      provider.editMessage(widget.chat.id, _editingIndex!, text, newImages: images);
       _cancelEditing();
     } else {
       final message = Message(
@@ -320,12 +319,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final dateToCheck = DateTime(date.year, date.month, date.day);
-
-    if (dateToCheck == today) {
-      return 'Сегодня';
-    } else if (dateToCheck == yesterday) {
-      return 'Вчера';
-    }
+    if (dateToCheck == today) return 'Сегодня';
+    if (dateToCheck == yesterday) return 'Вчера';
     return DateFormat('d MMMM', 'ru').format(date);
   }
 
@@ -334,6 +329,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final prev = messages[index - 1].timestamp;
     final curr = messages[index].timestamp;
     return prev.day != curr.day || prev.month != curr.month || prev.year != curr.year;
+  }
+
+  void _moderateSelectedMessage() {
+    if (_selectedMessageIndex == null) return;
+    context.read<ChatProvider>().moderateDeleteMessage(widget.chat.id, _selectedMessageIndex!);
+    _deselectMessage();
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -377,6 +378,11 @@ class _ChatScreenState extends State<ChatScreen> {
           constraints: const BoxConstraints(),
         ),
         const Spacer(),
+        if (_isAdmin)
+          IconButton(
+            icon: const Icon(Icons.gavel, size: 24, color: AppColors.oliveGray),
+            onPressed: _moderateSelectedMessage,
+          ),
         if (_selectedMessageIsMe) ...[
           IconButton(
             icon: const Icon(Icons.edit, size: 24, color: AppColors.oliveGray),
@@ -389,7 +395,7 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         if (_selectedMessageIsMe) ...[
           IconButton(
-            icon: const Icon(Icons.delete, size: 24, color:  AppColors.oliveGray),
+            icon: const Icon(Icons.delete, size: 24, color: AppColors.oliveGray),
             onPressed: _deleteSelectedMessage,
           ),
         ],
@@ -416,7 +422,7 @@ class _ChatScreenState extends State<ChatScreen> {
           onPressed: _replaceSelectedImages,
         ),
         IconButton(
-          icon: const Icon(Icons.delete, size: 24, color:  AppColors.oliveGray),
+          icon: const Icon(Icons.delete, size: 24, color: AppColors.oliveGray),
           onPressed: _deleteSelectedImages,
         ),
       ],
@@ -424,10 +430,23 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildSellerRow(BuildContext context) {
+    String subtitle;
+    if (widget.chat.user1Id == 999 || widget.chat.user2Id == 999) {
+      subtitle = 'Администратор';
+    } else if (widget.chat.user1Id == 0 || widget.chat.user2Id == 0) {
+      subtitle = 'Поддержка';
+    } else {
+      subtitle = _product != null ? 'По товару' : 'Чат';
+    }
+
     return GestureDetector(
       onTap: () {
         if (_companion != null) {
-          context.read<BottomNavProvider>().showUserProfile(_companion!.id);
+          final isUser = !_isAdmin && !_isSupport;
+          context.read<BottomNavProvider>().showUserProfile(
+            _companion!.id,
+            isUser: isUser,
+          );
           Navigator.pop(context);
         }
       },
@@ -439,18 +458,7 @@ class _ChatScreenState extends State<ChatScreen> {
             constraints: const BoxConstraints(),
           ),
           const SizedBox(width: 8),
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-            backgroundImage: _companion?.avatarPath != null
-                ? (_companion!.avatarPath!.startsWith('assets/')
-                ? AssetImage(_companion!.avatarPath!)
-                : FileImage(File(_companion!.avatarPath!)))
-                : null,
-            child: _companion?.avatarPath == null
-                ? const Icon(Icons.person, color: AppColors.oliveGray, size: 24)
-                : null,
-          ),
+          buildUserAvatar(_companion, radius: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -463,7 +471,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  _product != null ? 'По товару' : 'Чат',
+                  subtitle,
                   style: TextStyle(fontSize: 13, color: AppColors.oliveGray.withOpacity(0.5)),
                 ),
               ],
@@ -506,7 +514,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Text(_product!.name,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.oliveGray),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text('${_product!.price} ₽',
                       style: TextStyle(fontSize: 13, color: AppColors.oliveGray.withOpacity(0.6))),
@@ -524,7 +533,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final user = context.read<AuthProvider>().currentUser;
     final chat = context.watch<ChatProvider>().getChatById(widget.chat.id);
     final messages = chat?.messages ?? widget.chat.messages;
-
+    final bool canWrite = (chat?.user1Id == user?.id || chat?.user2Id == user?.id);
     return Scaffold(
       body: Column(
         children: [
@@ -540,6 +549,40 @@ class _ChatScreenState extends State<ChatScreen> {
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
+
+                if (msg.moderated) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.oliveGray.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.oliveGray.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.gavel, size: 18, color: AppColors.oliveGray),
+                            const SizedBox(width: 10),
+                            const Flexible(
+                              child: Text(
+                                'Был удален администратором, не соответствует правилам площадки',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                  color: AppColors.oliveGray,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
                 final isMe = msg.senderId == user?.id;
                 final showAvatar = index == 0 || messages[index - 1].senderId != msg.senderId;
                 final showDate = _shouldShowDate(index, messages);
@@ -582,21 +625,42 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          ChatInputWidget(
-            key: _chatInputKey,
-            messageController: _messageController,
-            isEditing: _editingIndex != null,
-            onSend: _sendOrEditMessage,
-            onCancelEdit: _cancelEditing,
-            onImagesSelected: (paths) => setState(() => _currentImagePaths = paths),
-            onReplaceImage: (_editingIndex != null) ? (imgIdx) async {
-              if (imgIdx == -1) {
+          if (canWrite)
+            ChatInputWidget(
+              key: _chatInputKey,
+              messageController: _messageController,
+              isEditing: _editingIndex != null,
+              onSend: _sendOrEditMessage,
+              onCancelEdit: _cancelEditing,
+              onImagesSelected: (paths) => setState(() => _currentImagePaths = paths),
+              onReplaceImage: (_editingIndex != null) ? (imgIdx) async {
+                if (imgIdx == -1) {
+                  final picker = ImagePicker();
+                  final pickedFiles = await picker.pickMultiImage();
+                  if (pickedFiles == null || pickedFiles.isEmpty) return;
+
+                  final newPaths = <String>[];
+                  final remaining = maxImagesPerMessage;
+                  int added = 0;
+                  for (int i = 0; i < pickedFiles.length && added < remaining; i++) {
+                    final savedPath = await _saveImagePermanently(pickedFiles[i].path);
+                    newPaths.add(savedPath);
+                    added++;
+                  }
+                  if (added < pickedFiles.length) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Добавлено $added из ${pickedFiles.length}. Лимит 10 фото.')),
+                    );
+                  }
+                  _chatInputKey.currentState?.setInitialImages(newPaths);
+                  setState(() => _currentImagePaths = newPaths);
+                  return;
+                }
                 final picker = ImagePicker();
                 final pickedFiles = await picker.pickMultiImage();
                 if (pickedFiles == null || pickedFiles.isEmpty) return;
-
                 final newPaths = <String>[];
-                final remaining = maxImagesPerMessage;
+                final remaining = maxImagesPerMessage - (_currentImagePaths.length - 1);
                 int added = 0;
                 for (int i = 0; i < pickedFiles.length && added < remaining; i++) {
                   final savedPath = await _saveImagePermanently(pickedFiles[i].path);
@@ -608,29 +672,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     SnackBar(content: Text('Добавлено $added из ${pickedFiles.length}. Лимит 10 фото.')),
                   );
                 }
-                _chatInputKey.currentState?.setInitialImages(newPaths);
-                setState(() => _currentImagePaths = newPaths);
-                return;
-              }
-              final picker = ImagePicker();
-              final pickedFiles = await picker.pickMultiImage();
-              if (pickedFiles == null || pickedFiles.isEmpty) return;
-              final newPaths = <String>[];
-              final remaining = maxImagesPerMessage - (_currentImagePaths.length - 1);
-              int added = 0;
-              for (int i = 0; i < pickedFiles.length && added < remaining; i++) {
-                final savedPath = await _saveImagePermanently(pickedFiles[i].path);
-                newPaths.add(savedPath);
-                added++;
-              }
-              if (added < pickedFiles.length) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Добавлено $added из ${pickedFiles.length}. Лимит 10 фото.')),
-                );
-              }
-              _chatInputKey.currentState?.replaceImageAt(imgIdx, newPaths);
-            } : null,
-          ),
+                _chatInputKey.currentState?.replaceImageAt(imgIdx, newPaths);
+              } : null,
+            ),
         ],
       ),
     );

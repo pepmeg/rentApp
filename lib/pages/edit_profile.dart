@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../models/user.dart';
 import '../provider/AuthProvider.dart';
+import '../utils/avatar.dart';
 import '../utils/colors.dart';
 import 'change_password.dart';
 
@@ -98,6 +99,7 @@ class _EditProfileState extends State<EditProfile> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = context.read<AuthProvider>().currentUser;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -123,15 +125,20 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 15),
               GestureDetector(
                 onTap: _pickImage,
-                child: CircleAvatar(
+                child: buildUserAvatar(
+                  UserModel(
+                    id: currentUser!.id,
+                    email: currentUser.email,
+                    password: currentUser.password,
+                    firstName: currentUser.firstName,
+                    lastName: currentUser.lastName,
+                    address: currentUser.address,
+                    phoneNumber: currentUser.phoneNumber,
+                    avatarPath: _avatarPath,
+                    role: currentUser.role,
+                    blocked: currentUser.blocked,
+                  ),
                   radius: 50,
-                  backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-                  backgroundImage: _avatarPath != null
-                      ? FileImage(File(_avatarPath!))
-                      : null,
-                  child: _avatarPath == null
-                      ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
-                      : null,
                 ),
               ),
               const SizedBox(height: 20),

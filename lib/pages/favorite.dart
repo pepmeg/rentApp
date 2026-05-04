@@ -23,6 +23,10 @@ class FavoriteState extends State<Favorite> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !context.read<AuthProvider>().isUser) {
+        Navigator.pushReplacementNamed(context, '/home');
+        return;
+      }
       final user = context.read<AuthProvider>().currentUser;
       if (user != null) {
         context.read<FavoriteProvider>().loadFavoritesForUser(user.id);

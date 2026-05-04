@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/activeLease.dart';
+import '../models/user.dart';
+import '../provider/AuthProvider.dart';
 import '../provider/bottom_nav_provider.dart';
+import '../utils/avatar.dart';
 import '../utils/colors.dart';
 
 class UserOrdersCard extends StatelessWidget {
@@ -122,8 +125,10 @@ class UserOrdersCard extends StatelessWidget {
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: () {
+                  final isUser = context.read<AuthProvider>().isUser;
                   context.read<BottomNavProvider>().showUserProfile(
                     activeLease!.userId,
+                    isUser: isUser,
                   );
                   Navigator.pop(context);
                 },
@@ -135,20 +140,20 @@ class UserOrdersCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-                        backgroundImage: activeLease!.userAvatarPath != null
-                            ? FileImage(File(activeLease!.userAvatarPath!))
-                            : null,
-                        child: activeLease!.userAvatarPath == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 18,
-                                color: AppColors.oliveGray,
-                              )
-                            : null,
-                      ),
+                      Builder(builder: (context) {
+                        final leaseUser = UserModel(
+                          id: activeLease!.userId,
+                          email: '',
+                          password: '',
+                          firstName: activeLease!.userFirstName,
+                          lastName: activeLease!.userLastName,
+                          address: '',
+                          phoneNumber: '',
+                          avatarPath: activeLease!.userAvatarPath,
+                          role: 'user',
+                        );
+                        return buildUserAvatar(leaseUser, radius: 16);
+                      }),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(

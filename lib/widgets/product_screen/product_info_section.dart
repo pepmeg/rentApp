@@ -93,6 +93,7 @@ class _ProductInfoSectionState extends State<ProductInfoSection> {
     final priceUnit = product.isPricePerHour ? 'за час' : 'за день';
     final currentUser = context.read<AuthProvider>().currentUser;
     final isOwner = currentUser?.id == product.ownerId;
+    final isUser = context.read<AuthProvider>().isUser;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -124,7 +125,7 @@ class _ProductInfoSectionState extends State<ProductInfoSection> {
               Text(priceUnit, style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
             ],
           ),
-          if (!isOwner) ...[
+            if (!isOwner && isUser) ...[
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _isRequested ? null : _onRentPressed,

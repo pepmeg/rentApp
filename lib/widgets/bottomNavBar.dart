@@ -7,27 +7,49 @@ import '../utils/colors.dart';
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool isUser;
 
   const BottomNavBar({
     Key? key,
     required this.currentIndex,
     required this.onTap,
+    required this.isUser,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final userId = auth.currentUser?.id;
-    // Слушаем весь ChatProvider для гарантированного обновления
     final chatProvider = context.watch<ChatProvider>();
+    final userId = auth.currentUser?.id;
     final unreadChats = userId != null ? chatProvider.unreadChatsCount(userId) : 0;
+
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
+      if (isUser)
+        const BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Избранное'),
+      if (isUser)
+        const BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Добавить'),
+      if (isUser)
+        const BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Корзина'),
+      BottomNavigationBarItem(
+        icon: _buildChatIcon(unreadChats),
+        label: 'Чат',
+      ),
+      const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+    ];
+
+    final safeIndex = currentIndex.clamp(0, items.length - 1);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: BottomNavigationBar(
+        currentIndex: safeIndex,
+        onTap: (index) {
+          if (index < items.length) {
+            onTap(index);
+          }
+        },
         type: BottomNavigationBarType.fixed,
-        currentIndex: currentIndex,
-        onTap: onTap,
         backgroundColor: AppColors.spaceCream,
         selectedItemColor: AppColors.copper,
         unselectedItemColor: AppColors.oliveGray.withOpacity(0.5),
@@ -35,40 +57,9 @@ class BottomNavBar extends StatelessWidget {
         elevation: 0,
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.normal,
-          fontSize: 10,
-        ),
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Главная',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Избранное',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Добавить',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Корзина',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildChatIcon(unreadChats),
-            label: 'Чат',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Профиль',
-          ),
-        ],
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 10),
+        items: items,
       ),
     );
   }
@@ -88,17 +79,10 @@ class BottomNavBar extends StatelessWidget {
                 color: AppColors.copper,
                 borderRadius: BorderRadius.circular(10),
               ),
-              constraints: const BoxConstraints(
-                minWidth: 18,
-                minHeight: 18,
-              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
               child: Text(
                 unreadCount > 99 ? '99+' : '$unreadCount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
             ),

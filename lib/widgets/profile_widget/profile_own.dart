@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../pages/active_leases.dart';
+import '../../pages/admin/admin_screen.dart';
 import '../../pages/edit_profile.dart';
 import '../../pages/user_orders.dart';
 import '../../pages/notifications.dart';
@@ -14,6 +15,7 @@ import '../../provider/activeLeasesProvider.dart';
 import '../../provider/basket_provider.dart';
 import '../../provider/chat_provider.dart';
 import '../../provider/favorite_provider.dart';
+import '../../utils/avatar.dart';
 import '../../utils/colors.dart';
 import '../lease_card/lease_card.dart';
 import '../../models/user.dart';
@@ -52,11 +54,13 @@ class ProfileOwn extends StatelessWidget {
               const SizedBox(height: 30),
               _buildUserInfo(context, user),
               const SizedBox(height: 30),
+            if (user.role == 'user') ...[
               _buildStats(context, user, totalOrders, activeOrders),
               const SizedBox(height: 15),
               _buildMyAdsButton(context, userProductsCount),
               const SizedBox(height: 20),
               _buildActiveLeasesSection(context, leases),
+            ]
             ],
           ),
         ),
@@ -69,6 +73,14 @@ class ProfileOwn extends StatelessWidget {
       children: [
         const Text('Профиль',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+        SizedBox(width: 10,),
+        if (context.read<AuthProvider>().isAdmin || context.read<AuthProvider>().isSupport)
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings, color: AppColors.oliveGray),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
+            },
+          ),
         const Spacer(),
         Stack(
           children: [
@@ -249,18 +261,7 @@ class ProfileOwn extends StatelessWidget {
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfile())),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-            backgroundImage: user.avatarPath != null
-                ? (user.avatarPath!.startsWith('assets/')
-                ? AssetImage(user.avatarPath!)
-                : FileImage(File(user.avatarPath!)))
-                : null,
-            child: user.avatarPath == null
-                ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
-                : null,
-          ),
+          buildUserAvatar(user, radius: 50),
           const SizedBox(width: 30),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

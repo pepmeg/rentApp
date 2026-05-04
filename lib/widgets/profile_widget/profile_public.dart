@@ -6,6 +6,7 @@ import '../../data/product_data.dart';
 import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
 import '../../models/user.dart';
+import '../../utils/avatar.dart';
 import '../../utils/colors.dart';
 
 class ProfilePublic extends StatelessWidget {
@@ -55,18 +56,7 @@ class ProfilePublic extends StatelessWidget {
   Widget _buildUserInfo() {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 50,
-          backgroundColor: AppColors.oliveGray.withOpacity(0.1),
-          backgroundImage: user.avatarPath != null
-              ? (user.avatarPath!.startsWith('assets/')
-              ? AssetImage(user.avatarPath!)
-              : FileImage(File(user.avatarPath!)))
-              : null,
-          child: user.avatarPath == null
-              ? Icon(Icons.person, color: AppColors.oliveGray, size: 50)
-              : null,
-        ),
+        buildUserAvatar(user, radius: 50),
         const SizedBox(width: 20),
         Expanded(
           child: Column(
