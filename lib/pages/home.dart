@@ -109,6 +109,7 @@ class HomeState extends State<Home> {
         .map((l) => l.productId)
         .toSet();
     list = list.where((p) => !activeLeaseProductIds.contains(p.id)).toList();
+    list = list.where((p) => p.moderationStatus == 'active').toList();
 
     final reviewsProvider = context.read<ReviewsProvider>();
     double getRating(Product p) {
@@ -172,7 +173,6 @@ class HomeState extends State<Home> {
   Widget build(BuildContext context) {
     final allProducts = filteredProducts;
     final visibleProducts = allProducts.take(_visibleCount).toList();
-    final hasMore = _visibleCount < allProducts.length;
 
     return Scaffold(
       body: Padding(

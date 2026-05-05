@@ -42,6 +42,7 @@ class FavoriteState extends State<Favorite> {
 
     var favoriteProducts = allProducts
         .where((product) => user != null && favoriteProvider.isFavorite(user.id, product.id))
+        .where((product) => product.moderationStatus == 'active')
         .toList();
 
     if (filterCategory != null) {

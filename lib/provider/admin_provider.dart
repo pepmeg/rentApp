@@ -7,7 +7,6 @@ import '../models/user.dart';
 import '../models/product.dart';
 import '../data/product_data.dart';
 import 'AuthProvider.dart';
-import 'activeLeasesProvider.dart';
 
 class AdminProvider extends ChangeNotifier {
   List<Report> _reports = [];
@@ -21,19 +20,12 @@ class AdminProvider extends ChangeNotifier {
     loadFromPrefs();
   }
 
-  // ----- Пользователи -----
-  Future<void> loadUsers() async {
-    final auth = AuthProvider(); // предполагается, что AuthProvider доступен
-    _allUsers = await auth.getAllUsers();
-    notifyListeners();
-  }
-
   List<UserModel> get users => List.unmodifiable(_allUsers);
 
-  Future<void> _saveUser(UserModel user) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'user_${user.email}';
-    await prefs.setString(key, jsonEncode(user.toJson()));
+  Future<void> loadUsers() async {
+    final auth = AuthProvider();
+    _allUsers = await auth.getAllUsers();
+    notifyListeners();
   }
 
   void blockUser(int userId) {
@@ -82,25 +74,70 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  // ----- Жалобы -----
+  Future<void> _saveUser(UserModel user) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'user_${user.email}';
+    await prefs.setString(key, jsonEncode(user.toJson()));
+  }
+
   List<Report> get reports => List.unmodifiable(_reports);
 
-  void addReport(Report report) {
+  void addReport({
+    required int reporterId,
+    int? productId,
+    int? targetUserId,
+    required String reason,
+    required ReportTargetType targetType,
+  }) {
+    final report = Report(
+      id: DateTime.now().millisecondsSinceEpoch,
+      productId: productId,
+      targetUserId: targetUserId,
+      reporterId: reporterId,
+      reason: reason,
+      createdAt: DateTime.now(),
+      targetType: targetType,
+    );
     _reports.add(report);
-    _checkAutoHide(report.productId);
+    _checkAutoHide(productId);
     notifyListeners();
     _saveReports();
   }
 
-  void _checkAutoHide(int productId) {
-    final count = _reports.where((r) => r.productId == productId).length;
+  List<Report> getReportsForProduct(int productId) {
+    return _reports
+        .where((r) => r.productId == productId && r.targetType == ReportTargetType.product)
+        .toList();
+  }
+
+  List<Report> getReportsRelatedToUser(int userId) {
+    final userProductIds = ProductData.products
+        .where((p) => p.ownerId == userId)
+        .map((p) => p.id)
+        .toSet();
+    return _reports.where((r) {
+      if (r.targetType == ReportTargetType.user && r.targetUserId == userId) return true;
+      if (r.targetType == ReportTargetType.product &&
+          r.productId != null &&
+          userProductIds.contains(r.productId)) return true;
+      return false;
+    }).toList();
+  }
+
+  void _checkAutoHide(int? productId) {
+    if (productId == null) return;
+    final count = _reports
+        .where((r) => r.productId == productId && r.targetType == ReportTargetType.product)
+        .length;
     if (count >= 3) {
       ProductData.updateProductStatus(productId, 'hidden');
-      _addModerationLog(0, productId: productId, action: 'auto_hide', reason: 'Автоматическое скрытие после 3 жалоб');
+      _addModerationLog(0,
+          productId: productId,
+          action: 'auto_hide',
+          reason: 'Автоматическое скрытие после 3 жалоб');
     }
   }
 
-  // ----- Модерация товаров -----
   List<Product> getAllProducts() => ProductData.products;
 
   void hideProduct(int productId, int adminId, String reason) {
@@ -121,10 +158,14 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ----- Журнал модерации -----
   List<ModerationLog> get moderationLogs => List.unmodifiable(_moderationLogs);
 
-  void _addModerationLog(int adminId, {int? productId, int? targetUserId, required String action, String? reason}) {
+  void _addModerationLog(int adminId, {
+    int? productId,
+    int? targetUserId,
+    required String action,
+    String? reason,
+  }) {
     final log = ModerationLog(
       id: DateTime.now().millisecondsSinceEpoch,
       adminId: adminId,
@@ -139,14 +180,14 @@ class AdminProvider extends ChangeNotifier {
     _saveModerationLogs();
   }
 
-  // ----- Аналитика -----
   int get activeUsers => _allUsers.where((u) => !u.blocked).length;
   int get totalProducts => ProductData.products.length;
   int get totalReports => _reports.length;
-  int get hiddenProducts => ProductData.products.where((p) => p.moderationStatus == 'hidden').length;
-  int get blockedProducts => ProductData.products.where((p) => p.moderationStatus == 'blocked').length;
+  int get hiddenProducts =>
+      ProductData.products.where((p) => p.moderationStatus == 'hidden').length;
+  int get blockedProducts =>
+      ProductData.products.where((p) => p.moderationStatus == 'blocked').length;
 
-  // ----- Сохранение / загрузка -----
   Future<void> _saveReports() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = _reports.map((r) => jsonEncode(r.toJson())).toList();
@@ -170,9 +211,5 @@ class AdminProvider extends ChangeNotifier {
       _moderationLogs = logsData.map((s) => ModerationLog.fromJson(jsonDecode(s))).toList();
     }
     notifyListeners();
-  }
-
-  void cancelLease(int productId) {
-    final leasesProvider = ActiveLeasesProvider();
   }
 }

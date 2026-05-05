@@ -1,3 +1,4 @@
+import 'package:AppRent/pages/person.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
@@ -48,12 +49,8 @@ class NotificationsScreen extends StatelessWidget {
                   return LeaseRequestCard(
                     request: request,
                     onUserTap: () {
-                      final isUser = context.read<AuthProvider>().isUser;
-                      context.read<BottomNavProvider>().showUserProfile(
-                        request.requesterId,
-                        isUser: isUser,
-                      );
-                      Navigator.pop(context);
+                      context.read<BottomNavProvider>().showUserProfile(request.requesterId);
+                      Navigator.popUntil(context, (route) => route.isFirst);
                     },
                   );
                 },

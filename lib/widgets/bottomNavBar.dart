@@ -8,12 +8,16 @@ class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
   final bool isUser;
+  final bool isModerator;
+  final int itemCount;
 
   const BottomNavBar({
     Key? key,
     required this.currentIndex,
     required this.onTap,
     required this.isUser,
+    required this.isModerator,
+    required this.itemCount,
   }) : super(key: key);
 
   @override
@@ -36,6 +40,11 @@ class BottomNavBar extends StatelessWidget {
         label: 'Чат',
       ),
       const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+      if (isModerator)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.admin_panel_settings),
+          label: 'Модерация',
+        ),
     ];
 
     final safeIndex = currentIndex.clamp(0, items.length - 1);

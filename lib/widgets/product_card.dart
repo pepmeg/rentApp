@@ -39,6 +39,7 @@ class ProductCardState extends State<ProductCard> {
     final authProvider = context.read<AuthProvider>();
     final userId = authProvider.currentUser?.id;
     final isFavorite = userId != null ? favoriteProvider.isFavorite(userId, widget.id) : false;
+    final isUser = context.read<AuthProvider>().isUser;
 
     final reviews = context.watch<ReviewsProvider>()
         .getReviewsForProduct(widget.id);
@@ -91,7 +92,7 @@ class ProductCardState extends State<ProductCard> {
                   right: 10,
                   child: GestureDetector(
                     onTap: () {
-                      if (userId != null) {
+                      if (userId != null && isUser) {
                         favoriteProvider.toggleFavorite(userId, widget.id);
                       }
                     },

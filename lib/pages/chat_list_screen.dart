@@ -233,11 +233,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   final companionId = chat.user1Id == user.id ? chat.user2Id : chat.user1Id;
                   final futureUser = context.read<AuthProvider>().getUserById(companionId);
                   final isSelected = _selectedChatIds.contains(chat.id);
+                  // Служебный чат с администратором/поддержкой
+                  final bool isSupportAdminChat =
+                      chat.user1Id == 0 || chat.user2Id == 0 ||
+                          chat.user1Id == 999 || chat.user2Id == 999;
 
                   return GestureDetector(
                     onTap: () {
                       if (_selectionMode) {
-                        _toggleSelection(chat.id);
+                        if (!isSupportAdminChat) {
+                          _toggleSelection(chat.id);
+                        }
                       } else {
                         Navigator.push(
                             context,
@@ -245,7 +251,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                 builder: (_) => ChatScreen(chat: chat)));
                       }
                     },
-                    onLongPress: () {
+                    onLongPress: isSupportAdminChat
+                        ? null
+                        : () {
                       if (!_selectionMode) {
                         _enterSelectionMode(chat.id);
                       }

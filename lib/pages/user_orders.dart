@@ -28,6 +28,7 @@ class UserOrdersState extends State<UserOrders> {
     final targetId = widget.ownerId ?? user.id;
     var userProducts = ProductData.products
         .where((p) => p.ownerId == targetId)
+        .where((p) => p.moderationStatus != 'blocked')
         .toList();
 
     if (_showActiveRents) {
@@ -167,6 +168,7 @@ class UserOrdersState extends State<UserOrders> {
                     activeLease: activeLease,
                     isOwner: isOwner,
                     isPricePerHour: product.isPricePerHour,
+                    moderationStatus: product.moderationStatus,
                     onEdit: isOwner ? () => _openEditProduct(product) : () {},
                   );
                 },

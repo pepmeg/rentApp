@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:AppRent/pages/add_product.dart';
+import 'package:AppRent/pages/admin/admin_screen.dart';
 import 'package:AppRent/pages/chat_list_screen.dart';
 import 'package:AppRent/pages/favorite.dart';
 import 'package:AppRent/pages/home.dart';
@@ -63,7 +64,7 @@ Future<void> _createSupportIfNeeded() async {
       email: supportEmail,
       password: '',
       firstName: 'Support',
-      lastName: 'Team',
+      lastName: '',
       address: '',
       phoneNumber: '',
       role: 'support',
@@ -96,28 +97,47 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int? _lastUserId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthProvider>();
+    final currentUserId = auth.currentUser?.id;
+    if (_lastUserId != null && _lastUserId != currentUserId) {
+      context.read<BottomNavProvider>().setIndex(0);
+    }
+    _lastUserId = currentUserId;
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final isUser = authProvider.isUser;
+    final isModerator = authProvider.isAdmin || authProvider.isSupport;
     final navProvider = context.watch<BottomNavProvider>();
     final currentIndex = navProvider.currentIndex;
 
-    final List<Widget> screens = [];
-    screens.add(Home());
-    if (isUser) {
-      screens.add(Favorite());
-      screens.add(AddProduct());
-      screens.add(ShoppingBasket());
-    }
-    screens.add(ChatListScreen());
-    screens.add(Profile(
-      userId: navProvider.profileUserId,
-      key: ValueKey('profile_${navProvider.profileUserId}'),
-    ));
+    final List<Widget> screens = [
+      const Home(),
+      if (isUser) const Favorite(),
+      if (isUser) const AddProduct(),
+      if (isUser) const ShoppingBasket(),
+      const ChatListScreen(),
+      Profile(userId: navProvider.profileUserId, key: ValueKey('profile_${navProvider.profileUserId}')),
+    if (isModerator) const AdminScreen(),
+    ];
+
+    final profileIndex = screens.length - 1;
+    navProvider.setProfileIndex(profileIndex);
 
     final safeIndex = currentIndex.clamp(0, screens.length - 1);
 
@@ -127,9 +147,13 @@ class MainScreen extends StatelessWidget {
       bottomNavigationBar: BottomNavBar(
         currentIndex: safeIndex,
         onTap: (index) {
-          navProvider.setIndex(index);
+          if (index < screens.length) {
+            navProvider.setIndex(index);
+          }
         },
         isUser: isUser,
+        isModerator: isModerator,
+        itemCount: screens.length,
       ),
     );
   }
@@ -145,7 +169,7 @@ Future<void> _createAdminIfNeeded() async {
       email: adminEmail,
       password: 'admin123',
       firstName: 'Admin',
-      lastName: 'Support',
+      lastName: '',
       address: 'Москва',
       phoneNumber: '+79000000000',
       role: 'admin',

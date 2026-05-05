@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
+import '../models/admin_models/report.dart';
 import '../provider/favorite_provider.dart';
 import '../provider/AuthProvider.dart';
+import '../provider/admin_provider.dart';
 import '../utils/colors.dart';
+import '../utils/snackbar_custom.dart';
 import '../widgets/product_screen/product_details_section.dart';
 import '../widgets/product_screen/product_image_gallery.dart';
 import '../widgets/product_screen/product_info_section.dart';
 import '../widgets/product_screen/product_owner_info.dart';
 import '../widgets/product_screen/product_reviews/product_reviews_section.dart';
+import '../widgets/report_dialog.dart';
 
 class ProductScreen extends StatelessWidget {
   final Product product;
@@ -23,6 +27,9 @@ class ProductScreen extends StatelessWidget {
     final userId = currentUser?.id;
 
     final isFavorite = userId != null && favoriteProvider.isFavorite(userId, product.id);
+    final isOwner = userId == product.ownerId;
+    final isUser = authProvider.isUser;
+    final isAvailable = product.moderationStatus == 'active';
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -39,7 +46,18 @@ class ProductScreen extends StatelessWidget {
                     constraints: const BoxConstraints(),
                   ),
                   const Spacer(),
-                  if (userId != null)
+                  if (!isOwner && isUser && isAvailable)
+                    IconButton(
+                      icon: Icon(Icons.flag_outlined, color: AppColors.oliveGray.withOpacity(0.7)),
+                      onPressed: () => showReportDialog(context,
+                        reporterId: currentUser!.id,
+                        targetType: ReportTargetType.product,
+                        targetId: product.id,
+                        targetName: product.name,
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  if (userId != null && isUser)
                     GestureDetector(
                       onTap: () => favoriteProvider.toggleFavorite(userId, product.id),
                       child: Icon(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/user.dart';
+import '../../pages/person.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/bottom_nav_provider.dart';
 import '../../utils/avatar.dart';
@@ -24,9 +25,8 @@ class ProductOwnerInfo extends StatelessWidget {
 
         return GestureDetector(
           onTap: () {
-            final isUser = context.read<AuthProvider>().isUser;
-            context.read<BottomNavProvider>().showUserProfile(owner.id, isUser: isUser);
-            Navigator.pop(context);
+            context.read<BottomNavProvider>().showUserProfile(owner.id);
+            Navigator.popUntil(context, (route) => route.isFirst);
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

@@ -40,7 +40,7 @@ class ProfileOwn extends StatelessWidget {
         .length;
 
     final userProductsCount = ProductData.products
-        .where((p) => p.ownerId == user.id)
+        .where((p) => p.ownerId == user.id && p.moderationStatus != 'blocked')
         .length;
 
     return Scaffold(
@@ -69,19 +69,14 @@ class ProfileOwn extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, int incomingCount) {
+    final user = context.read<AuthProvider>().currentUser;
     return Row(
       children: [
         const Text('Профиль',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
         SizedBox(width: 10,),
-        if (context.read<AuthProvider>().isAdmin || context.read<AuthProvider>().isSupport)
-          IconButton(
-            icon: const Icon(Icons.admin_panel_settings, color: AppColors.oliveGray),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
-            },
-          ),
         const Spacer(),
+        if (user?.role == 'user')
         Stack(
           children: [
             IconButton(

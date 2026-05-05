@@ -9,14 +9,22 @@ import '../../utils/colors.dart';
 import '../../utils/avatar.dart';
 import '../chat_screen.dart';
 
-class AdminChatsTab extends StatelessWidget {
+class AdminChatsTab extends StatefulWidget {
   const AdminChatsTab({super.key});
+
+  @override
+  State<AdminChatsTab> createState() => _AdminChatsTabState();
+}
+
+class _AdminChatsTabState extends State<AdminChatsTab> {
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
     final authProvider = context.read<AuthProvider>();
     final List<Chat> allChats = chatProvider.getAllChats();
+
     final Set<String> seen = {};
     final uniqueChats = allChats.where((chat) {
       final List<int> ids = [chat.user1Id, chat.user2Id]..sort();
@@ -26,91 +34,140 @@ class AdminChatsTab extends StatelessWidget {
       return true;
     }).toList();
 
-    return ListView.builder(
-      itemCount: uniqueChats.length,
-      itemBuilder: (context, index) {
-        final chat = uniqueChats[index];
-        final user1Future = authProvider.getUserById(chat.user1Id);
-        final user2Future = authProvider.getUserById(chat.user2Id);
+    final filteredChats = _searchQuery.isEmpty
+        ? uniqueChats
+        : uniqueChats.where((chat) {
+      final query = _searchQuery.toLowerCase();
+      if (chat.productName != null && chat.productName!.toLowerCase().contains(query)) {
+        return true;
+      }
+      if (chat.messages.isNotEmpty) {
+        final lastMsg = chat.messages.last;
+        if (lastMsg.text.isNotEmpty && lastMsg.text.toLowerCase().contains(query)) {
+          return true;
+        }
+      }
+      return false;
+    }).toList();
 
-        final bool isSupportAdminChat =
-            (chat.user1Id == 0 && chat.user2Id == 999) ||
-                (chat.user1Id == 999 && chat.user2Id == 0);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: AppColors.lightGreen,
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: TextField(
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Поиск чатов',
+                hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
+                prefixIcon: Icon(Icons.search, color: AppColors.copper),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: Icon(Icons.clear_rounded, color: AppColors.oliveGray.withOpacity(0.5)),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+              ),
+            ),
+          ),
+        ),
+        // Список чатов
+        Expanded(
+          child: ListView.builder(
+            itemCount: filteredChats.length,
+            itemBuilder: (context, index) {
+              final chat = filteredChats[index];
+              final user1Future = authProvider.getUserById(chat.user1Id);
+              final user2Future = authProvider.getUserById(chat.user2Id);
 
-        return Card(
-          color: AppColors.whiteAntique,
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: FutureBuilder(
-            future: Future.wait([user1Future, user2Future]),
-            builder: (ctx, AsyncSnapshot<List<UserModel?>> snapshot) {
-              if (!snapshot.hasData) return const SizedBox.shrink();
-              final user1 = snapshot.data![0];
-              final user2 = snapshot.data![1];
-              final name1 = user1 != null ? '${user1.firstName} ${user1.lastName}' : 'Пользователь ${chat.user1Id}';
-              final name2 = user2 != null ? '${user2.firstName} ${user2.lastName}' : 'Пользователь ${chat.user2Id}';
-              final title = '$name1 – $name2';
-              final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
-              final timeText = lastMsg != null ? _formatTime(lastMsg.timestamp) : '';
+              final bool isSupportAdminChat =
+                  (chat.user1Id == 0 && chat.user2Id == 999) ||
+                      (chat.user1Id == 999 && chat.user2Id == 0);
 
-              return ListTile(
-                leading: buildUserAvatar(
-                  user1,
-                  fallbackImage: chat.productImage,
-                  fallbackIcon: Icons.chat,
-                  radius: 24,
-                ),
-                title: Text(title, style: const TextStyle(color: AppColors.oliveGray)),
-                subtitle: Text(
-                  lastMsg != null
-                      ? (lastMsg.text.isNotEmpty ? lastMsg.text : '[Фото]')
-                      : 'Нет сообщений',
-                  style: TextStyle(color: AppColors.oliveGray.withOpacity(0.7)),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (timeText.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Text(timeText, style: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 12)),
+              return Card(
+                color: AppColors.whiteAntique,
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: FutureBuilder(
+                  future: Future.wait([user1Future, user2Future]),
+                  builder: (ctx, AsyncSnapshot<List<UserModel?>> snapshot) {
+                    if (!snapshot.hasData) return const SizedBox.shrink();
+                    final user1 = snapshot.data![0];
+                    final user2 = snapshot.data![1];
+                    final name1 = user1 != null ? '${user1.firstName} ${user1.lastName}' : 'Пользователь ${chat.user1Id}';
+                    final name2 = user2 != null ? '${user2.firstName} ${user2.lastName}' : 'Пользователь ${chat.user2Id}';
+                    final title = '$name1 – $name2';
+                    final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
+                    final timeText = lastMsg != null ? _formatTime(lastMsg.timestamp) : '';
+
+                    return ListTile(
+                      leading: buildUserAvatar(
+                        user1,
+                        fallbackImage: chat.productImage,
+                        fallbackIcon: Icons.chat,
+                        radius: 24,
                       ),
-                    if (!isSupportAdminChat)
-                      GestureDetector(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              backgroundColor: AppColors.whiteAntique,
-                              title: const Text('Удалить чат?', style: TextStyle(color: AppColors.oliveGray)),
-                              content: const Text('Все сообщения будут удалены.'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-                                TextButton(
-                                  onPressed: () {
-                                    chatProvider.deleteChats({chat.id});
-                                    Navigator.pop(ctx);
-                                  },
-                                  child: const Text('Удалить', style: TextStyle(color: Colors.red)),
-                                ),
-                              ],
+                      title: Text(title, style: const TextStyle(color: AppColors.oliveGray)),
+                      subtitle: Text(
+                        lastMsg != null
+                            ? (lastMsg.text.isNotEmpty ? lastMsg.text : '[Фото]')
+                            : 'Нет сообщений',
+                        style: TextStyle(color: AppColors.oliveGray.withOpacity(0.7)),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (timeText.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Text(timeText, style: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 12)),
                             ),
-                          );
-                        },
-                        child: const Padding(
-                          padding: EdgeInsets.only(left: 4),
-                          child: Icon(Icons.delete, size: 18, color: AppColors.oliveGray),
-                        ),
+                          if (!isSupportAdminChat)
+                            GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    backgroundColor: AppColors.whiteAntique,
+                                    title: const Text('Удалить чат?', style: TextStyle(color: AppColors.oliveGray)),
+                                    content: const Text('Все сообщения будут удалены.'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+                                      TextButton(
+                                        onPressed: () {
+                                          chatProvider.deleteChats({chat.id});
+                                          Navigator.pop(ctx);
+                                        },
+                                        child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: Icon(Icons.delete, size: 18, color: AppColors.oliveGray),
+                              ),
+                            ),
+                        ],
                       ),
-                  ],
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chat: chat)));
+                      },
+                    );
+                  },
                 ),
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chat: chat)));
-                },
               );
             },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 

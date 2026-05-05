@@ -44,7 +44,7 @@ class AuthProvider extends ChangeNotifier {
     return prefs.containsKey('user_$email');
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<String?> login(String email, String password) async {
     _setLoading(true);
 
     final prefs = await SharedPreferences.getInstance();
@@ -52,15 +52,19 @@ class AuthProvider extends ChangeNotifier {
     if (userJsonString != null) {
       final userData = jsonDecode(userJsonString) as Map<String, dynamic>;
       if (userData['password'] == password) {
+        if (userData['blocked'] == true) {
+          _setLoading(false);
+          return 'Пользователь заблокирован';
+        }
         _currentUser = UserModel.fromJson(userData);
         await prefs.setString('current_user_email', email);
         _setLoading(false);
         notifyListeners();
-        return true;
+        return null;
       }
     }
     _setLoading(false);
-    return false;
+    return 'Неверный email или пароль';
   }
 
   Future<void> logout({required ChatProvider chatProvider}) async {
@@ -176,7 +180,6 @@ class AuthProvider extends ChangeNotifier {
       final data = jsonDecode(jsonString);
       return UserModel.fromJson(data);
     }
-    // Создаём поддержку
     final support = UserModel(
       id: 0,
       email: supportEmail,
@@ -185,7 +188,7 @@ class AuthProvider extends ChangeNotifier {
       lastName: 'Team',
       address: '',
       phoneNumber: '',
-      role: 'support',   // специальная роль
+      role: 'support',
     );
     await prefs.setString('user_$supportEmail', jsonEncode(support.toJson()));
     return support;

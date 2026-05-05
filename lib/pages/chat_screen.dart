@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:AppRent/pages/person.dart';
 import 'package:AppRent/pages/productScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -378,26 +379,40 @@ class _ChatScreenState extends State<ChatScreen> {
           constraints: const BoxConstraints(),
         ),
         const Spacer(),
-        if (_isAdmin)
+        if (_isAdmin) ...[
           IconButton(
-            icon: const Icon(Icons.gavel, size: 24, color: AppColors.oliveGray),
-            onPressed: _moderateSelectedMessage,
+            icon: const Icon(Icons.copy, size: 24, color: AppColors.oliveGray),
+            onPressed: _copySelectedMessage,
           ),
-        if (_selectedMessageIsMe) ...[
-          IconButton(
-            icon: const Icon(Icons.edit, size: 24, color: AppColors.oliveGray),
-            onPressed: _editSelectedMessage,
-          ),
-        ],
-        IconButton(
-          icon: const Icon(Icons.copy, size: 24, color: AppColors.oliveGray),
-          onPressed: _copySelectedMessage,
-        ),
-        if (_selectedMessageIsMe) ...[
           IconButton(
             icon: const Icon(Icons.delete, size: 24, color: AppColors.oliveGray),
-            onPressed: _deleteSelectedMessage,
+            onPressed: _moderateSelectedMessage,
           ),
+          if (_selectedMessageIsMe) ...[
+            IconButton(
+              icon: const Icon(Icons.edit, size: 24, color: AppColors.oliveGray),
+              onPressed: _editSelectedMessage,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, size: 24, color: AppColors.oliveGray),
+              onPressed: _deleteSelectedMessage,
+            ),
+          ],
+        ] else ...[
+          IconButton(
+            icon: const Icon(Icons.copy, size: 24, color: AppColors.oliveGray),
+            onPressed: _copySelectedMessage,
+          ),
+          if (_selectedMessageIsMe) ...[
+            IconButton(
+              icon: const Icon(Icons.edit, size: 24, color: AppColors.oliveGray),
+              onPressed: _editSelectedMessage,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, size: 24, color: AppColors.oliveGray),
+              onPressed: _deleteSelectedMessage,
+            ),
+          ],
         ],
       ],
     );
@@ -442,12 +457,8 @@ class _ChatScreenState extends State<ChatScreen> {
     return GestureDetector(
       onTap: () {
         if (_companion != null) {
-          final isUser = !_isAdmin && !_isSupport;
-          context.read<BottomNavProvider>().showUserProfile(
-            _companion!.id,
-            isUser: isUser,
-          );
-          Navigator.pop(context);
+          context.read<BottomNavProvider>().showUserProfile(_companion!.id);
+          Navigator.popUntil(context, (route) => route.isFirst);
         }
       },
       child: Row(
@@ -564,11 +575,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.gavel, size: 18, color: AppColors.oliveGray),
-                            const SizedBox(width: 10),
                             const Flexible(
                               child: Text(
-                                'Был удален администратором, не соответствует правилам площадки',
+                                'Сообщение удалено администратором',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontStyle: FontStyle.italic,

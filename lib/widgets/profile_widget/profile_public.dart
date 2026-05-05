@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../pages/user_orders.dart';
 import '../../data/product_data.dart';
+import '../../provider/AuthProvider.dart';
+import '../../provider/admin_provider.dart';
 import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
 import '../../models/user.dart';
+import '../../models/admin_models/report.dart';
 import '../../utils/avatar.dart';
 import '../../utils/colors.dart';
+import '../../utils/snackbar_custom.dart';
+import '../report_dialog.dart';
 
 class ProfilePublic extends StatelessWidget {
   final UserModel user;
@@ -21,7 +26,7 @@ class ProfilePublic extends StatelessWidget {
     final totalOrders = userLeases.length;
 
     final userProductsCount = ProductData.products
-        .where((p) => p.ownerId == user.id)
+        .where((p) => p.ownerId == user.id && p.moderationStatus != 'blocked')
         .length;
 
     return Scaffold(
@@ -45,10 +50,24 @@ class ProfilePublic extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final currentUser = context.read<AuthProvider>().currentUser;
+    final isOwnProfile = currentUser?.id == user.id;
+    final canReport = !isOwnProfile && (currentUser?.role == 'user');
     return Row(
       children: [
         const Text('Профиль пользователя',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+        const Spacer(),
+        if (canReport)
+          IconButton(
+            icon: Icon(Icons.flag_outlined, color: AppColors.oliveGray.withOpacity(0.7)),
+            onPressed: () => showReportDialog(context,
+              reporterId: currentUser!.id,
+              targetType: ReportTargetType.user,
+              targetId: user.id,
+              targetName: '${user.firstName} ${user.lastName}',
+            ),
+          ),
       ],
     );
   }

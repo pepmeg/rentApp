@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/admin_models/report.dart';
 import '../../models/product.dart';
 import '../../models/lease_request.dart';
 import '../../models/activeLease.dart';
@@ -7,6 +8,7 @@ import '../../provider/AuthProvider.dart';
 import '../../provider/LeaseRequestProvider.dart';
 import '../../provider/ReviewsProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
+import '../../provider/admin_provider.dart';
 import '../../utils/colors.dart';
 import '../../utils/snackbar_custom.dart';
 import '../../pages/chat_screen.dart';
@@ -94,6 +96,7 @@ class _ProductInfoSectionState extends State<ProductInfoSection> {
     final currentUser = context.read<AuthProvider>().currentUser;
     final isOwner = currentUser?.id == product.ownerId;
     final isUser = context.read<AuthProvider>().isUser;
+    final isAvailable = product.moderationStatus == 'active';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -125,7 +128,7 @@ class _ProductInfoSectionState extends State<ProductInfoSection> {
               Text(priceUnit, style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
             ],
           ),
-            if (!isOwner && isUser) ...[
+            if (!isOwner && isUser && isAvailable) ...[
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _isRequested ? null : _onRentPressed,

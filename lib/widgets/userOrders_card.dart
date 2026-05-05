@@ -21,6 +21,7 @@ class UserOrdersCard extends StatelessWidget {
   final bool isPricePerHour;
   final VoidCallback onEdit;
   final bool isOwner;
+  final String moderationStatus;
 
   const UserOrdersCard({
     required this.id,
@@ -33,6 +34,7 @@ class UserOrdersCard extends StatelessWidget {
     required this.isPricePerHour,
     required this.onEdit,
     this.isOwner = false,
+    this.moderationStatus = 'active',
     super.key,
   });
 
@@ -110,14 +112,37 @@ class UserOrdersCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Блок статуса скрытия и кнопки редактирования
                 if (isOwner)
-                  GestureDetector(
-                    onTap: onEdit,
-                    child: const Icon(
-                      Icons.edit,
-                      color: AppColors.oliveGray,
-                      size: 20,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (moderationStatus == 'hidden')
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.visibility_off, size: 16, color: AppColors.oliveGray.withOpacity(0.6)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Скрыт',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.oliveGray.withOpacity(0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                      GestureDetector(
+                        onTap: onEdit,
+                        child: const Icon(
+                          Icons.edit,
+                          color: AppColors.oliveGray,
+                          size: 20,
+                        ),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -125,12 +150,8 @@ class UserOrdersCard extends StatelessWidget {
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: () {
-                  final isUser = context.read<AuthProvider>().isUser;
-                  context.read<BottomNavProvider>().showUserProfile(
-                    activeLease!.userId,
-                    isUser: isUser,
-                  );
-                  Navigator.pop(context);
+                  context.read<BottomNavProvider>().showUserProfile(activeLease!.userId);
+                  Navigator.popUntil(context, (route) => route.isFirst);
                 },
                 child: Container(
                   padding: const EdgeInsets.all(8),
