@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:AppRent/pages/add_product.dart';
 import 'package:AppRent/pages/admin/admin_screen.dart';
 import 'package:AppRent/pages/chat_list_screen.dart';
+import 'package:AppRent/pages/chat_screen.dart';
 import 'package:AppRent/pages/favorite.dart';
 import 'package:AppRent/pages/home.dart';
 import 'package:AppRent/pages/login.dart';
@@ -20,6 +21,7 @@ import 'package:AppRent/provider/chat_provider.dart';
 import 'package:AppRent/provider/favorite_provider.dart';
 import 'package:AppRent/utils/colors.dart';
 import 'package:AppRent/widgets/bottomNavBar.dart';
+import 'package:AppRent/widgets/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +30,7 @@ import 'models/user.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
   await initializeDateFormatting('ru', null);
   await _createAdminIfNeeded();
   await _createSupportIfNeeded();
@@ -63,7 +66,7 @@ Future<void> _createSupportIfNeeded() async {
       id: 0,
       email: supportEmail,
       password: '',
-      firstName: 'Support',
+      firstName: 'Поддержка',
       lastName: '',
       address: '',
       phoneNumber: '',
@@ -83,12 +86,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/login': (context) => Login(),
         '/register': (context) => Registration(),
         '/home': (context) => MainScreen(),
+        '/chat': (context) {
+          final chatId = ModalRoute.of(context)!.settings.arguments as String;
+          final chatProvider = context.read<ChatProvider>();
+          final chat = chatProvider.getChatById(chatId);
+          if (chat != null) {
+            return ChatScreen(chat: chat);
+          }
+          return const MainScreen();
+        },
       },
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.spaceCream,
@@ -112,10 +125,15 @@ class _MainScreenState extends State<MainScreen> {
     super.didChangeDependencies();
     final auth = context.read<AuthProvider>();
     final currentUserId = auth.currentUser?.id;
-    if (_lastUserId != null && _lastUserId != currentUserId) {
+    if (_lastUserId != currentUserId) {
+      if (currentUserId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<ChatProvider>().notifyMissedMessages(currentUserId);
+        });
+      }
       context.read<BottomNavProvider>().setIndex(0);
+      _lastUserId = currentUserId;
     }
-    _lastUserId = currentUserId;
   }
 
   @override
@@ -132,12 +150,18 @@ class _MainScreenState extends State<MainScreen> {
       if (isUser) const AddProduct(),
       if (isUser) const ShoppingBasket(),
       const ChatListScreen(),
-      Profile(userId: navProvider.profileUserId, key: ValueKey('profile_${navProvider.profileUserId}')),
-    if (isModerator) const AdminScreen(),
+      Profile(
+        userId: navProvider.profileUserId,
+        key: ValueKey('profile_${navProvider.profileUserId}'),
+      ),
     ];
 
-    final profileIndex = screens.length - 1;
+    final int profileIndex = screens.length - 1;
     navProvider.setProfileIndex(profileIndex);
+
+    if (isModerator) {
+      screens.add(const AdminScreen());
+    }
 
     final safeIndex = currentIndex.clamp(0, screens.length - 1);
 
@@ -168,7 +192,7 @@ Future<void> _createAdminIfNeeded() async {
       id: 999,
       email: adminEmail,
       password: 'admin123',
-      firstName: 'Admin',
+      firstName: 'Администратор',
       lastName: '',
       address: 'Москва',
       phoneNumber: '+79000000000',

@@ -1,8 +1,7 @@
-import 'dart:io';
+import 'package:AppRent/widgets/profile_widget/profile_common.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../pages/active_leases.dart';
-import '../../pages/admin/admin_screen.dart';
 import '../../pages/edit_profile.dart';
 import '../../pages/user_orders.dart';
 import '../../pages/notifications.dart';
@@ -17,6 +16,7 @@ import '../../provider/chat_provider.dart';
 import '../../provider/favorite_provider.dart';
 import '../../utils/avatar.dart';
 import '../../utils/colors.dart';
+import '../admin_widget/AdminDashboardWidget.dart';
 import '../lease_card/lease_card.dart';
 import '../../models/user.dart';
 
@@ -33,7 +33,6 @@ class ProfileOwn extends StatelessWidget {
     final leases = leasesProvider.getLeasesForUser(user.id);
     final totalOrders = leases.length;
     final activeOrders = leases.where((l) => l.status == LeaseStatus.active).length;
-
 
     final incomingCount = context.watch<LeaseRequestProvider>()
         .getIncomingRequests(user.id)
@@ -52,15 +51,25 @@ class ProfileOwn extends StatelessWidget {
             children: [
               _buildHeader(context, incomingCount),
               const SizedBox(height: 30),
-              _buildUserInfo(context, user),
+              ProfileUserInfo(
+                user: user,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfile())),
+              ),
+              if (user.role == 'admin' || user.role == 'support') ...[
+                const AdminDashboardWidget(),
+              ],
               const SizedBox(height: 30),
-            if (user.role == 'user') ...[
-              _buildStats(context, user, totalOrders, activeOrders),
-              const SizedBox(height: 15),
-              _buildMyAdsButton(context, userProductsCount),
-              const SizedBox(height: 20),
-              _buildActiveLeasesSection(context, leases),
-            ]
+              if (user.role == 'user') ...[
+                _buildStats(context, user, totalOrders, activeOrders),
+                const SizedBox(height: 15),
+                ProfileAdsButton(
+                  count: userProductsCount,
+                  label: 'Мои объявления',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserOrders())),
+                ),
+                const SizedBox(height: 20),
+                _buildActiveLeasesSection(context, leases),
+              ],
             ],
           ),
         ),
@@ -74,32 +83,32 @@ class ProfileOwn extends StatelessWidget {
       children: [
         const Text('Профиль',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
-        SizedBox(width: 10,),
+        const SizedBox(width: 10),
         const Spacer(),
         if (user?.role == 'user')
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined, size: 28, color: AppColors.oliveGray),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-            ),
-            if (incomingCount > 0)
-              Positioned(
-                right: 6, top: 6,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: AppColors.copper,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  child: Text('$incomingCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                      textAlign: TextAlign.center),
-                ),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, size: 28, color: AppColors.oliveGray),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
               ),
-          ],
-        ),
+              if (incomingCount > 0)
+                Positioned(
+                  right: 6, top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.copper,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text('$incomingCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                        textAlign: TextAlign.center),
+                  ),
+                ),
+            ],
+          ),
         GestureDetector(
           onTap: () => _showExitMenu(context),
           child: const Icon(Icons.more_vert, size: 30, color: AppColors.oliveGray),
@@ -251,29 +260,6 @@ class ProfileOwn extends StatelessWidget {
     );
   }
 
-  Widget _buildUserInfo(BuildContext context, UserModel user) {
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfile())),
-      child: Row(
-        children: [
-          buildUserAvatar(user, radius: 50),
-          const SizedBox(width: 30),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${user.firstName} ${user.lastName}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Text(user.email, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal), overflow: TextOverflow.ellipsis),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStats(BuildContext context, UserModel user, int totalOrders, int activeOrders) {
     final reviewsProvider = context.watch<ReviewsProvider>();
     final userProducts = ProductData.products.where((p) => p.ownerId == user.id).toList();
@@ -307,31 +293,6 @@ class ProfileOwn extends StatelessWidget {
           const SizedBox(height: 5),
           Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMyAdsButton(BuildContext context, int count) {
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserOrders())),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
-        decoration: BoxDecoration(
-          color: AppColors.whiteAntique,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.list_alt_rounded, size: 22, color: AppColors.oliveGray),
-            const SizedBox(width: 15),
-            const Text('Мои объявления',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
-            const Spacer(),
-            _buildBadge(count),
-            const SizedBox(width: 15),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.oliveGray),
-          ],
-        ),
       ),
     );
   }
@@ -374,21 +335,6 @@ class ProfileOwn extends StatelessWidget {
             ),
           )),
       ],
-    );
-  }
-
-  Widget _buildBadge(int count) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 25),
-      height: 25,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.spaceCream,
-        borderRadius: BorderRadius.circular(12.5),
-      ),
-      child: Text('$count',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
     );
   }
 }

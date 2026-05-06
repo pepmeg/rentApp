@@ -14,36 +14,59 @@ import '../../data/product_data.dart';
 import '../../utils/avatar.dart';
 import '../../utils/colors.dart';
 import 'package:intl/intl.dart';
+import '../../utils/form_fields.dart';
+import '../../utils/pagination.dart';
 import '../../utils/snackbar_custom.dart';
 import '../../pages/person.dart';
 
 class AdminUsersTab extends StatefulWidget {
-  const AdminUsersTab({super.key});
+  final bool initialShowBlocked;
+  const AdminUsersTab({super.key, this.initialShowBlocked = false});
 
   @override
   State<AdminUsersTab> createState() => _AdminUsersTabState();
 }
 
-class _AdminUsersTabState extends State<AdminUsersTab> {
+class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
   bool _showBlockedOnly = false;
   String _searchQuery = '';
 
   @override
-  Widget build(BuildContext context) {
-    final admin = context.watch<AdminProvider>();
+  void initState() {
+    super.initState();
+    _showBlockedOnly = widget.initialShowBlocked;
+  }
+
+  @override
+  int get paginationBatchSize => 12;
+
+  @override
+  List<dynamic> get paginationItems => _filteredUsers;
+
+  List<UserModel> get _filteredUsers {
+    final admin = context.read<AdminProvider>();
     admin.loadUsers();
     final allUsers = _showBlockedOnly
         ? admin.users.where((u) => u.blocked).toList()
         : admin.users;
 
-    final List<UserModel> users = _searchQuery.isEmpty
-        ? allUsers
+    var users = _searchQuery.isEmpty
+        ? allUsers.toList()
         : allUsers.where((u) {
       final name = '${u.firstName} ${u.lastName}'.toLowerCase();
       final email = u.email.toLowerCase();
       final query = _searchQuery.toLowerCase();
       return name.contains(query) || email.contains(query);
     }).toList();
+    users.sort((a, b) => b.id.compareTo(a.id));
+    return users;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final admin = context.watch<AdminProvider>();
+    final allItems = _filteredUsers;
+    final visibleItems = allItems.take(visibleCount).toList();
 
     return Column(
       children: [
@@ -56,7 +79,10 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
               borderRadius: BorderRadius.circular(30),
             ),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+                resetPagination();
+              },
               decoration: InputDecoration(
                 hintText: 'Поиск',
                 hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
@@ -73,19 +99,22 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
             children: [
               _buildFilterChip('Все', !_showBlockedOnly, () {
                 setState(() => _showBlockedOnly = false);
+                resetPagination();
               }),
               const SizedBox(width: 8),
               _buildFilterChip('Заблокированные', _showBlockedOnly, () {
                 setState(() => _showBlockedOnly = true);
+                resetPagination();
               }),
             ],
           ),
         ),
         Expanded(
           child: ListView.builder(
-            itemCount: users.length,
+            controller: scrollController,
+            itemCount: visibleItems.length,
             itemBuilder: (context, index) {
-              final user = users[index];
+              final user = visibleItems[index];
               final isPrivileged = (user.role == 'admin' || user.role == 'support');
               final bool isClickable = !isPrivileged;
 
@@ -126,7 +155,8 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                   ),
                   trailing: isPrivileged
                       ? null
-                      : PopupMenuButton<String>(
+                      : AppPopupMenuButton<String>(
+                    backgroundColor: AppColors.spaceCream,
                     onSelected: (action) {
                       if (action == 'block') {
                         admin.blockUser(user.id);
@@ -142,7 +172,7 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                         _showUserReports(context, user.id);
                       }
                     },
-                    itemBuilder: (context) => [
+                    items: [
                       if (!user.blocked)
                         const PopupMenuItem(value: 'block', child: Text('Заблокировать'))
                       else
@@ -152,8 +182,6 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                         value: 'reports',
                         child: Row(
                           children: [
-                            const Icon(Icons.flag, size: 18, color: AppColors.oliveGray),
-                            const SizedBox(width: 8),
                             Text('Жалобы${admin.getReportsRelatedToUser(user.id).isNotEmpty ? ' (${admin.getReportsRelatedToUser(user.id).length})' : ''}'),
                           ],
                         ),
@@ -173,6 +201,11 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
             },
           ),
         ),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator(color: AppColors.copper)),
+          ),
       ],
     );
   }

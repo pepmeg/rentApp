@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/messager_model/chat.dart';
+import '../models/messager_model/chat_notification.dart';
 import '../models/messager_model/message.dart';
+import '../widgets/notification_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final Map<String, Chat> _chats = {};
   final Map<String, DateTime> _lastReadTimestamps = {};
+  final Map<String, ChatNotification> _notifications = {};
+
   static const String _chatsKey = 'chats';
   static const String _lastReadKey = 'chat_last_read';
 
@@ -55,6 +59,51 @@ class ChatProvider extends ChangeNotifier {
       notifyListeners();
       _saveToPrefs();
     }
+  }
+
+  void notifyMissedMessages(int userId) {
+    final userChats = getChatsForUser(userId);
+    for (final chat in userChats) {
+      if (isChatUnread(chat.id, userId) && !_notifications.containsKey(chat.id)) {
+        final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
+        if (lastMsg == null || lastMsg.senderId == userId) continue;
+
+        final companionName = chat.companionName ??
+            (chat.user1Id == userId ? chat.user2Id.toString() : chat.user1Id.toString());
+
+        final String preview = _buildMessagePreview(lastMsg);
+        final unreadCount = unreadMessageCount(chat.id, userId);
+
+        NotificationService().showChatNotification(
+          chatId: chat.id,
+          chatTitle: companionName,
+          messageText: preview,
+          unreadCount: unreadCount,
+          payload: chat.id,
+        );
+
+        _notifications[chat.id] = ChatNotification(
+          chatId: chat.id,
+          companionName: companionName,
+          companionAvatar: chat.companionAvatar,
+          lastMessageText: preview,
+          unreadCount: unreadCount,
+          firstTimestamp: lastMsg.timestamp,
+          lastTimestamp: lastMsg.timestamp,
+        );
+        notifyListeners();
+      }
+    }
+  }
+
+  String _buildMessagePreview(Message msg) {
+    if (msg.text.isNotEmpty) return msg.text;
+    final images = msg.images;
+    if (images != null && images.isNotEmpty) {
+      final count = images.length > 10 ? 10 : images.length;
+      return count == 1 ? 'Фотография' : '$count фото';
+    }
+    return '';
   }
 
   String _createChatId(int user1Id, int user2Id, int? productId) {

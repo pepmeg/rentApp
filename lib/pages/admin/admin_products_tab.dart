@@ -6,31 +6,60 @@ import '../../pages/productScreen.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/admin_provider.dart';
 import '../../utils/colors.dart';
+import '../../utils/form_fields.dart';
+import '../../utils/pagination.dart';
 
 class AdminProductsTab extends StatefulWidget {
-  const AdminProductsTab({super.key});
+  final String? initialStatusFilter;
+  const AdminProductsTab({super.key, this.initialStatusFilter});
 
   @override
   State<AdminProductsTab> createState() => _AdminProductsTabState();
 }
 
-class _AdminProductsTabState extends State<AdminProductsTab> {
+class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixin {
   String _searchQuery = '';
+  String? _statusFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusFilter = widget.initialStatusFilter;
+  }
+
+  @override
+  int get paginationBatchSize => 12;
+
+  @override
+  List<dynamic> get paginationItems => _filteredProducts;
+
+  List<Product> get _filteredProducts {
+    final admin = context.read<AdminProvider>();
+    var products = admin.getAllProducts().toList();
+
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      products = products.where((p) {
+        return p.name.toLowerCase().contains(query) ||
+            p.price.toString().contains(query) ||
+            p.location.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    if (_statusFilter != null) {
+      products = products.where((p) => p.moderationStatus == _statusFilter).toList();
+    }
+
+    products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return products;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final admin = context.watch<AdminProvider>();
+    final allItems = _filteredProducts;
+    final visibleItems = allItems.take(visibleCount).toList();
     final auth = context.watch<AuthProvider>();
-    final allProducts = admin.getAllProducts();
-
-    final products = _searchQuery.isEmpty
-        ? allProducts
-        : allProducts.where((p) {
-      final query = _searchQuery.toLowerCase();
-      return p.name.toLowerCase().contains(query) ||
-          p.price.toString().contains(query) ||
-          p.location.toLowerCase().contains(query);
-    }).toList();
+    final admin = context.watch<AdminProvider>();
 
     return Column(
       children: [
@@ -43,7 +72,10 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
               borderRadius: BorderRadius.circular(30),
             ),
             child: TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+                resetPagination();
+              },
               decoration: InputDecoration(
                 hintText: 'Поиск товаров',
                 hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
@@ -51,7 +83,10 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                   icon: Icon(Icons.clear_rounded, color: AppColors.oliveGray.withOpacity(0.5)),
-                  onPressed: () => setState(() => _searchQuery = ''),
+                  onPressed: () {
+                    setState(() => _searchQuery = '');
+                    resetPagination();
+                  },
                 )
                     : null,
                 border: InputBorder.none,
@@ -60,11 +95,33 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
             ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          child: Row(
+            children: [
+              _buildFilterChip('Все', _statusFilter == null, () {
+                setState(() => _statusFilter = null);
+                resetPagination();
+              }),
+              const SizedBox(width: 8),
+              _buildFilterChip('Скрытые', _statusFilter == 'hidden', () {
+                setState(() => _statusFilter = 'hidden');
+                resetPagination();
+              }),
+              const SizedBox(width: 8),
+              _buildFilterChip('Заблокированные', _statusFilter == 'blocked', () {
+                setState(() => _statusFilter = 'blocked');
+                resetPagination();
+              }),
+            ],
+          ),
+        ),
         Expanded(
           child: ListView.builder(
-            itemCount: products.length,
+            controller: scrollController,
+            itemCount: visibleItems.length,
             itemBuilder: (context, index) {
-              final product = products[index];
+              final product = visibleItems[index];
               final ownerFuture = auth.getUserById(product.ownerId);
 
               return Card(
@@ -122,7 +179,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
-                                          _statusToRussian(product.moderationStatus),
+                                          _status(product.moderationStatus),
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -173,14 +230,10 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
                               ),
                             ),
                             if (auth.isAdmin)
-                              PopupMenuButton<String>(
-                                padding: EdgeInsets.zero,
-                                icon: Icon(Icons.more_vert, color: AppColors.oliveGray, size: 22),
-                                onSelected: (action) {
-                                  _performAction(admin, product.id, action);
-                                },
-                                itemBuilder: (context) =>
-                                    _getAvailableActions(product.moderationStatus),
+                              AppPopupMenuButton<String>(
+                                backgroundColor: AppColors.spaceCream,
+                                onSelected: (action) => _performAction(admin, product.id, action),
+                                items: _getAvailableActions(product.moderationStatus),
                               )
                             else
                               const SizedBox(width: 22),
@@ -194,7 +247,26 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
             },
           ),
         ),
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator(color: AppColors.copper)),
+          ),
       ],
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Chip(
+        label: Text(label),
+        backgroundColor: selected ? AppColors.copper.withOpacity(0.2) : AppColors.spaceCream,
+        labelStyle: TextStyle(
+          color: selected ? AppColors.copper : AppColors.oliveGray,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
     );
   }
 
@@ -215,7 +287,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> {
     );
   }
 
-  String _statusToRussian(String status) {
+  String _status(String status) {
     switch (status) {
       case 'active':
         return 'Активен';

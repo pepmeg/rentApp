@@ -110,6 +110,18 @@ class _AppTextFieldState extends State<AppTextField> {
   }
 }
 
+OutlinedBorder _popupMenuShape() => RoundedRectangleBorder(
+  borderRadius: BorderRadius.circular(15),
+);
+
+Color _popupMenuBackgroundColor(Set<WidgetState> states) {
+  if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+    return AppColors.copper.withOpacity(0.1);
+  }
+  return AppColors.whiteAntique;
+}
+
+
 class AppDropdownMenu extends StatelessWidget {
   final String? value;
   final String hint;
@@ -138,9 +150,7 @@ class AppDropdownMenu extends StatelessWidget {
           initialSelection: value,
           requestFocusOnTap: false,
           expandedInsets: EdgeInsets.zero,
-          onSelected: (selected) {
-            onChanged?.call(selected);
-          },
+          onSelected: (selected) => onChanged?.call(selected),
           hintText: hint,
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
@@ -176,16 +186,8 @@ class AppDropdownMenu extends StatelessWidget {
           ),
           textStyle: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
           menuStyle: MenuStyle(
-            shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            ),
-            backgroundColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.hovered) ||
-                  states.contains(WidgetState.focused)) {
-                return AppColors.copper.withOpacity(0.1);
-              }
-              return AppColors.whiteAntique;
-            }),
+            shape: WidgetStateProperty.all(_popupMenuShape()),
+            backgroundColor: WidgetStateProperty.resolveWith(_popupMenuBackgroundColor),
           ),
           dropdownMenuEntries: options.map<DropdownMenuEntry<String>>((option) {
             final isSelected = option == value;
@@ -207,13 +209,43 @@ class AppDropdownMenu extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4, left: 8),
             child: Text(
               errorText!,
-              style: const TextStyle(
-                color: AppColors.copper,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: AppColors.copper, fontSize: 12),
             ),
           ),
       ],
+    );
+  }
+}
+
+class AppPopupMenuButton<T> extends StatelessWidget {
+  final List<PopupMenuEntry<T>> items;
+  final void Function(T)? onSelected;
+  final Widget? icon;
+  final EdgeInsetsGeometry padding;
+  final Color? backgroundColor;
+  final OutlinedBorder? shape;
+
+  const AppPopupMenuButton({
+    super.key,
+    required this.items,
+    this.onSelected,
+    this.icon,
+    this.padding = EdgeInsets.zero,
+    this.backgroundColor,
+    this.shape,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<T>(
+      padding: padding,
+      icon: icon ?? Icon(Icons.more_vert, color: AppColors.oliveGray, size: 22),
+      onSelected: onSelected,
+      color: backgroundColor ?? _popupMenuBackgroundColor({}),
+      shape: shape ?? _popupMenuShape(),
+      elevation: 2,
+      shadowColor: AppColors.oliveGray.withOpacity(0.08),
+      itemBuilder: (context) => items,
     );
   }
 }

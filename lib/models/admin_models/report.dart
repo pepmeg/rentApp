@@ -11,6 +11,7 @@ class Report {
   final ReportStatus status;
   final DateTime createdAt;
   final ReportTargetType targetType;
+  final Set<int> readByUserIds;
 
   Report({
     required this.id,
@@ -21,7 +22,8 @@ class Report {
     this.status = ReportStatus.pending,
     required this.createdAt,
     required this.targetType,
-  });
+    Set<int>? readByUserIds,
+  }) : readByUserIds = readByUserIds ?? {};
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -32,6 +34,7 @@ class Report {
     'status': status.index,
     'createdAt': createdAt.toIso8601String(),
     'targetType': targetType.index,
+    'readByUserIds': readByUserIds.toList(),
   };
 
   factory Report.fromJson(Map<String, dynamic> json) {
@@ -39,6 +42,11 @@ class Report {
     final targetType = targetTypeIndex != null
         ? ReportTargetType.values[targetTypeIndex]
         : ReportTargetType.product;
+
+    final rawList = json['readByUserIds'];
+    final Set<int> readByUserIds = rawList != null
+        ? Set<int>.from((rawList as List<dynamic>).cast<int>())
+        : {};
 
     return Report(
       id: json['id'],
@@ -49,6 +57,7 @@ class Report {
       status: ReportStatus.values[json['status']],
       createdAt: DateTime.parse(json['createdAt']),
       targetType: targetType,
+      readByUserIds: readByUserIds,
     );
   }
 }

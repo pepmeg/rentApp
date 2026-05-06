@@ -45,8 +45,36 @@ class ChatMessageWidget extends StatelessWidget {
 
     switch (count) {
       case 1:
-        return _buildImageTile(images[0], 0,
-            width: availableWidth, height: 260, borderRadius: borderRadius);
+        return Stack(
+          children: [
+            GestureDetector(
+              onLongPress: () => onImageLongPress?.call(0),
+              onTap: () => onImageTap?.call(0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(borderRadius),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: availableWidth),
+                  child: Image.file(
+                    File(images[0]),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            if (selectedImageIndices.contains(0))
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.copper.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(borderRadius),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.check_circle, color: Colors.white, size: 32),
+                  ),
+                ),
+              ),
+          ],
+        );
       case 2:
         final itemWidth = (availableWidth - spacing) / 2;
         return Row(
@@ -226,8 +254,6 @@ class ChatMessageWidget extends StatelessWidget {
         if (hasText) textBlock,
       ],
     );
-
-    // Строка времени и "изменено"
     Widget timeRow = const SizedBox.shrink();
     final bool hasEdited = message.edited;
     final bool hasTime = showTime;

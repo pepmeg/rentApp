@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:AppRent/pages/person.dart';
-import 'package:AppRent/pages/productScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +17,8 @@ import '../utils/avatar.dart';
 import '../utils/colors.dart';
 import '../widgets/chat/chat_input_widget.dart';
 import '../widgets/chat/chat_message_widget.dart';
+import '../pages/productScreen.dart';
+import '../widgets/notification_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final Chat chat;
@@ -50,7 +50,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _loadData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
       final auth = context.read<AuthProvider>();
       _isAdmin = auth.isAdmin;
       _isSupport = auth.isSupport;
@@ -58,6 +57,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (user != null) {
         context.read<ChatProvider>().markChatAsRead(widget.chat.id, user.id);
       }
+      NotificationService().cancelChatNotification(widget.chat.id);
+      _scrollToBottom();
     });
   }
 
@@ -572,10 +573,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.oliveGray.withOpacity(0.2)),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Flexible(
+                            Flexible(
                               child: Text(
                                 'Сообщение удалено администратором',
                                 style: TextStyle(

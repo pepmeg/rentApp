@@ -6,6 +6,7 @@ import '../models/activeLease.dart';
 import '../models/product.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../utils/colors.dart';
+import '../utils/pagination.dart';
 import '../widgets/product_card.dart';
 import '../widgets/category_filter.dart';
 import '../provider/ReviewsProvider.dart';
@@ -18,7 +19,7 @@ class Home extends StatefulWidget {
 }
 
 
-class HomeState extends State<Home> {
+class HomeState extends State<Home> with PaginationMixin {
   String searchQuery = '';
   String? selectedCategory;
   String? selectedSubcategory;
@@ -29,50 +30,11 @@ class HomeState extends State<Home> {
   String? cityFilter;
   String? sortMode;
 
-  int _visibleCount = 8;
-  final ScrollController _scrollController = ScrollController();
+  @override
+  int get paginationBatchSize => 8;
 
   @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    if (maxScroll - currentScroll <= 200) {
-      _loadMore();
-    }
-  }
-
-  bool _isLoading = false;
-
-  void _loadMore() async {
-    if (_isLoading) return;
-    final total = filteredProducts.length;
-    if (_visibleCount >= total) return;
-
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    if (!mounted) return;
-    setState(() {
-      _visibleCount = (_visibleCount + 8).clamp(0, total);
-      _isLoading = false;
-    });
-  }
-
-  void _resetPagination() {
-    _visibleCount = 8;
-  }
+  List<dynamic> get paginationItems => filteredProducts;
 
   List<Product> get filteredProducts {
     var list = ProductData.getAllProducts();
@@ -162,7 +124,7 @@ class HomeState extends State<Home> {
             regionFilter = region;
             cityFilter = city;
             sortMode = sort;
-            _resetPagination();
+            resetPagination();
           });
         },
       ),
@@ -172,7 +134,7 @@ class HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     final allProducts = filteredProducts;
-    final visibleProducts = allProducts.take(_visibleCount).toList();
+    final visibleProducts = allProducts.take(visibleCount).toList();
 
     return Scaffold(
       body: Padding(
@@ -189,7 +151,7 @@ class HomeState extends State<Home> {
                 onChanged: (value) {
                   setState(() {
                     searchQuery = value;
-                    _resetPagination();
+                    resetPagination();
                   });
                 },
                 decoration: InputDecoration(
@@ -227,7 +189,7 @@ class HomeState extends State<Home> {
                 ),
               )
                   : GridView.builder(
-                controller: _scrollController,
+                controller: scrollController,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
@@ -256,7 +218,7 @@ class HomeState extends State<Home> {
                 },
               ),
             ),
-            if (_isLoading)
+            if (isLoading)
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Center(

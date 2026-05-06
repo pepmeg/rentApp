@@ -183,10 +183,21 @@ class AdminProvider extends ChangeNotifier {
   int get activeUsers => _allUsers.where((u) => !u.blocked).length;
   int get totalProducts => ProductData.products.length;
   int get totalReports => _reports.length;
+
   int get hiddenProducts =>
       ProductData.products.where((p) => p.moderationStatus == 'hidden').length;
+
   int get blockedProducts =>
       ProductData.products.where((p) => p.moderationStatus == 'blocked').length;
+
+  int get reportsOnProductsCount =>
+      _reports.where((r) => r.targetType == ReportTargetType.product).length;
+
+  int get reportsOnUsersCount =>
+      _reports.where((r) => r.targetType == ReportTargetType.user).length;
+
+  int get blockedUsersCount =>
+      _allUsers.where((u) => u.blocked).length;
 
   Future<void> _saveReports() async {
     final prefs = await SharedPreferences.getInstance();
@@ -211,5 +222,17 @@ class AdminProvider extends ChangeNotifier {
       _moderationLogs = logsData.map((s) => ModerationLog.fromJson(jsonDecode(s))).toList();
     }
     notifyListeners();
+  }
+
+  void markReportAsRead(int reportId, int userId) {
+    final index = _reports.indexWhere((r) => r.id == reportId);
+    if (index == -1) return;
+
+    final report = _reports[index];
+    if (!report.readByUserIds.contains(userId)) {
+      report.readByUserIds.add(userId);
+      notifyListeners();
+      _saveReports();
+    }
   }
 }

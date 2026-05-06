@@ -1,3 +1,4 @@
+import 'package:AppRent/pages/productScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/product_data.dart';
@@ -6,20 +7,28 @@ import '../models/product.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../utils/colors.dart';
+import '../utils/pagination.dart';
 import '../widgets/userOrders_card.dart';
 import 'edit_product.dart';
 
 class UserOrders extends StatefulWidget {
   final int? ownerId;
+
   const UserOrders({super.key, this.ownerId});
 
   @override
   State<UserOrders> createState() => UserOrdersState();
 }
 
-class UserOrdersState extends State<UserOrders> {
+class UserOrdersState extends State<UserOrders> with PaginationMixin {
   String searchQuery = '';
   bool _showActiveRents = false;
+
+  @override
+  int get paginationBatchSize => 12;
+
+  @override
+  List<dynamic> get paginationItems => filteredProducts;
 
   List<Product> get filteredProducts {
     final user = context.read<AuthProvider>().currentUser;
@@ -32,19 +41,26 @@ class UserOrdersState extends State<UserOrders> {
         .toList();
 
     if (_showActiveRents) {
-      final activeLeases = context.read<ActiveLeasesProvider>()
+      final activeLeases = context
+          .read<ActiveLeasesProvider>()
           .leases
           .where((l) => l.status == LeaseStatus.active)
           .toList();
       final activeProductIds = activeLeases.map((l) => l.productId).toSet();
-      userProducts = userProducts.where((p) => activeProductIds.contains(p.id)).toList();
+      userProducts = userProducts
+          .where((p) => activeProductIds.contains(p.id))
+          .toList();
     }
 
     if (searchQuery.isNotEmpty) {
       userProducts = userProducts
-          .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
+          .where(
+            (p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()),
+          )
           .toList();
     }
+
+    userProducts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return userProducts;
   }
@@ -64,6 +80,8 @@ class UserOrdersState extends State<UserOrders> {
     final currentUser = context.read<AuthProvider>().currentUser;
     final targetId = widget.ownerId ?? currentUser?.id;
     final isOwner = targetId == currentUser?.id;
+    final allItems = filteredProducts;
+    final visibleItems = allItems.take(visibleCount).toList();
 
     return Scaffold(
       body: Padding(
@@ -73,7 +91,11 @@ class UserOrdersState extends State<UserOrders> {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    size: 24,
+                    color: AppColors.oliveGray,
+                  ),
                   onPressed: () => Navigator.pop(context),
                   constraints: const BoxConstraints(),
                 ),
@@ -86,12 +108,18 @@ class UserOrdersState extends State<UserOrders> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: TextField(
-                      onChanged: (value) => setState(() => searchQuery = value),
+                      onChanged: (value) {
+                        setState(() => searchQuery = value);
+                        resetPagination();
+                      },
                       decoration: InputDecoration(
                         hintText: 'Поиск...',
                         prefixIcon: Icon(Icons.search, color: AppColors.copper),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -104,7 +132,10 @@ class UserOrdersState extends State<UserOrders> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _showActiveRents = false),
+                      onTap: () {
+                        setState(() => _showActiveRents = false);
+                        resetPagination();
+                      },
                       child: Text(
                         'Все',
                         textAlign: TextAlign.center,
@@ -120,7 +151,10 @@ class UserOrdersState extends State<UserOrders> {
                   ),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _showActiveRents = true),
+                      onTap: () {
+                        setState(() => _showActiveRents = true);
+                        resetPagination();
+                      },
                       child: Text(
                         'Активные объявления',
                         textAlign: TextAlign.center,
@@ -146,15 +180,18 @@ class UserOrdersState extends State<UserOrders> {
             ],
             Expanded(
               child: ListView.builder(
+                controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                itemCount: filteredProducts.length,
+                itemCount: visibleItems.length,
                 itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
+                  final product = visibleItems[index];
                   ActiveLease? activeLease;
                   if (_showActiveRents && isOwner) {
                     final leases = context.read<ActiveLeasesProvider>().leases;
                     activeLease = leases.cast<ActiveLease?>().firstWhere(
-                          (l) => l!.productId == product.id && l.status == LeaseStatus.active,
+                      (l) =>
+                          l!.productId == product.id &&
+                          l.status == LeaseStatus.active,
                       orElse: () => null,
                     );
                   }
@@ -170,10 +207,25 @@ class UserOrdersState extends State<UserOrders> {
                     isPricePerHour: product.isPricePerHour,
                     moderationStatus: product.moderationStatus,
                     onEdit: isOwner ? () => _openEditProduct(product) : () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductScreen(product: product),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
             ),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.copper),
+                ),
+              ),
           ],
         ),
       ),

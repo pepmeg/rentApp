@@ -57,7 +57,7 @@ class ProductScreen extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(width: 4),
-                  if (userId != null && isUser)
+                  if (userId != null && isUser && !isOwner)
                     GestureDetector(
                       onTap: () => favoriteProvider.toggleFavorite(userId, product.id),
                       child: Icon(
