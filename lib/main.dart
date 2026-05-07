@@ -72,7 +72,7 @@ Future<void> _createSupportIfNeeded() async {
       phoneNumber: '',
       role: 'support',
       blocked: false,
-      avatarPath: 'assets/support_avatar.jpg',
+      //avatarPath: 'assets/support_avatar.png',
     );
     await prefs.setString('user_$supportEmail', jsonEncode(support.toJson()));
   }
@@ -127,7 +127,6 @@ class _MainScreenState extends State<MainScreen> {
     final currentUserId = auth.currentUser?.id;
     if (_lastUserId != currentUserId || _lastUserId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Очищаем все нативные уведомления перед показом новых
         NotificationService().cancelAllNotifications();
         if (currentUserId != null) {
           context.read<ChatProvider>().clearMissedNotifications();
@@ -201,7 +200,7 @@ Future<void> _createAdminIfNeeded() async {
       phoneNumber: '+79000000000',
       role: 'admin',
       blocked: false,
-      avatarPath: 'assets/admin_avatar.jpg',
+      //avatarPath: 'assets/admin_avatar.jpg',
     );
     await prefs.setString('user_$adminEmail', jsonEncode(admin.toJson()));
   }

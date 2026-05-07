@@ -7,6 +7,7 @@ import '../provider/chat_provider.dart';
 import '../utils/colors.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
+import '../widgets/location/location_map.dart';
 
 class Registration extends StatefulWidget {
   @override
@@ -109,13 +110,6 @@ class RegistrationState extends State<Registration> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 10),
-                AppTextField(
-                  controller: addressController,
-                  hint: 'Регион, город',
-                  minLines: 1,
-                  maxLines: 2,
                 ),
                 const SizedBox(height: 10),
                 AppTextField(

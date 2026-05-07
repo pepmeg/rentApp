@@ -33,7 +33,8 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
-
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Приложению нужен доступ к геолокации для определения вашего местоположения</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
