@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/messager_model/chat.dart';
@@ -65,14 +66,26 @@ class ChatProvider extends ChangeNotifier {
     final userChats = getChatsForUser(userId);
     for (final chat in userChats) {
       if (isChatUnread(chat.id, userId) && !_notifications.containsKey(chat.id)) {
-        final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
-        if (lastMsg == null || lastMsg.senderId == userId) continue;
+        final unreadMessages = chat.messages
+            .where((m) => m.senderId != userId &&
+            (_lastReadTimestamps['${chat.id}_$userId'] == null ||
+                m.timestamp.isAfter(_lastReadTimestamps['${chat.id}_$userId']!)))
+            .toList();
+        unreadMessages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+        final int startIndex = unreadMessages.length > 10 ? unreadMessages.length - 10 : 0;
+        final recentMessages = unreadMessages.sublist(startIndex);
+
+        final lastMessagesData = recentMessages.map((m) => {
+          'text': _buildMessagePreview(m),
+          'timestampMs': m.timestamp.millisecondsSinceEpoch,
+        }).toList();
+
+        final preview = lastMessagesData.isNotEmpty ? lastMessagesData.last['text'] as String : '';
+        final unreadCount = unreadMessages.length;
 
         final companionName = chat.companionName ??
             (chat.user1Id == userId ? chat.user2Id.toString() : chat.user1Id.toString());
-
-        final String preview = _buildMessagePreview(lastMsg);
-        final unreadCount = unreadMessageCount(chat.id, userId);
 
         NotificationService().showChatNotification(
           chatId: chat.id,
@@ -80,15 +93,19 @@ class ChatProvider extends ChangeNotifier {
           messageText: preview,
           unreadCount: unreadCount,
           payload: chat.id,
+          lastMessagesData: lastMessagesData,
+          companionAvatar: chat.companionAvatar,
+          productImage: chat.productImage,
         );
 
+        final lastMsg = unreadMessages.last;
         _notifications[chat.id] = ChatNotification(
           chatId: chat.id,
           companionName: companionName,
           companionAvatar: chat.companionAvatar,
           lastMessageText: preview,
           unreadCount: unreadCount,
-          firstTimestamp: lastMsg.timestamp,
+          firstTimestamp: unreadMessages.first.timestamp,
           lastTimestamp: lastMsg.timestamp,
         );
         notifyListeners();
@@ -97,11 +114,22 @@ class ChatProvider extends ChangeNotifier {
   }
 
   String _buildMessagePreview(Message msg) {
-    if (msg.text.isNotEmpty) return msg.text;
-    final images = msg.images;
-    if (images != null && images.isNotEmpty) {
-      final count = images.length > 10 ? 10 : images.length;
-      return count == 1 ? 'Фотография' : '$count фото';
+    final hasText = msg.text.isNotEmpty;
+    final hasImages = msg.images != null && msg.images!.isNotEmpty;
+
+    if (hasText && hasImages) {
+      return '📷 ${msg.text}';
+    }
+    if (hasText) {
+      return msg.text;
+    }
+    if (hasImages) {
+      final count = msg.images!.length > 10 ? 10 : msg.images!.length;
+      if (count == 1) {
+        return 'Фотография';
+      } else {
+        return '$count фото';
+      }
     }
     return '';
   }
@@ -131,6 +159,11 @@ class ChatProvider extends ChangeNotifier {
         .where((chat) => chat.user1Id == userId || chat.user2Id == userId)
         .where((chat) => isChatUnread(chat.id, userId))
         .length;
+  }
+
+  void clearMissedNotifications() {
+    _notifications.clear();
+    notifyListeners();
   }
 
   Future<void> saveLastReadToPrefs() async {

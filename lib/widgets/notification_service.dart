@@ -1,12 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-class _MessageData {
-  final String text;
-  final int timestampMs;
-  final String authorName;
-  const _MessageData(this.text, this.timestampMs, this.authorName);
-}
+import 'package:flutter/services.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -15,7 +10,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
-  final Map<String, List<_MessageData>> _pendingMessages = {};
+  static const MethodChannel _channel = MethodChannel('com.example.untitled/notifications');
 
   Future<void> init() async {
     if (_initialized) return;
@@ -69,71 +64,71 @@ class NotificationService {
     required String messageText,
     required int unreadCount,
     String? payload,
+    List<Map<String, dynamic>>? lastMessagesData,
+    String? companionAvatar,
+    String? productImage,
   }) async {
-    final int notificationId = chatId.hashCode;
-
-    _pendingMessages.putIfAbsent(chatId, () => []);
-    _pendingMessages[chatId]!.add(
-      _MessageData(
-        messageText,
-        DateTime.now().millisecondsSinceEpoch,
-        chatTitle,
-      ),
-    );
-
-    if (_pendingMessages[chatId]!.length > 10) {
-      _pendingMessages[chatId] = _pendingMessages[chatId]!
-          .sublist(_pendingMessages[chatId]!.length - 10);
-    }
-
-    final List<Message> styleMessages = _pendingMessages[chatId]!.map((msg) {
-      return Message(
-        msg.text,
-        DateTime.fromMillisecondsSinceEpoch(msg.timestampMs),
-        Person(name: msg.authorName, bot: false),
+    if (Platform.isAndroid) {
+      try {
+        await _channel.invokeMethod('showChatNotification', {
+          'chatId': chatId,
+          'chatTitle': chatTitle,
+          'messageText': messageText,
+          'unreadCount': unreadCount,
+          'payload': payload ?? chatId,
+          if (lastMessagesData != null) 'lastMessagesData': lastMessagesData,
+          if (companionAvatar != null) 'companionAvatar': companionAvatar,
+          if (productImage != null) 'productImage': productImage,
+        });
+      } catch (e) { print('Error: $e'); }
+    } else {
+      final int notificationId = chatId.hashCode;
+      const androidDetails = AndroidNotificationDetails(
+        'chat_messages',
+        'Сообщения',
+        channelDescription: 'Уведомления о новых сообщениях',
+        importance: Importance.high,
+        priority: Priority.high,
       );
-    }).toList();
+      final iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        badgeNumber: unreadCount,
+        threadIdentifier: chatId,
+      );
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+      await _plugin.show(
+        id: notificationId,
+        title: chatTitle,
+        body: messageText,
+        notificationDetails: details,
+        payload: payload ?? chatId,
+      );
+    }
+  }
 
-    final androidDetails = AndroidNotificationDetails(
-      'chat_messages',
-      'Сообщения',
-      channelDescription: 'Уведомления о новых сообщениях',
-      importance: Importance.high,
-      priority: Priority.high,
-      number: unreadCount,
-      styleInformation: MessagingStyleInformation(
-        Person(name: chatTitle, bot: false),
-        groupConversation: false,
-        conversationTitle: chatTitle,
-        messages: styleMessages,
-      ),
-    );
-
-    final iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      badgeNumber: unreadCount,
-      threadIdentifier: chatId,
-    );
-
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    await _plugin.show(
-      id: notificationId,
-      title: chatTitle,
-      body: messageText,
-      notificationDetails: details,
-      payload: payload ?? chatId,
-    );
+  Future<void> cancelAllNotifications() async {
+    if (Platform.isAndroid) {
+      try {
+        await _channel.invokeMethod('cancelAllNotifications');
+      } catch (_) {}
+    } else {
+      await _plugin.cancelAll();
+    }
   }
 
   Future<void> cancelChatNotification(String chatId) async {
-    await _plugin.cancel(id: chatId.hashCode);
-    _pendingMessages.remove(chatId);
+    if (Platform.isAndroid) {
+      try {
+        await _channel.invokeMethod('cancelChatNotification', {'chatId': chatId});
+      } catch (_) {}
+    } else {
+      await _plugin.cancel(id: chatId.hashCode);
+    }
   }
 
   void _onNotificationTap(NotificationResponse response) {

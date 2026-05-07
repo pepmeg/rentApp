@@ -26,16 +26,12 @@ class LoginState extends State<Login> {
 
   Future<void> _login() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final oldUserId = authProvider.currentUser?.id;
     final error = await authProvider.login(
       emailController.text.trim(),
       passwordController.text,
     );
 
     if (error == null) {
-      if (oldUserId != null && oldUserId != authProvider.currentUser?.id) {
-        context.read<ChatProvider>().clearReadTimestampsForUser(oldUserId);
-      }
       context.read<BottomNavProvider>().setIndex(0);
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } else {

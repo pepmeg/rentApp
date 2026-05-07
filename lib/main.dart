@@ -125,13 +125,16 @@ class _MainScreenState extends State<MainScreen> {
     super.didChangeDependencies();
     final auth = context.read<AuthProvider>();
     final currentUserId = auth.currentUser?.id;
-    if (_lastUserId != currentUserId) {
-      if (currentUserId != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_lastUserId != currentUserId || _lastUserId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Очищаем все нативные уведомления перед показом новых
+        NotificationService().cancelAllNotifications();
+        if (currentUserId != null) {
+          context.read<ChatProvider>().clearMissedNotifications();
           context.read<ChatProvider>().notifyMissedMessages(currentUserId);
-        });
-      }
-      context.read<BottomNavProvider>().setIndex(0);
+        }
+        context.read<BottomNavProvider>().setIndex(0);
+      });
       _lastUserId = currentUserId;
     }
   }

@@ -53,7 +53,9 @@ class ProfileOwn extends StatelessWidget {
               const SizedBox(height: 30),
               ProfileUserInfo(
                 user: user,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfile())),
+                onTap: (user.role == 'admin' || user.role == 'support')
+                    ? null
+                    : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfile())),
               ),
               if (user.role == 'admin' || user.role == 'support') ...[
                 const AdminDashboardWidget(),
