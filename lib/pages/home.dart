@@ -1,15 +1,17 @@
-import 'package:AppRent/pages/productScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/product_data.dart';
 import '../models/activeLease.dart';
 import '../models/product.dart';
 import '../provider/activeLeasesProvider.dart';
+import '../provider/AuthProvider.dart';
+import '../provider/bottom_nav_provider.dart';
 import '../utils/colors.dart';
 import '../utils/pagination.dart';
 import '../widgets/product_card.dart';
 import '../widgets/category_filter.dart';
 import '../provider/ReviewsProvider.dart';
+import '../pages/productScreen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -17,7 +19,6 @@ class Home extends StatefulWidget {
   @override
   State<Home> createState() => HomeState();
 }
-
 
 class HomeState extends State<Home> with PaginationMixin {
   String searchQuery = '';
@@ -133,6 +134,10 @@ class HomeState extends State<Home> with PaginationMixin {
 
   @override
   Widget build(BuildContext context) {
+
+    context.watch<AuthProvider>();
+    context.watch<BottomNavProvider>();
+
     final allProducts = filteredProducts;
     final visibleProducts = allProducts.take(visibleCount).toList();
 

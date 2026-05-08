@@ -18,6 +18,10 @@ class AuthProvider extends ChangeNotifier {
     loadUserData();
   }
 
+  void refresh() {
+    notifyListeners();
+  }
+
   Future<bool> register(UserModel user) async {
     _setLoading(true);
 

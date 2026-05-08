@@ -10,6 +10,7 @@ import '../provider/AuthProvider.dart';
 import '../utils/colors.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
+import 'location_screen.dart';
 
 class EditProduct extends StatefulWidget {
   final Product product;
@@ -450,9 +451,25 @@ class _EditProductState extends State<EditProduct> {
                 },
               ),
               const SizedBox(height: 10),
-              AppTextField(
-                controller: locationController,
-                hint: 'Город, район (необязательно)',
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+                  );
+                  if (result != null) {
+                    setState(() {
+                      locationController.text = result['address'] ?? '';
+                    });
+                  }
+                },
+                child: AbsorbPointer(
+                  child: AppTextField(
+                    controller: locationController,
+                    hint: 'Местоположение (нажмите для выбора)',
+                    maxLength: 200,
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               AppTextField(

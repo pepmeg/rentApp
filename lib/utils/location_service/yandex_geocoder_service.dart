@@ -40,30 +40,60 @@ class YandexGeocoderService {
       throw Exception('Ошибка геокодирования');
     }
   }
-  Future<String> getAddressByCoordinates(double latitude, double longitude) async {
-    final url = Uri.parse(
-        '$_baseUrl?apikey=$_apiKey&format=json&geocode=$longitude,$latitude&sco=latlong&results=1&lang=ru');
-    final response = await http.get(url, headers: _headers);
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List<dynamic> geoObjects =
-      data['response']['GeoObjectCollection']['featureMember'];
-      if (geoObjects.isEmpty) return 'Местоположение не найдено';
-      final geoObject = geoObjects.first['GeoObject'];
-      final fullDescription = geoObject['description'] as String?;
-      final name = geoObject['name'] as String?;
 
-      if (fullDescription != null && fullDescription.isNotEmpty) {
-        final parts = fullDescription.split(',').map((s) => s.trim()).toList();
-        if (parts.length > 1) {
-          return parts.sublist(0, parts.length - 1).join(', ');
-        }
-        return fullDescription;
-      }
-      return name ?? 'Местоположение не найдено';
-    } else {
-      throw Exception('Ошибка обратного геокодирования');
+  Future<String> getAddressByCoordinates(double latitude, double longitude) async {
+    String? address = await _fetchAddress(latitude, longitude, 'street', results: 3);
+
+    address ??= await _fetchAddress(latitude, longitude, 'locality', results: 3);
+
+    if (address != null && address.isNotEmpty) {
+      address = address
+          .replaceAll('Чувашская Республика - Чувашия', 'Республика Чувашия')
+          .replaceAll('городской округ', 'г.')
+          .replaceAll('город', 'г.')
+          .replaceAll('улица', 'ул.')
+          .replaceAll('проспект', 'пр.')
+          .replaceAll('проезд', 'пр-д')
+          .replaceAll('переулок', 'пер.')
+          .replaceAll('  ', ' ');
+      return address;
     }
+
+    return 'Местоположение не найдено';
+  }
+
+  Future<String?> _fetchAddress(
+      double latitude,
+      double longitude,
+      String kind, {
+        int results = 1,
+      }) async {
+    final url = Uri.parse(
+      '$_baseUrl?apikey=$_apiKey&format=json'
+          '&geocode=$longitude,$latitude'
+          '&sco=latlong'
+          '&lang=ru'
+          '&kind=$kind'
+          '&results=$results',
+    );
+    try {
+      final response = await http.get(url, headers: _headers);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> geoObjects =
+        data['response']['GeoObjectCollection']['featureMember'];
+        if (geoObjects.isEmpty) return null;
+
+        final geoObject = geoObjects.first['GeoObject'];
+        final name = geoObject['name'] as String? ?? '';
+        if (name.isEmpty) return null;
+
+        final parts = name.split(',').map((s) => s.trim()).toList();
+        if (parts.length > 1) parts.removeLast();
+        return parts.join(', ');
+      }
+    } catch (e) {}
+    return null;
   }
 
   List<YandexSuggestItem> _parseSuggestions(Map<String, dynamic> data) {

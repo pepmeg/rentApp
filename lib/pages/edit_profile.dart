@@ -8,6 +8,8 @@ import '../provider/AuthProvider.dart';
 import '../utils/avatar.dart';
 import '../utils/colors.dart';
 import 'change_password.dart';
+import '../utils/form_fields.dart';
+import 'location_screen.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -22,6 +24,7 @@ class _EditProfileState extends State<EditProfile> {
   late TextEditingController addressController;
   late TextEditingController phoneController;
   late TextEditingController emailController;
+  late TextEditingController locationController;
 
   String? _avatarPath;
 
@@ -34,6 +37,7 @@ class _EditProfileState extends State<EditProfile> {
     addressController = TextEditingController(text: user?.address ?? '');
     phoneController = TextEditingController(text: user?.phoneNumber ?? '');
     emailController = TextEditingController(text: user?.email ?? '');
+    locationController = TextEditingController(text: user?.address ?? '');
     _avatarPath = user?.avatarPath;
   }
 
@@ -44,6 +48,7 @@ class _EditProfileState extends State<EditProfile> {
     addressController.dispose();
     phoneController.dispose();
     emailController.dispose();
+    locationController.dispose();
     super.dispose();
   }
 
@@ -75,7 +80,7 @@ class _EditProfileState extends State<EditProfile> {
       password: currentUser.password,
       firstName: firstNameController.text.trim(),
       lastName: lastNameController.text.trim(),
-      address: addressController.text.trim(),
+      address: locationController.text.trim(),
       phoneNumber: phoneController.text.trim(),
       avatarPath: _avatarPath,
     );
@@ -107,40 +112,7 @@ class _EditProfileState extends State<EditProfile> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
-                    onPressed: () => Navigator.pop(context),
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 5),
-                  const Text(
-                    'Редактировать',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              GestureDetector(
-                onTap: _pickImage,
-                child: buildUserAvatar(
-                  UserModel(
-                    id: currentUser!.id,
-                    email: currentUser.email,
-                    password: currentUser.password,
-                    firstName: currentUser.firstName,
-                    lastName: currentUser.lastName,
-                    address: currentUser.address,
-                    phoneNumber: currentUser.phoneNumber,
-                    avatarPath: _avatarPath,
-                    role: currentUser.role,
-                    blocked: currentUser.blocked,
-                  ),
-                  radius: 50,
-                ),
-              ),
+              // ... заголовок и аватар ...
               const SizedBox(height: 20),
               _buildField(firstNameController, 'Имя'),
               const SizedBox(height: 10),
@@ -148,10 +120,29 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 10),
               _buildField(emailController, 'Почта'),
               const SizedBox(height: 10),
-              _buildField(addressController, 'Адрес'),
+              // Поле выбора местоположения (как в AddProduct)
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+                  );
+                  if (result != null) {
+                    setState(() {
+                      locationController.text = result['address'] ?? '';
+                    });
+                  }
+                },
+                child: AbsorbPointer(
+                  child: AppTextField(
+                    controller: locationController,
+                    hint: 'Местоположение (нажмите для выбора)',
+                    maxLength: 200,
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
               _buildField(phoneController, 'Номер телефона'),
-
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: save,

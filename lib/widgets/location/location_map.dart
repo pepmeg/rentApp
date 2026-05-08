@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import '../../utils/colors.dart';
 import '../../utils/location_service/location_service.dart';
-import '../../utils/location_service/yandex_geocoder_service.dart';
 
 class LocationMapWidget extends StatefulWidget {
   final double? initialLat;
@@ -24,10 +23,7 @@ class LocationMapWidget extends StatefulWidget {
 
 class _LocationMapWidgetState extends State<LocationMapWidget> {
   late YandexMapController _mapController;
-  Point? _selectedPoint;
   bool _isMapReady = false;
-  final YandexGeocoderService _geocoderService =
-  YandexGeocoderService('0e18582f-c18f-4f3c-afba-11388e46ba46');
 
   double _selectedLat = 55.7558;
   double _selectedLon = 37.6173;
@@ -35,37 +31,41 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   @override
   void initState() {
     super.initState();
-    _selectedLat = widget.initialLat ?? 55.7558;
-    _selectedLon = widget.initialLon ?? 37.6173;
-    _selectedPoint = Point(latitude: _selectedLat, longitude: _selectedLon);
+    _selectedLat = widget.initialLat ?? _selectedLat;
+    _selectedLon = widget.initialLon ?? _selectedLon;
   }
 
   @override
   void didUpdateWidget(covariant LocationMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final newLat = widget.initialLat ?? _selectedLat;
-    final newLon = widget.initialLon ?? _selectedLon;
-    if (newLat != _selectedLat || newLon != _selectedLon) {
+    final newLat = widget.initialLat;
+    final newLon = widget.initialLon;
+    if (newLat != null && newLon != null &&
+        (newLat != _selectedLat || newLon != _selectedLon)) {
       _selectedLat = newLat;
       _selectedLon = newLon;
-      _selectedPoint = Point(latitude: _selectedLat, longitude: _selectedLon);
-      _moveToPoint(_selectedPoint!);
+      if (_isMapReady) {
+        _mapController.moveCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: Point(latitude: _selectedLat, longitude: _selectedLon),
+              zoom: 15,
+            ),
+          ),
+        );
+      }
     }
   }
 
   void _onMapCreated(YandexMapController controller) {
     _mapController = controller;
-    if (_selectedPoint != null) {
-      _moveToPoint(_selectedPoint!);
-    }
-    setState(() => _isMapReady = true);
-  }
-
-  void _moveToPoint(Point point) {
-    if (!_isMapReady) return;
+    _isMapReady = true;
     _mapController.moveCamera(
       CameraUpdate.newCameraPosition(
-        CameraPosition(target: point, zoom: 15),
+        CameraPosition(
+          target: Point(latitude: _selectedLat, longitude: _selectedLon),
+          zoom: 15,
+        ),
       ),
     );
   }
@@ -73,14 +73,21 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   Future<void> _goToCurrentLocation() async {
     try {
       final pos = await LocationService.getCurrentPosition();
-      final point = Point(latitude: pos.latitude, longitude: pos.longitude);
       setState(() {
-        _selectedPoint = point;
         _selectedLat = pos.latitude;
         _selectedLon = pos.longitude;
       });
+      if (_isMapReady) {
+        _mapController.moveCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: Point(latitude: _selectedLat, longitude: _selectedLon),
+              zoom: 15,
+            ),
+          ),
+        );
+      }
       widget.onPointChanged(pos.latitude, pos.longitude);
-      _moveToPoint(point);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Не удалось определить местоположение: $e')),
@@ -96,7 +103,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
           onMapCreated: _onMapCreated,
           onCameraPositionChanged: (position, reason, finished) {
             setState(() {
-              _selectedPoint = position.target;
               _selectedLat = position.target.latitude;
               _selectedLon = position.target.longitude;
             });
