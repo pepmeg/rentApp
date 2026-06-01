@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "277926687394",
+    "project_id": "apprent-892b0",
+    "storage_bucket": "apprent-892b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277926687394:android:c79a2248c749a7c95dddfb",
+        "android_client_info": {
+          "package_name": "com.example.untitled"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJaLJPAYO0ClXmN-cMQrnC4tG7dXHt9AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
