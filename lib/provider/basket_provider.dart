@@ -1,50 +1,107 @@
-import 'dart:convert';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/cart_item.dart';
 
 class BasketProvider extends ChangeNotifier {
-  final Map<int, List<CartItem>> _userBaskets = {};
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final Map<String, List<CartItem>> _cache = {};
+  StreamSubscription<QuerySnapshot>? _cartSub;
 
-  List<CartItem> getItemsForUser(int userId) => _userBaskets[userId] ?? [];
+  List<CartItem> getItemsForUser(String userId) => _cache[userId] ?? [];
 
-  int totalPriceForUser(int userId) {
-    final items = getItemsForUser(userId);
-    return items.fold(0, (sum, item) => sum + item.totalAmount);
-  }
+  int totalPriceForUser(String userId) =>
+      getItemsForUser(userId).fold(0, (total, item) => total + item.totalAmount);
 
-  void addToCartForUser(int userId, CartItem item) {
-    _userBaskets[userId] ??= [];
-    _userBaskets[userId]!.add(item);
+  Future<void> loadForUser(String userId) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .get();
+    final items = snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return CartItem.fromJson(data);
+    }).toList();
+    _cache[userId] = items;
     notifyListeners();
-    _saveToPrefs(userId);
   }
 
-  void clearCartForUser(int userId) {
-    _userBaskets.remove(userId);
+  void listenForUser(String userId) {
+    _cartSub?.cancel();
+    _cartSub = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .snapshots()
+        .listen((snapshot) {
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return CartItem.fromJson(data);
+      }).toList();
+      _cache[userId] = items;
+      notifyListeners();
+    });
+  }
+
+  Future<void> removeItemById(String userId, String productId) async {
+    final docRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .doc(productId);
+    await docRef.delete();
+  }
+
+  void stopListening() {
+    _cartSub?.cancel();
+    _cartSub = null;
+  }
+
+  Future<void> addToCartForUser(String userId, CartItem item) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .doc(item.id)
+        .set(item.toJson());
+    await loadForUser(userId);
+  }
+
+  void addLocalItem(String userId, CartItem item) {
+    _cache.putIfAbsent(userId, () => []);
+    _cache[userId]!.add(item);
     notifyListeners();
-    _saveToPrefs(userId);
   }
 
-  Future<void> _saveToPrefs(int userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final items = getItemsForUser(userId);
-    final jsonList = items.map((item) => jsonEncode(item.toJson())).toList();
-    await prefs.setStringList('basket_items_$userId', jsonList);
+  void removeItem(String userId, String productId) {
+    _cache[userId]?.removeWhere((item) => item.id == productId);
+    notifyListeners();
   }
 
-  Future<void> loadForUser(int userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = prefs.getStringList('basket_items_$userId');
-    if (jsonList != null) {
-      final items = jsonList
-          .map((s) => CartItem.fromJson(jsonDecode(s)))
-          .toList();
-      _userBaskets[userId] = items;
-    } else {
-      _userBaskets.remove(userId);
+  Future<void> clearCartForUser(String userId) async {
+    final batch = _firestore.batch();
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .get();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
     }
+    await batch.commit();
+    _cache.remove(userId);
     notifyListeners();
   }
 
+  Future<void> markReminderSent(String userId, String productId) async {
+    final docRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .doc(productId);
+    await docRef.update({'reminderSent': true});
+  }
 }

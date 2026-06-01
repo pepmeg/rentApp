@@ -1,52 +1,150 @@
-import 'dart:convert';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/activeLease.dart';
 
 class ActiveLeasesProvider extends ChangeNotifier {
-  final List<ActiveLease> _leases = [];
-  int _totalLeases = 0;
-  static const String _leasesKey = 'active_leases';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  List<ActiveLease> _leases = [];
+  bool _isLoading = false;
+  StreamSubscription<QuerySnapshot>? _leasesSub;
 
   List<ActiveLease> get leases => _leases;
+  int get totalLeasesCount => _leases.length;
   int get activeCount => _leases.where((l) => l.status == LeaseStatus.active).length;
-  int get totalLeasesCount => _totalLeases;
+  bool get isLoading => _isLoading;
 
   ActiveLeasesProvider() {
-    loadFromPrefs();
+    _startListening();
   }
 
-  List<ActiveLease> getLeasesForUser(int userId) {
-    return _leases.where((lease) => lease.userId == userId).toList();
+  void stopListening() {
+    _leasesSub?.cancel();
+    _leasesSub = null;
   }
 
-  bool addPendingLease(ActiveLease lease) {
+  void _startListening() {
+    _leasesSub?.cancel();
+    _leasesSub = _firestore.collection('leases').snapshots().listen(
+          (snapshot) {
+        _leases = snapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>? ?? {};
+          return ActiveLease.fromJson(data);
+        }).toList();
+        notifyListeners();
+      },
+      onError: (error) {
+        debugPrint('Ошибка подписки на аренды: $error');
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _leasesSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> loadLeases({String? userId, String? ownerId}) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      Query query = _firestore.collection('leases');
+      if (userId != null) query = query.where('userId', isEqualTo: userId);
+      if (ownerId != null) query = query.where('ownerId', isEqualTo: ownerId);
+      final snapshot = await query.get();
+      final freshLeases = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        return ActiveLease.fromJson(data);
+      }).toList();
+      _leases = freshLeases;
+    } catch (e) {
+      debugPrint('Ошибка загрузки аренд: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> syncWithFirestore() async {
+    try {
+      final snapshot = await _firestore.collection('leases').get();
+      final serverIds = snapshot.docs.map((d) => d.id).toSet();
+      _leases.removeWhere((local) => !serverIds.contains(local.productId));
+      await loadLeases();
+    } catch (e) {
+      debugPrint('Ошибка синхронизации аренд: $e');
+    }
+  }
+
+  List<ActiveLease> getLeasesForUser(String userId) {
+    return _leases.where((l) {
+      if (l.userId == userId) return true;
+      if (l.ownerId == userId) {
+        return l.status == LeaseStatus.active || l.status == LeaseStatus.pendingCompletion;
+      }
+      return false;
+    }).toList();
+  }
+
+  Future<void> addActiveLease(ActiveLease lease) async {
+    await _firestore.collection('leases').add(lease.toJson());
+    await loadLeases();
+  }
+
+  void addLocalLease(ActiveLease lease) {
     _leases.add(lease);
     notifyListeners();
-    saveToPrefs();
-    return true;
   }
 
-  void addActiveLease(ActiveLease lease) {
-    _leases.add(lease);
-    _totalLeases++;
+  void removeLocalLease(String productId) {
+    _leases.removeWhere((l) => l.productId == productId);
     notifyListeners();
-    saveToPrefs();
   }
 
-  void activateLease(
-      int productId,
-      String name,
-      int pricePerDay,
-      int totalDays,
-      int userId,
-      int ownerId,
-      String userFirstName,
-      String userLastName, {
-        String? userAvatarPath,
-      }) {
-    _leases.removeWhere((l) => l.productId == productId && l.status == LeaseStatus.pending);
-    _leases.add(ActiveLease(
+  List<ActiveLease> getRentedLeasesForUser(String userId) {
+    return _leases.where((l) => l.userId == userId).toList();
+  }
+
+  Future<void> removePendingLeaseByProductId(String productId) async {
+    final querySnapshot = await _firestore
+        .collection('leases')
+        .where('productId', isEqualTo: productId)
+        .where('status', isEqualTo: LeaseStatus.pending.index)
+        .limit(1)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      await querySnapshot.docs.first.reference.delete();
+      await loadLeases();
+    }
+  }
+
+  Future<void> activateLease({
+    required String productId,
+    required String name,
+    required int pricePerDay,
+    required int totalDays,
+    required String userId,
+    required String ownerId,
+    required String userFirstName,
+    required String userLastName,
+    String? userAvatarUrl,
+    required double requesterRating,
+  }) async {
+    final batch = _firestore.batch();
+    final querySnapshot = await _firestore
+        .collection('leases')
+        .where('productId', isEqualTo: productId)
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: LeaseStatus.pending.index)
+        .limit(1)
+        .get();
+    for (final doc in querySnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    final newLease = ActiveLease(
       productId: productId,
       name: name,
       pricePerDay: pricePerDay,
@@ -56,101 +154,72 @@ class ActiveLeasesProvider extends ChangeNotifier {
       ownerId: ownerId,
       userFirstName: userFirstName,
       userLastName: userLastName,
-      userAvatarPath: userAvatarPath,
+      userAvatarUrl: userAvatarUrl,
       status: LeaseStatus.active,
-    ));
-    _totalLeases++;
-    notifyListeners();
-    saveToPrefs();
+      isHourly: false,
+      requesterRating: requesterRating,
+    );
+    batch.set(_firestore.collection('leases').doc(), newLease.toJson());
+    await batch.commit();
+    await loadLeases();
   }
 
-  void removePendingLeaseByProductId(int productId) {
-    _leases.removeWhere((lease) => lease.productId == productId && lease.status == LeaseStatus.pending);
-    notifyListeners();
-    saveToPrefs();
-  }
-
-  void incrementTotalLeases() {
-    _totalLeases++;
-    notifyListeners();
-    saveToPrefs();
-  }
-
-  void requestCompleteLease(int productId) {
-    final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.active);
-    if (index != -1) {
-      final old = _leases[index];
-      _leases[index] = ActiveLease(
-        productId: old.productId,
-        name: old.name,
-        pricePerDay: old.pricePerDay,
-        startDate: old.startDate,
-        totalDays: old.totalDays,
-        userId: old.userId,
-        ownerId: old.ownerId,
-        userFirstName: old.userFirstName,
-        userLastName: old.userLastName,
-        userAvatarPath: old.userAvatarPath,
-        status: LeaseStatus.pendingCompletion,
-      );
-      notifyListeners();
-      saveToPrefs();
+  Future<void> requestCompleteLease(String productId) async {
+    final querySnapshot = await _firestore
+        .collection('leases')
+        .where('productId', isEqualTo: productId)
+        .where('status', isEqualTo: LeaseStatus.active.index)
+        .limit(1)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      final doc = querySnapshot.docs.first;
+      await doc.reference.update({
+        'status': LeaseStatus.pendingCompletion.index,
+        'isCompleted': false,
+      });
+      await loadLeases();
     }
   }
 
-  void finishLease(int productId) {
-    final index = _leases.indexWhere((l) =>
-    l.productId == productId && l.status == LeaseStatus.pendingCompletion);
-    if (index != -1) {
-      _leases.removeAt(index);
-      notifyListeners();
-      saveToPrefs();
-    } else {
-      final anyIndex = _leases.indexWhere((l) => l.productId == productId);
-      if (anyIndex != -1) {
-        _leases.removeAt(anyIndex);
-        notifyListeners();
-        saveToPrefs();
-      }
-    }
-  }
-  void cancelCompletionRequest(int productId) {
-    final index = _leases.indexWhere((l) => l.productId == productId && l.status == LeaseStatus.pendingCompletion);
-    if (index != -1) {
-      _leases[index].status = LeaseStatus.active;
-      _leases[index].isCompleted = false;
-      notifyListeners();
-      saveToPrefs();
+  Future<void> finishLease(String productId) async {
+    final querySnapshot = await _firestore
+        .collection('leases')
+        .where('productId', isEqualTo: productId)
+        .where('status', isEqualTo: LeaseStatus.pendingCompletion.index)
+        .limit(1)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      await querySnapshot.docs.first.reference.delete();
+      await loadLeases();
     }
   }
 
-  Future<void> saveToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = _leases.map((lease) => jsonEncode(lease.toJson())).toList();
-    await prefs.setStringList(_leasesKey, jsonList);
-  }
-
-  Future<void> loadFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = prefs.getStringList(_leasesKey);
-    if (jsonList != null) {
-      _leases.clear();
-      for (final jsonStr in jsonList) {
-        try {
-          final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-          _leases.add(ActiveLease.fromJson(map));
-        } catch (e) {
-          print('Ошибка загрузки аренды: $e');
-        }
-      }
-      _totalLeases = _leases.length;
-      notifyListeners();
+  Future<void> cancelCompletionRequest(String productId) async {
+    final querySnapshot = await _firestore
+        .collection('leases')
+        .where('productId', isEqualTo: productId)
+        .where('status', isEqualTo: LeaseStatus.pendingCompletion.index)
+        .limit(1)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      await querySnapshot.docs.first.reference.update({
+        'status': LeaseStatus.active.index,
+        'isCompleted': false,
+      });
+      await loadLeases();
     }
   }
 
-  void deleteLeasesForUser(int userId) {
-    _leases.removeWhere((lease) => lease.userId == userId || lease.ownerId == userId);
-    notifyListeners();
-    saveToPrefs();
+  Future<void> deleteLeasesForUser(String userId) async {
+    final batch = _firestore.batch();
+    final snapshot = await _firestore
+        .collection('leases')
+        .where('userId', isEqualTo: userId)
+        .get();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+    await loadLeases();
   }
 }

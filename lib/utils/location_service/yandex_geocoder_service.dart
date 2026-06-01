@@ -1,11 +1,22 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../services/secure_storage_service.dart';
 
 class YandexGeocoderService {
   static const String _baseUrl = 'https://geocode-maps.yandex.ru/1.x/';
-  final String _apiKey;
+  String? _apiKey;
 
-  YandexGeocoderService(this._apiKey);
+  YandexGeocoderService([String? apiKey]) {
+    if (apiKey != null && apiKey.isNotEmpty) {
+      _apiKey = apiKey;
+    } else {
+      _loadApiKey();
+    }
+  }
+
+  Future<void> _loadApiKey() async {
+    _apiKey = await SecureStorageService().getYandexGeocoderKey();
+  }
 
   Map<String, String> get _headers => {
     'User-Agent': 'AppRent/1.0',
@@ -16,6 +27,10 @@ class YandexGeocoderService {
     double? userLat,
     double? userLon,
   }) async {
+    if (_apiKey == null) await _loadApiKey();
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      throw Exception('API-ключ Яндекс.Геокодера не найден');
+    }
     String url = '$_baseUrl?apikey=$_apiKey&format=json&geocode=$query&results=10&lang=ru&sco=latlong';
     if (userLat != null && userLon != null) {
       url += '&ll=$userLon,$userLat&spn=0.5,0.5';
@@ -30,6 +45,10 @@ class YandexGeocoderService {
   }
 
   Future<YandexLocation> getCoordinatesByAddress(String address) async {
+    if (_apiKey == null) await _loadApiKey();
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      throw Exception('API-ключ Яндекс.Геокодера не найден');
+    }
     final url = Uri.parse(
         '$_baseUrl?apikey=$_apiKey&format=json&geocode=$address&sco=latlong&kind=locality&results=1');
     final response = await http.get(url);
@@ -42,6 +61,10 @@ class YandexGeocoderService {
   }
 
   Future<String> getAddressByCoordinates(double latitude, double longitude) async {
+    if (_apiKey == null) await _loadApiKey();
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      throw Exception('API-ключ Яндекс.Геокодера не найден');
+    }
     String? address = await _fetchAddress(latitude, longitude, 'street', results: 3);
 
     address ??= await _fetchAddress(latitude, longitude, 'locality', results: 3);

@@ -1,17 +1,14 @@
-import 'dart:io';
-import 'package:AppRent/widgets/product_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/activeLease.dart';
 import '../models/user.dart';
-import '../provider/AuthProvider.dart';
 import '../provider/bottom_nav_provider.dart';
 import '../utils/avatar.dart';
-import '../utils/colors.dart';
+import 'product_image.dart';
 
 class UserOrdersCard extends StatelessWidget {
-  final int id;
+  final String id;
   final String name;
   final int price;
   final List<String> images;
@@ -43,8 +40,10 @@ class UserOrdersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormatted = DateFormat('dd.MM.yyyy').format(createdAt);
+    final theme = Theme.of(context);
+
     return Card(
-      color: AppColors.whiteAntique,
+      color: theme.cardTheme.color ?? theme.colorScheme.surface,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
@@ -59,7 +58,7 @@ class UserOrdersCard extends StatelessWidget {
                     images: images,
                     width: 100,
                     height: 100,
-                    backgroundColor: AppColors.whiteAntique,
+                    backgroundColor: theme.colorScheme.surface,
                   ),
                   const SizedBox(width: 20),
                   Expanded(
@@ -68,36 +67,33 @@ class UserOrdersCard extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.normal,
-                            color: AppColors.oliveGray,
+                            color: theme.colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          isPricePerHour
-                              ? '$price ₽/час'
-                              : '$price ₽/день',
-                          style: TextStyle(fontSize: 15, color: AppColors.oliveGray),
+                          isPricePerHour ? '$price ₽/час' : '$price ₽/день',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: theme.colorScheme.onSurface,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: AppColors.oliveGray,
-                            ),
+                            Icon(Icons.location_on, size: 14, color: theme.colorScheme.onSurface),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 location,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppColors.oliveGray.withOpacity(0.5),
+                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -111,7 +107,7 @@ class UserOrdersCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.normal,
-                            color: AppColors.oliveGray.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                         ),
                       ],
@@ -123,15 +119,14 @@ class UserOrdersCard extends StatelessWidget {
                       children: [
                         if (moderationStatus == 'hidden')
                           Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.visibility_off, size: 16, color: AppColors.oliveGray.withOpacity(0.6)),
+                              Icon(Icons.visibility_off, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.6)),
                               const SizedBox(width: 4),
                               Text(
                                 'Скрыт',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.oliveGray.withOpacity(0.7),
+                                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -140,11 +135,7 @@ class UserOrdersCard extends StatelessWidget {
                           ),
                         GestureDetector(
                           onTap: onEdit,
-                          child: const Icon(
-                            Icons.edit,
-                            color: AppColors.oliveGray,
-                            size: 20,
-                          ),
+                          child: Icon(Icons.edit, color: theme.colorScheme.onSurface, size: 20),
                         ),
                       ],
                     ),
@@ -160,21 +151,20 @@ class UserOrdersCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.spaceCream,
+                      color: theme.colorScheme.background,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         Builder(builder: (context) {
                           final leaseUser = UserModel(
-                            id: activeLease!.userId,
+                            uid: activeLease!.userId,
                             email: '',
-                            password: '',
                             firstName: activeLease!.userFirstName,
                             lastName: activeLease!.userLastName,
-                            address: '',
                             phoneNumber: '',
-                            avatarPath: activeLease!.userAvatarPath,
+                            address: '',
+                            avatarUrl: activeLease!.userAvatarUrl,
                             role: 'user',
                           );
                           return buildUserAvatar(leaseUser, radius: 16);
@@ -183,19 +173,15 @@ class UserOrdersCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Арендует: ${activeLease!.userFirstName} ${activeLease!.userLastName}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.oliveGray,
+                              color: theme.colorScheme.onSurface,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 14,
-                          color: AppColors.oliveGray,
-                        ),
+                        Icon(Icons.arrow_forward_ios_rounded, size: 14, color: theme.colorScheme.onSurface),
                       ],
                     ),
                   ),

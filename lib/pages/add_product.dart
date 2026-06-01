@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import '../data/category.dart';
-import '../data/product_data.dart';
+import '../provider/bottom_nav_provider.dart';
+import '../services/brand_service.dart';
+import '../services/product_service.dart';
 import '../models/product.dart';
 import '../provider/AuthProvider.dart';
-import '../utils/colors.dart';
+import '../services/storage_service.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
+import '../widgets/category_picker.dart';
+import '../widgets/product_image.dart';
 import 'location_screen.dart';
 
 class AddProduct extends StatefulWidget {
@@ -21,31 +24,26 @@ class AddProduct extends StatefulWidget {
 
 class _AddProductState extends State<AddProduct> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController categoryController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController daysController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController brandController = TextEditingController();
   final List<String> _imagePaths = [];
+  List<String> _categoryPath = [];
   final _formKey = GlobalKey<FormState>();
-  String? _selectedCategory;
-  String? _selectedSubcategory;
-  bool _categoryError = false;
-  bool _subcategoryError = false;
   bool _isPricePerHour = false;
+  bool _isUploading = false;
 
   static const int maxImages = 10;
 
   @override
   void initState() {
     super.initState();
-    // Подставляем адрес пользователя, если он указан в профиле
     final user = context.read<AuthProvider>().currentUser;
-    if (user?.address != null && user!.address!.isNotEmpty) {
-      locationController.text = user.address!;
+    if (user != null && user.address.isNotEmpty) {
+      locationController.text = user.address;
     }
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !context.read<AuthProvider>().isUser) {
         Navigator.pushReplacementNamed(context, '/home');
@@ -73,138 +71,141 @@ class _AddProductState extends State<AddProduct> {
   Future<void> _pickImages() async {
     final picker = ImagePicker();
     final pickedFiles = await picker.pickMultiImage();
-
-    if (pickedFiles == null || pickedFiles.isEmpty) return;
+    if (pickedFiles.isEmpty) return;
 
     final remaining = maxImages - _imagePaths.length;
     if (remaining <= 0) {
-      SnackBarCustom.show(context, message: 'Достигнут лимит в 10 фотографий');
+      if (mounted) SnackBarCustom.show(context, message: 'Достигнут лимит в 10 фотографий');
       return;
     }
 
     final filesToAdd = pickedFiles.take(remaining);
-    int added = 0;
     for (final file in filesToAdd) {
-      final permanentPath = await _saveImagePermanently(file.path);
-      _imagePaths.add(permanentPath);
-      added++;
-    }
-
-    setState(() {});
-
-    if (added < pickedFiles.length) {
-      SnackBarCustom.show(context, message: 'Добавлено $added из ${pickedFiles.length}. Лимит 10 фото.');
+      if (_imagePaths.contains(file.path)) {
+        if (mounted) SnackBarCustom.show(context, message: 'Это фото уже добавлено');
+        continue;
+      }
+      final localPath = await _saveImagePermanently(file.path);
+      _imagePaths.add(localPath);
+      setState(() {});
     }
   }
 
   Future<void> _replaceImage(int index) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (!mounted) return;
     if (picked != null) {
-      final permanentPath = await _saveImagePermanently(picked.path);
+      if (_imagePaths.contains(picked.path)) {
+        if (mounted) SnackBarCustom.show(context, message: 'Это фото уже добавлено');
+        return;
+      }
+      final localPath = await _saveImagePermanently(picked.path);
       setState(() {
-        _imagePaths[index] = permanentPath;
+        _imagePaths[index] = localPath;
       });
     }
   }
 
-  void _addProduct() {
+  void _removeImage(int index) {
+    setState(() {
+      _imagePaths.removeAt(index);
+    });
+  }
+
+  Future<void> _addProduct() async {
+    final navProvider = context.read<BottomNavProvider>();
     final authProvider = context.read<AuthProvider>();
     final currentUser = authProvider.currentUser;
-
     if (currentUser == null) {
-      SnackBarCustom.show(context, message: 'Пользователь не авторизован');
+      if (mounted) SnackBarCustom.show(context, message: 'Пользователь не авторизован');
       return;
     }
 
-    setState(() {
-      _categoryError = false;
-      _subcategoryError = false;
-    });
+    setState(() => _isUploading = true);
 
-    final formValid = _formKey.currentState!.validate();
-
-    final catError = (_selectedCategory == null || _selectedCategory!.isEmpty);
-    final subError = (_selectedSubcategory == null || _selectedSubcategory!.isEmpty);
-    if (catError || subError) {
-      setState(() {
-        _categoryError = catError;
-        _subcategoryError = subError;
-      });
-    }
-
-    if (!formValid || catError || subError) {
-      final List<String> messages = [];
-      if (!formValid) messages.add('Поля заполнены неверно');
-      if (catError) messages.add('Выберите категорию');
-      if (subError) messages.add('Выберите подкатегорию');
-      SnackBarCustom.show(context, message: messages.join('\n'));
-      return;
-    }
-
-    final name = nameController.text.trim();
-    final price = int.tryParse(priceController.text.trim());
-    if (name.isEmpty || price == null) {
-      return;
-    }
-
-    String location = locationController.text.trim();
-    if (location.isEmpty) {
-      if (currentUser.address != null && currentUser.address!.isNotEmpty) {
-        location = currentUser.address!;
-      } else {
-        SnackBarCustom.show(
-          context,
-          message: 'Укажите город/район или заполните адрес в профиле',
-        );
+    try {
+      final formValid = _formKey.currentState!.validate();
+      if (!formValid) {
+        if (mounted) SnackBarCustom.show(context, message: 'Заполните все обязательные поля');
         return;
       }
+
+      if (_categoryPath.isEmpty) {
+        if (mounted) SnackBarCustom.show(context, message: 'Выберите категорию');
+        return;
+      }
+
+      final name = nameController.text.trim();
+      final price = int.tryParse(priceController.text.trim());
+      if (name.isEmpty || price == null) return;
+
+      String location = locationController.text.trim();
+      if (location.isEmpty && currentUser.address.isNotEmpty) {
+        location = currentUser.address;
+      } else if (location.isEmpty) {
+        if (mounted) SnackBarCustom.show(context, message: 'Укажите город/район или заполните адрес в профиле');
+        return;
+      }
+
+      final cloudKeys = <String>[];
+      for (final localPath in _imagePaths) {
+        final key = await StorageService.uploadProductImage(localPath);
+        cloudKeys.add(key);
+      }
+
+      final newProduct = Product(
+        id: '',
+        ownerId: currentUser.uid,
+        name: name,
+        nameLowercase: name.toLowerCase(),
+        price: price,
+        location: location,
+        images: cloudKeys,
+        categoryPath: _categoryPath,
+        description: descriptionController.text.trim(),
+        brand: brandController.text.trim(),
+        minRentDays: int.tryParse(daysController.text.trim()) ?? 1,
+        minRentHours: _isPricePerHour ? (int.tryParse(daysController.text.trim()) ?? 1) : 0,
+        isPricePerHour: _isPricePerHour,
+        createdAt: DateTime.now(),
+      );
+
+      await ProductService.addProduct(newProduct);
+      if (mounted) {
+        SnackBarCustom.show(context, message: 'Товар добавлен');
+        nameController.clear();
+        priceController.clear();
+        daysController.clear();
+        locationController.clear();
+        descriptionController.clear();
+        brandController.clear();
+        setState(() {
+          _imagePaths.clear();
+          _categoryPath = [];
+          _isPricePerHour = false;
+        });
+      }
+      final brandName = brandController.text.trim();
+      if (brandName.isNotEmpty && !context.read<BrandService>().brands.contains(brandName)) {
+        await context.read<BrandService>().addBrand(brandName);
+      }
+      navProvider.incrementHomeRefreshCounter();
+    } catch (e) {
+      if (mounted) SnackBarCustom.show(context, message: 'Ошибка при добавлении товара');
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
     }
-
-    final newProduct = Product(
-      id: DateTime.now().millisecondsSinceEpoch,
-      ownerId: currentUser.id,
-      name: name,
-      price: price!,
-      location: location,
-      images: List<String>.from(_imagePaths),
-      category: _selectedCategory ?? '',
-      subcategory: _selectedSubcategory ?? '',
-      description: descriptionController.text.trim(),
-      brand: brandController.text.trim(),
-      minRentDays: int.tryParse(daysController.text.trim()) ?? 1,
-      minRentHours: _isPricePerHour ? (int.tryParse(daysController.text.trim()) ?? 1) : 0,
-      isPricePerHour: _isPricePerHour,
-      createdAt: DateTime.now(),
-    );
-
-    ProductData.addProduct(newProduct);
-    SnackBarCustom.show(context, message: 'Товар добавлен');
-    authProvider.refresh();
-
-    nameController.clear();
-    priceController.clear();
-    daysController.clear();
-    locationController.clear();
-    descriptionController.clear();
-    brandController.clear();
-    setState(() {
-      _imagePaths.clear();
-      _selectedCategory = null;
-      _selectedSubcategory = null;
-      _isPricePerHour = false;
-    });
   }
 
   @override
   void dispose() {
     nameController.dispose();
-    categoryController.dispose();
-    brandController.dispose();
     priceController.dispose();
     daysController.dispose();
     locationController.dispose();
     descriptionController.dispose();
+    brandController.dispose();
     super.dispose();
   }
 
@@ -214,9 +215,34 @@ class _AddProductState extends State<AddProduct> {
     final price = int.tryParse(priceText);
     final commission = price != null ? Product.commissionForPrice(price) : null;
     final commissionRate = price != null ? (price > 1000 ? 3 : 5) : null;
+    final user = context.watch<AuthProvider>().currentUser;
+    final theme = Theme.of(context);
 
     if (!context.watch<AuthProvider>().isUser) {
       return const SizedBox.shrink();
+    }
+
+    if (user?.blocked == true) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.block, size: 64, color: theme.primaryColor),
+              const SizedBox(height: 16),
+              Text(
+                'Ваш аккаунт заблокирован',
+                style: TextStyle(fontSize: 18, color: theme.colorScheme.onSurface),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Вы не можете добавлять товары',
+                style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -228,55 +254,67 @@ class _AddProductState extends State<AddProduct> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Добавить товар',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.oliveGray,
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                 ),
                 const SizedBox(height: 15),
                 SizedBox(
                   height: 100,
-                  child: ListView.builder(
+                  child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _imagePaths.length + 1,
+                    itemCount: _imagePaths.length + (_imagePaths.length < maxImages ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
                     itemBuilder: (context, index) {
                       if (index == _imagePaths.length) {
-                        return _imagePaths.length < maxImages
-                            ? GestureDetector(
+                        return GestureDetector(
                           onTap: _pickImages,
                           child: Container(
-                            height: 100,
                             width: 100,
+                            height: 100,
                             margin: const EdgeInsets.only(right: 10),
                             decoration: BoxDecoration(
-                              color: AppColors.whiteAntique,
+                              color: theme.cardTheme.color ?? theme.colorScheme.surface,
                               borderRadius: BorderRadius.circular(15),
                             ),
-                            child: const Icon(
-                              Icons.add_a_photo,
-                              color: AppColors.oliveGray,
-                            ),
+                            child: Icon(Icons.add_a_photo, color: theme.colorScheme.onSurface),
                           ),
-                        )
-                            : const SizedBox.shrink();
+                        );
                       }
-                      return GestureDetector(
+
+                      final imageWidget = GestureDetector(
                         onTap: () => _replaceImage(index),
-                        child: Container(
-                          height: 100,
+                        child: ProductImage(
+                          images: [_imagePaths[index]],
                           width: 100,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            image: DecorationImage(
-                              image: FileImage(File(_imagePaths[index])),
-                              fit: BoxFit.cover,
+                          height: 100,
+                          backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
+                        ),
+                      );
+
+                      return Stack(
+                        children: [
+                          imageWidget,
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(12),
+                                    bottomLeft: Radius.circular(12),
+                                  ),
+                                ),
+                                child: const Icon(Icons.close, size: 16, color: Colors.white),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       );
                     },
                   ),
@@ -293,47 +331,12 @@ class _AddProductState extends State<AddProduct> {
                   },
                 ),
                 const SizedBox(height: 10),
-                AppDropdownMenu(
-                  key: ValueKey('category_$_selectedCategory'),
-                  value: _selectedCategory,
-                  hint: 'Категория',
-                  errorText: _categoryError ? 'Выберите категорию' : null,
-                  options: categories.map((cat) => cat.name).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategory = value;
-                      _selectedSubcategory = null;
-                      _categoryError = false;
-                      _subcategoryError = false;
-                    });
+                CategoryPicker(
+                  onPathChanged: (path) {
+                    setState(() => _categoryPath = path);
                   },
                 ),
-                const SizedBox(height: 10),
-                AppDropdownMenu(
-                  key: ValueKey('subcategory_$_selectedCategory'),
-                  value: _selectedSubcategory,
-                  hint: 'Подкатегория',
-                  errorText: _categoryError ? 'Выберите подкатегорию' : null,
-                  options: _selectedCategory != null
-                      ? categories
-                      .firstWhere((c) => c.name == _selectedCategory)
-                      .subcategories
-                      : [],
-                  onChanged: _selectedCategory != null
-                      ? (value) {
-                    setState(() {
-                      _selectedSubcategory = value;
-                      _subcategoryError = false;
-                    });
-                  }
-                      : null,
-                ),
-                const SizedBox(height: 10),
-                AppTextField(
-                  controller: brandController,
-                  hint: 'Бренд',
-                  maxLength: 50,
-                ),
+                BrandInput(controller: brandController),
                 const SizedBox(height: 10),
                 AppTextField(
                   controller: priceController,
@@ -354,7 +357,7 @@ class _AddProductState extends State<AddProduct> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'Сервисный сбор $commissionRate% (~ $commission ₽)',
-                      style: TextStyle(fontSize: 13, color: AppColors.oliveGray.withOpacity(0.6)),
+                      style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.6)),
                     ),
                   ),
                 const SizedBox(height: 10),
@@ -367,35 +370,26 @@ class _AddProductState extends State<AddProduct> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
-                            color: _isPricePerHour ? Colors.transparent : AppColors.copper,
+                            color: _isPricePerHour ? Colors.transparent : theme.primaryColor,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isPricePerHour ? AppColors.oliveGray.withOpacity(0.3) : AppColors.copper,
+                              color: _isPricePerHour ? theme.colorScheme.onSurface.withOpacity(0.3) : theme.primaryColor,
                               width: 1.5,
                             ),
                             boxShadow: _isPricePerHour
                                 ? []
-                                : [
-                              BoxShadow(
-                                color: AppColors.copper.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              )
-                            ],
+                                : [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.calendar_today,
-                                  size: 18,
-                                  color: _isPricePerHour ? AppColors.oliveGray : Colors.white),
+                              Icon(Icons.calendar_today, size: 18,
+                                  color: _isPricePerHour ? theme.colorScheme.onSurface : Colors.white),
                               const SizedBox(width: 8),
                               Text('за день',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: _isPricePerHour ? AppColors.oliveGray : Colors.white,
-                                ),
-                              ),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: _isPricePerHour ? theme.colorScheme.onSurface : Colors.white)),
                             ],
                           ),
                         ),
@@ -409,35 +403,26 @@ class _AddProductState extends State<AddProduct> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
-                            color: _isPricePerHour ? AppColors.copper : Colors.transparent,
+                            color: _isPricePerHour ? theme.primaryColor : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isPricePerHour ? AppColors.copper : AppColors.oliveGray.withOpacity(0.3),
+                              color: _isPricePerHour ? theme.primaryColor : theme.colorScheme.onSurface.withOpacity(0.3),
                               width: 1.5,
                             ),
                             boxShadow: _isPricePerHour
-                                ? [
-                              BoxShadow(
-                                color: AppColors.copper.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              )
-                            ]
+                                ? [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
                                 : [],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.schedule,
-                                  size: 18,
-                                  color: _isPricePerHour ? Colors.white : AppColors.oliveGray),
+                              Icon(Icons.schedule, size: 18,
+                                  color: _isPricePerHour ? Colors.white : theme.colorScheme.onSurface),
                               const SizedBox(width: 8),
                               Text('за час',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: _isPricePerHour ? Colors.white : AppColors.oliveGray,
-                                ),
-                              ),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: _isPricePerHour ? Colors.white : theme.colorScheme.onSurface)),
                             ],
                           ),
                         ),
@@ -449,9 +434,8 @@ class _AddProductState extends State<AddProduct> {
                 AppTextField(
                   controller: daysController,
                   hint: _isPricePerHour ? 'Минимальный срок (часы)' : 'Минимальный срок (дни)',
-                  maxLines: 1,
                   keyboardType: TextInputType.number,
-                  maxLength: _isPricePerHour ? 3 : 3,
+                  maxLength: 3,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return null;
                     final value = int.tryParse(v.trim());
@@ -465,22 +449,15 @@ class _AddProductState extends State<AddProduct> {
                 const SizedBox(height: 10),
                 GestureDetector(
                   onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
-                    );
-                    if (result != null) {
+                    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationPickerScreen()));
+                    if (result != null && mounted) {
                       setState(() {
                         locationController.text = result['address'] ?? '';
                       });
                     }
                   },
                   child: AbsorbPointer(
-                    child: AppTextField(
-                      controller: locationController,
-                      hint: 'Местоположение (нажмите для выбора)',
-                      maxLength: 200,
-                    ),
+                    child: AppTextField(controller: locationController, hint: 'Местоположение (нажмите для выбора)', maxLength: 200),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -493,20 +470,21 @@ class _AddProductState extends State<AddProduct> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _addProduct,
+                  onPressed: _isUploading ? null : _addProduct,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.copper,
-                    foregroundColor: AppColors.spaceCream,
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: const Text(
-                    'Опубликовать',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isUploading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : const Text('Опубликовать', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 20),
               ],

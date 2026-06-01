@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../models/user.dart';
-import '../provider/AuthProvider.dart';
-import '../provider/chat_provider.dart';
-import '../utils/colors.dart';
-import '../utils/form_fields.dart';
-import '../utils/snackbar_custom.dart';
-import '../widgets/location/location_map.dart';
+import '../../provider/AuthProvider.dart';
+import '../../utils/form_fields.dart';
+import '../../utils/snackbar_custom.dart';
 
 class Registration extends StatefulWidget {
+  const Registration({super.key});
+
   @override
   RegistrationState createState() => RegistrationState();
 }
@@ -38,44 +36,33 @@ class RegistrationState extends State<Registration> {
 
   Future<void> register() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final emailTaken = await authProvider.isEmailRegistered(emailController.text.trim());
-    final oldUserId = authProvider.currentUser?.id;
-
-    if (emailTaken) {
-      SnackBarCustom.show(context, message: 'Пользователь с таким email уже зарегистрирован');
-      return;
-    }
 
     if (!formKey.currentState!.validate()) return;
-
     if (passwordController.text != confirmPasswordController.text) {
       SnackBarCustom.show(context, message: 'Пароли не совпадают');
       return;
     }
 
-    final newUser = UserModel(
-      id: DateTime.now().millisecondsSinceEpoch,
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
-      firstName: firstNameController.text.trim(),
-      lastName: lastNameController.text.trim(),
+    final error = await authProvider.register(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+      firstNameController.text.trim(),
+      lastNameController.text.trim(),
+      phone: phoneNumberController.text.trim(),
       address: addressController.text.trim(),
-      phoneNumber: phoneNumberController.text.trim(),
     );
 
-    final success = await authProvider.register(newUser);
-    if (success) {
-      if (oldUserId != null) {
-        context.read<ChatProvider>().clearReadTimestampsForUser(oldUserId);
-      }
+    if (!mounted) return;
+    if (error == null) {
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } else {
-      SnackBarCustom.show(context, message: 'Ошибка регистрации. Попробуйте другой email.');
+      SnackBarCustom.show(context, message: error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -85,9 +72,9 @@ class RegistrationState extends State<Registration> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Регистрация',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                 ),
                 const SizedBox(height: 50),
                 Row(
@@ -121,7 +108,7 @@ class RegistrationState extends State<Registration> {
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d\+]')),
                   ],
-                  validator: (v) => v!.isEmpty ? 'Введите телефон' : null,
+                  validator: (v) => null,
                 ),
                 const SizedBox(height: 10),
                 AppTextField(
@@ -162,19 +149,18 @@ class RegistrationState extends State<Registration> {
                     return ElevatedButton(
                       onPressed: authProvider.isLoading ? null : register,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.copper,
-                        foregroundColor: AppColors.oliveGray,
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: theme.colorScheme.onPrimary,
                         minimumSize: const Size(double.infinity, 48),
                         padding: const EdgeInsets.symmetric(vertical: 5),
                       ),
                       child: authProvider.isLoading
-                          ? CircularProgressIndicator()
+                          ? const CircularProgressIndicator()
                           : const Text(
                         'Зарегистрироваться',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.spaceCream,
                         ),
                       ),
                     );
@@ -183,12 +169,12 @@ class RegistrationState extends State<Registration> {
                 const SizedBox(height: 30),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Text(
+                  child: Text(
                     'вернуться',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w300,
-                      color: AppColors.oliveGray,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),

@@ -1,12 +1,15 @@
-import 'package:AppRent/widgets/profile_widget/profile_common.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../pages/active_leases.dart';
+import '../../pages/archived_leases.dart';
 import '../../pages/edit_profile.dart';
+import '../../pages/my_reviews_screen.dart';
 import '../../pages/user_orders.dart';
 import '../../pages/notifications.dart';
 import '../../provider/AuthProvider.dart';
-import '../../data/product_data.dart';
+import '../../provider/archived_leases_provider.dart';
+import '../../provider/theme_provider.dart';
+import '../../services/product_service.dart';
 import '../../models/activeLease.dart';
 import '../../provider/LeaseRequestProvider.dart';
 import '../../provider/ReviewsProvider.dart';
@@ -14,14 +17,77 @@ import '../../provider/activeLeasesProvider.dart';
 import '../../provider/basket_provider.dart';
 import '../../provider/chat_provider.dart';
 import '../../provider/favorite_provider.dart';
-import '../../utils/avatar.dart';
-import '../../utils/colors.dart';
 import '../admin_widget/AdminDashboardWidget.dart';
 import '../lease_card/lease_card.dart';
-import '../../models/user.dart';
+import 'profile_common.dart';
 
-class ProfileOwn extends StatelessWidget {
+class ProfileOwn extends StatefulWidget {
   const ProfileOwn({super.key});
+
+  @override
+  State<ProfileOwn> createState() => _ProfileOwnState();
+}
+
+class _ProfileOwnState extends State<ProfileOwn> {
+  int _productCount = 0;
+  double _rating = 0.0;
+  bool _statsLoaded = false;
+  late ReviewsProvider _reviewsProvider;
+  late ArchivedLeasesProvider _archivedProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _reviewsProvider = context.read<ReviewsProvider>();
+    _reviewsProvider.addListener(_onReviewsChanged);
+    _archivedProvider = context.read<ArchivedLeasesProvider>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        _archivedProvider.listenForUser(user.uid);
+      }
+    });
+    _loadStats();
+  }
+
+  @override
+  void dispose() {
+    _reviewsProvider.removeListener(_onReviewsChanged);
+    _archivedProvider.stopListening();
+    super.dispose();
+  }
+
+  void _onReviewsChanged() {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user != null) {
+      _loadRating(user.uid);
+    }
+  }
+
+  Future<void> _loadStats() async {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+    try {
+      final products = await ProductService.getAllProducts(ownerId: user.uid);
+      final rating = await _reviewsProvider.getUserRating(user.uid);
+      if (!mounted) return;
+      setState(() {
+        _productCount = products.where((p) => p.moderationStatus != 'blocked').length;
+        _rating = rating;
+        _statsLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('Ошибка загрузки статистики профиля: $e');
+    }
+  }
+
+  Future<void> _loadRating(String userId) async {
+    final rating = await _reviewsProvider.getUserRating(userId);
+    if (!mounted) return;
+    setState(() {
+      _rating = rating;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,17 +96,13 @@ class ProfileOwn extends StatelessWidget {
     if (user == null) return const SizedBox.shrink();
 
     final leasesProvider = context.watch<ActiveLeasesProvider>();
-    final leases = leasesProvider.getLeasesForUser(user.id);
-    final totalOrders = leases.length;
-    final activeOrders = leases.where((l) => l.status == LeaseStatus.active).length;
-
+    final myLeases = leasesProvider.leases.where((l) => l.userId == user.uid).toList();
+    final activeOrders = myLeases.where((l) => l.status == LeaseStatus.active).length;
     final incomingCount = context.watch<LeaseRequestProvider>()
-        .getIncomingRequests(user.id)
+        .getIncomingRequests(user.uid)
         .length;
-
-    final userProductsCount = ProductData.products
-        .where((p) => p.ownerId == user.id && p.moderationStatus != 'blocked')
-        .length;
+    final completedCount = _archivedProvider.completedLeases.length;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -49,7 +111,7 @@ class ProfileOwn extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context, incomingCount),
+              _buildHeader(context, incomingCount, theme),
               const SizedBox(height: 30),
               ProfileUserInfo(
                 user: user,
@@ -62,15 +124,15 @@ class ProfileOwn extends StatelessWidget {
               ],
               const SizedBox(height: 30),
               if (user.role == 'user') ...[
-                _buildStats(context, user, totalOrders, activeOrders),
+                _buildStats(activeOrders, completedCount, theme),
                 const SizedBox(height: 15),
                 ProfileAdsButton(
-                  count: userProductsCount,
+                  count: _productCount,
                   label: 'Мои объявления',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserOrders())),
                 ),
                 const SizedBox(height: 20),
-                _buildActiveLeasesSection(context, leases),
+                _buildActiveLeasesSection(context, myLeases, theme)
               ],
             ],
           ),
@@ -79,19 +141,90 @@ class ProfileOwn extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, int incomingCount) {
+  Widget _buildStats(int activeOrders, int completedCount, ThemeData theme) {
+    final ratingText = _statsLoaded ? _rating.toStringAsFixed(1) : '…';
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildStatColumn(
+            value: '$activeOrders',
+            label: 'Активных',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ActiveLeases()),
+            ),
+            theme: theme,
+          ),
+          _buildStatColumn(
+            value: '$completedCount',
+            label: 'Завершено',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ArchivedLeasesScreen()),
+            ),
+            theme: theme,
+          ),
+          _buildStatColumn(
+            value: ratingText,
+            label: 'Рейтинг',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyReviewsScreen()),
+            ),
+            theme: theme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatColumn({
+    required String value,
+    required String label,
+    VoidCallback? onTap,
+    required ThemeData theme,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, int incomingCount, ThemeData theme) {
     final user = context.read<AuthProvider>().currentUser;
     return Row(
       children: [
-        const Text('Профиль',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+        Text(
+          'Профиль',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+        ),
         const SizedBox(width: 10),
         const Spacer(),
         if (user?.role == 'user')
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, size: 28, color: AppColors.oliveGray),
+                icon: Icon(Icons.notifications_outlined, size: 28, color: theme.colorScheme.onSurface),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
               ),
               if (incomingCount > 0)
@@ -100,34 +233,38 @@ class ProfileOwn extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: AppColors.copper,
+                      color: theme.primaryColor,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text('$incomingCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 10),
-                        textAlign: TextAlign.center),
+                    child: Text(
+                      '$incomingCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
             ],
           ),
         GestureDetector(
           onTap: () => _showExitMenu(context),
-          child: const Icon(Icons.more_vert, size: 30, color: AppColors.oliveGray),
+          child: Icon(Icons.more_vert, size: 30, color: theme.colorScheme.onSurface),
         ),
       ],
     );
   }
 
   void _showExitMenu(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.only(top: 12, bottom: 24),
-        decoration: const BoxDecoration(
-          color: AppColors.whiteAntique,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -136,21 +273,33 @@ class ProfileOwn extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.oliveGray.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
             _buildMenuOption(
+              icon: Icons.brightness_6,
+              label: themeProvider.isDarkMode ? 'Светлая тема' : 'Тёмная тема',
+              color: theme.colorScheme.onSurface,
+              onTap: () {
+                Navigator.pop(ctx);
+                themeProvider.toggleTheme();
+              },
+              theme: theme,
+            ),
+            const SizedBox(height: 20),
+            _buildMenuOption(
               icon: Icons.logout,
               label: 'Выйти',
-              color: AppColors.oliveGray,
+              color: theme.colorScheme.onSurface,
               onTap: () {
                 Navigator.pop(ctx);
                 _logoutAndNavigate(context);
               },
+              theme: theme,
             ),
-            const Divider(height: 1, indent: 20, endIndent: 20, color: AppColors.spaceCream),
+            Divider(color: theme.dividerColor, height: 1, indent: 20, endIndent: 20),
             _buildMenuOption(
               icon: Icons.delete_forever_outlined,
               label: 'Удалить аккаунт',
@@ -160,6 +309,7 @@ class ProfileOwn extends StatelessWidget {
                 Navigator.pop(ctx);
                 _confirmDeleteAccount(context);
               },
+              theme: theme,
             ),
           ],
         ),
@@ -173,6 +323,7 @@ class ProfileOwn extends StatelessWidget {
     required Color color,
     bool isDestructive = false,
     required VoidCallback onTap,
+    required ThemeData theme,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -202,134 +353,117 @@ class ProfileOwn extends StatelessWidget {
 
   void _logoutAndNavigate(BuildContext context) async {
     final auth = context.read<AuthProvider>();
-    final chatProvider = context.read<ChatProvider>();
-    await auth.logout(chatProvider: chatProvider);
+    await auth.logout();
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
-
   void _confirmDeleteAccount(BuildContext context) {
-    final userId = context.read<AuthProvider>().currentUser!.id;
+    final userId = context.read<AuthProvider>().currentUser!.uid;
+    final theme = Theme.of(context);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.whiteAntique,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
-            const SizedBox(width: 12),
-            const Text('Удалить аккаунт?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
-          ],
-        ),
-        content: const Text(
-          'Это действие необратимо. Все ваши данные будут удалены.',
-          style: TextStyle(fontSize: 15, color: AppColors.oliveGray),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена', style: TextStyle(color: AppColors.oliveGray, fontSize: 16)),
+      builder: (ctx) {
+        final navigatorCtx = Navigator.of(ctx);
+        final navigatorContext = Navigator.of(context);
+        final chatProvider = context.read<ChatProvider>();
+        final leasesProvider = context.read<ActiveLeasesProvider>();
+        final requestProvider = context.read<LeaseRequestProvider>();
+        final basketProvider = context.read<BasketProvider>();
+        final reviewsProvider = context.read<ReviewsProvider>();
+        final favoriteProvider = context.read<FavoriteProvider>();
+        final auth = context.read<AuthProvider>();
+        return AlertDialog(
+          backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Удалить аккаунт?',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              ProductData.deleteProductsByOwner(userId);
-              context.read<ChatProvider>().deleteChatsForUser(userId);
-              context.read<ActiveLeasesProvider>().deleteLeasesForUser(userId);
-              context.read<LeaseRequestProvider>().deleteRequestsForUser(userId);
-              context.read<BasketProvider>().clearCartForUser(userId);
-              context.read<ReviewsProvider>().deleteReviewsByUser(userId);
-              context.read<FavoriteProvider>().clearFavoritesForUser(userId);
-              final auth = context.read<AuthProvider>();
-              await auth.deleteAccount();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          content: Text(
+            'Это действие необратимо. Все ваши данные будут удалены.',
+            style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => navigatorCtx.pop(),
+              child: Text('Отмена', style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16)),
             ),
-            child: const Text('Удалить', style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
+            ElevatedButton(
+              onPressed: () async {
+                navigatorCtx.pop();
+                await ProductService.deleteProductsByOwner(userId);
+                chatProvider.deleteChatsForUser(userId);
+                leasesProvider.deleteLeasesForUser(userId);
+                requestProvider.deleteRequestsForUser(userId);
+                basketProvider.clearCartForUser(userId);
+                reviewsProvider.deleteReviewsByUser(userId);
+                favoriteProvider.clearFavoritesForUser(userId);
+                await auth.deleteAccount();
+                if (navigatorContext.context.mounted) {
+                  navigatorContext.pushReplacementNamed('/login');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Удалить', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildStats(BuildContext context, UserModel user, int totalOrders, int activeOrders) {
-    final reviewsProvider = context.watch<ReviewsProvider>();
-    final userProducts = ProductData.products.where((p) => p.ownerId == user.id).toList();
-    final userReviews = reviewsProvider.reviews.where((r) => userProducts.any((p) => p.id == r.productId)).toList();
-    final double avgRating = userReviews.isEmpty
-        ? 0.0
-        : userReviews.map((r) => r.rating).reduce((a, b) => a + b) / userReviews.length;
-    final String ratingText = userReviews.isEmpty ? '0' : avgRating.toStringAsFixed(1);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-      decoration: BoxDecoration(
-        color: AppColors.whiteAntique,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatColumn('$totalOrders', 'Аренды'),
-          _buildStatColumn('$activeOrders', 'Активных'),
-          _buildStatColumn(ratingText, 'Рейтинг'),
-        ],
-      ),
-    );
-  }
+  Widget _buildActiveLeasesSection(BuildContext context, List leases, ThemeData theme) {
+    final bool showAllButton = leases.length > 3;
+    final List displayedLeases = showAllButton ? leases.take(3).toList() : leases;
 
-  Widget _buildStatColumn(String value, String label) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(value, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
-          const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveLeasesSection(BuildContext context, List leases) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text('Активные аренды',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+            Text(
+              'Активные аренды',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
+            ),
             const Spacer(),
-            if (leases.isNotEmpty)
+            if (showAllButton)
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveLeases())),
-                child: Text('Показать все',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
+                child: Text(
+                  'Показать все',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                ),
               ),
-            if (leases.isNotEmpty) ...[
+            if (showAllButton) ...[
               const SizedBox(width: 3),
-              const Icon(Icons.arrow_circle_right_sharp, size: 10, color: AppColors.oliveGray),
+              Icon(Icons.arrow_forward_ios_rounded, size: 12, color: theme.colorScheme.onSurface),
             ],
           ],
         ),
         const SizedBox(height: 10),
-        if (leases.isEmpty)
+        if (displayedLeases.isEmpty)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 20),
             alignment: Alignment.center,
-            child: Text('Нет активных аренд',
-                style: TextStyle(color: AppColors.oliveGray.withOpacity(0.5))),
+            child: Text(
+              'Нет активных аренд',
+              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
+            ),
           )
         else
-          ...leases.take(3).map((lease) => Padding(
+          ...displayedLeases.map((lease) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: LeaseCard(
               key: ValueKey('lease-${lease.productId}-${lease.status}'),

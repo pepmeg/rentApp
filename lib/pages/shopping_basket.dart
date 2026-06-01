@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../utils/colors.dart';
+import '../models/lease_request.dart';
 import '../widgets/basket_card.dart';
 import '../provider/basket_provider.dart';
 import '../provider/AuthProvider.dart';
@@ -18,24 +19,62 @@ class BasketState extends State<ShoppingBasket> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
       if (!context.read<AuthProvider>().isUser) {
         Navigator.pushReplacementNamed(context, '/home');
         return;
       }
       final user = context.read<AuthProvider>().currentUser;
       if (user != null) {
-        context.read<BasketProvider>().loadForUser(user.id);
+        context.read<BasketProvider>().loadForUser(user.uid);
       }
     });
   }
 
-  void _pay(BuildContext context) {
+  Future<void> _pay(BuildContext context) async {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
     final basket = context.read<BasketProvider>();
-    if (basket.getItemsForUser(user.id).isEmpty) return;
-    basket.clearCartForUser(user.id);
+    final cartItems = basket.getItemsForUser(user.uid);
+    if (cartItems.isEmpty) return;
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.incrementRating(user.uid);
+    await authProvider.resetUnpaidLeaseCount(user.uid);
+
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+
+    for (final item in cartItems) {
+      final querySnapshot = await firestore
+          .collection('lease_requests')
+          .where('productId', isEqualTo: item.id)
+          .where('requesterId', isEqualTo: user.uid)
+          .where('status', isEqualTo: RequestStatus.accepted.index)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final data = doc.data();
+
+        final archiveData = Map<String, dynamic>.from(data);
+        archiveData['archivedAt'] = FieldValue.serverTimestamp();
+
+        final archiveRef = firestore.collection('lease_requests_archive').doc();
+        batch.set(archiveRef, archiveData);
+        batch.delete(doc.reference);
+      }
+    }
+
+    final cartSnapshot = await firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart')
+        .get();
+    for (final doc in cartSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+    basket.clearCartForUser(user.uid);
     SnackBarCustom.show(context, message: 'Оплата прошла успешно!');
   }
 
@@ -49,8 +88,10 @@ class BasketState extends State<ShoppingBasket> {
     if (user == null) return const SizedBox.shrink();
 
     final basketProvider = context.watch<BasketProvider>();
-    final cartItems = basketProvider.getItemsForUser(user.id);
-    final totalPrice = basketProvider.totalPriceForUser(user.id);
+    final cartItems = basketProvider.getItemsForUser(user.uid);
+    final totalPrice = basketProvider.totalPriceForUser(user.uid);
+    final isBlocked = user?.blocked == true;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Padding(
@@ -58,12 +99,12 @@ class BasketState extends State<ShoppingBasket> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Корзина',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: AppColors.oliveGray,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 2),
@@ -72,7 +113,7 @@ class BasketState extends State<ShoppingBasket> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.normal,
-                color: AppColors.oliveGray.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
             Expanded(
@@ -84,7 +125,7 @@ class BasketState extends State<ShoppingBasket> {
                     Icon(
                       Icons.shopping_cart_outlined,
                       size: 80,
-                      color: AppColors.oliveGray.withOpacity(0.3),
+                      color: theme.colorScheme.onSurface.withOpacity(0.3),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -92,7 +133,7 @@ class BasketState extends State<ShoppingBasket> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.oliveGray.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -100,7 +141,7 @@ class BasketState extends State<ShoppingBasket> {
                       'Завершённые аренды появятся здесь',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.oliveGray.withOpacity(0.4),
+                        color: theme.colorScheme.onSurface.withOpacity(0.4),
                       ),
                     ),
                   ],
@@ -111,42 +152,43 @@ class BasketState extends State<ShoppingBasket> {
                 itemCount: cartItems.length,
                 itemBuilder: (context, index) {
                   final item = cartItems[index];
-                  return BasketCard(
-                  id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    images: item.images,
-                    days: item.days,
-                    isHourly: item.isHourly,
-                    extraHours: item.extraHours,
-                  );
+                  return BasketCard(item: item);
                 },
               ),
             ),
-            if (cartItems.isNotEmpty)
+            if (cartItems.isNotEmpty) ...[
+              const Divider(height: 2, thickness: 1),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Итого',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   const Spacer(),
                   Text(
                     '$totalPrice ₽',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ],
               ),
+            ],
             const SizedBox(height: 15),
             ElevatedButton(
-              onPressed: cartItems.isNotEmpty
-                  ? () => _pay(context)
-                  : null,
+              onPressed: cartItems.isNotEmpty && !isBlocked ? () => _pay(context) : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.copper,
-                disabledBackgroundColor: AppColors.oliveGray.withOpacity(0.3),
-                foregroundColor: AppColors.spaceCream,
-                disabledForegroundColor: AppColors.whiteAntique.withOpacity(0.5),
+                backgroundColor: theme.primaryColor,
+                disabledBackgroundColor: theme.colorScheme.onSurface.withOpacity(0.3),
+                foregroundColor: theme.colorScheme.onPrimary,
+                disabledForegroundColor: theme.colorScheme.onPrimary.withOpacity(0.5),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

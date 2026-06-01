@@ -1,7 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../data/product_data.dart';
-import '../utils/colors.dart';
+import 'package:provider/provider.dart';
+import '../provider/AuthProvider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -63,24 +63,29 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _initializeApp() async {
-    await ProductData.loadFromPrefs();
-
-    final prefs = await SharedPreferences.getInstance();
-    final currentUserEmail = prefs.getString('current_user_email');
-
-    final route = (currentUserEmail != null && currentUserEmail.isNotEmpty)
-        ? '/home'
-        : '/login';
-
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, route);
+    await Future.delayed(const Duration(milliseconds: 400));
+    final navigator = Navigator.of(context);
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    if (!auth.isProfileLoaded) {
+      int attempts = 0;
+      while (!auth.isProfileLoaded && attempts < 50) {
+        if (!mounted) return;
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
     }
+    if (!mounted) return;
+    final user = FirebaseAuth.instance.currentUser;
+    final route = (user != null) ? '/home' : '/login';
+    navigator.pushReplacementNamed(route);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.spaceCream,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: AnimatedBuilder(
           animation: _controller,
@@ -96,11 +101,11 @@ class _SplashScreenState extends State<SplashScreen>
                       width: 160,
                       height: 160,
                       decoration: BoxDecoration(
-                        color: AppColors.whiteAntique,
+                        color: theme.cardTheme.color ?? theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(40),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.copper.withOpacity(0.2),
+                            color: theme.primaryColor.withOpacity(0.2),
                             blurRadius: 30,
                             spreadRadius: 5,
                           ),
@@ -112,8 +117,7 @@ class _SplashScreenState extends State<SplashScreen>
                           'assets/AppRent.jpg',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) =>
-                              Icon(Icons.handyman,
-                                  size: 80, color: AppColors.copper),
+                              Icon(Icons.handyman, size: 80, color: theme.primaryColor),
                         ),
                       ),
                     ),
@@ -127,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                             width: 40,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: AppColors.copper.withOpacity(0.6),
+                              color: theme.primaryColor.withOpacity(0.6),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),

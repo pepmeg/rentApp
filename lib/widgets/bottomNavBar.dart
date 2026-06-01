@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/chat_provider.dart';
-import '../utils/colors.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -10,70 +9,107 @@ class BottomNavBar extends StatelessWidget {
   final bool isUser;
   final bool isModerator;
   final int itemCount;
+  final int requestsCount;
+  final bool isBlocked;
 
   const BottomNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
     required this.isUser,
     required this.isModerator,
     required this.itemCount,
-  }) : super(key: key);
+    required this.requestsCount,
+    required this.isBlocked,
+  });
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final chatProvider = context.watch<ChatProvider>();
-    final userId = auth.currentUser?.id;
-    final unreadChats = userId != null ? chatProvider.unreadChatsCount(userId) : 0;
+    final userId = auth.currentUser?.uid;
 
-    final items = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
-      if (isUser)
-        const BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Избранное'),
-      if (isUser)
-        const BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Добавить'),
-      if (isUser)
-        const BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Корзина'),
-      BottomNavigationBarItem(
-        icon: _buildChatIcon(unreadChats),
-        label: 'Чат',
-      ),
-      const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
-      if (isModerator)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.admin_panel_settings),
-          label: 'Модерация',
-        ),
-    ];
+    final stream = userId != null
+        ? chatProvider.unreadChatsCountStream(userId)
+        : Stream<int>.value(0);
 
-    final safeIndex = currentIndex.clamp(0, items.length - 1);
+    return StreamBuilder<int>(
+      stream: stream,
+      initialData: 0,
+      builder: (context, snapshot) {
+        final unreadChats = snapshot.data ?? 0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: BottomNavigationBar(
-        currentIndex: safeIndex,
-        onTap: (index) {
-          if (index < items.length) {
-            onTap(index);
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.spaceCream,
-        selectedItemColor: AppColors.copper,
-        unselectedItemColor: AppColors.oliveGray.withOpacity(0.5),
-        iconSize: 28,
-        elevation: 0,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 10),
-        items: items,
-      ),
+        final items = <BottomNavigationBarItem>[
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Главная',
+          ),
+          if (isUser && !isBlocked)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.favorite),
+              label: 'Избранное',
+            ),
+          if (isUser && !isBlocked)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline),
+              label: 'Добавить',
+            ),
+          if (isUser && !isBlocked)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_cart),
+              label: 'Корзина',
+            ),
+          BottomNavigationBarItem(
+            icon: _buildChatIcon(context, unreadChats),
+            label: 'Чат',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Профиль',
+          ),
+          if (isModerator)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.admin_panel_settings),
+              label: 'Модерация',
+            ),
+        ];
+
+        final safeIndex = currentIndex.clamp(0, items.length - 1);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: BottomNavigationBar(
+            currentIndex: safeIndex,
+            onTap: (index) {
+              if (index < items.length) {
+                onTap(index);
+              }
+            },
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            selectedItemColor: Theme.of(context).primaryColor,
+            unselectedItemColor: Theme.of(context).iconTheme.color?.withOpacity(0.5) ?? Colors.grey,
+            iconSize: 28,
+            elevation: 0,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.normal,
+              fontSize: 10,
+            ),
+            items: items,
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildChatIcon(int unreadCount) {
+  Widget _buildChatIcon(BuildContext context, int unreadCount) {
+    final theme = Theme.of(context);
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -85,13 +121,20 @@ class BottomNavBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: AppColors.copper,
+                color: theme.primaryColor,
                 borderRadius: BorderRadius.circular(10),
               ),
-              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
               child: Text(
                 unreadCount > 99 ? '99+' : '$unreadCount',
-                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),

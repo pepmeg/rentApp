@@ -5,7 +5,6 @@ import '../../models/messager_model/chat.dart';
 import '../../models/user.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/chat_provider.dart';
-import '../../utils/colors.dart';
 import '../../utils/avatar.dart';
 import '../../utils/pagination.dart';
 import '../chat_screen.dart';
@@ -19,6 +18,8 @@ class AdminChatsTab extends StatefulWidget {
 
 class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
   String _searchQuery = '';
+  late ChatProvider _chatProvider;
+  final Map<String, Future<UserModel?>> _userFutures = {};
 
   @override
   int get paginationBatchSize => 10;
@@ -31,7 +32,7 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
     final List<Chat> allChats = chatProvider.getAllChats();
     final Set<String> seen = {};
     var uniqueChats = allChats.where((chat) {
-      final List<int> ids = [chat.user1Id, chat.user2Id]..sort();
+      final List<String> ids = [chat.user1Id, chat.user2Id]..sort();
       final key = '${ids[0]}_${ids[1]}_${chat.productId ?? 0}';
       if (seen.contains(key)) return false;
       seen.add(key);
@@ -63,9 +64,47 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _chatProvider = context.read<ChatProvider>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        _chatProvider.listenToAllChats();
+        _chatProvider.addListener(_onChatsChanged);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _chatProvider.removeListener(_onChatsChanged);
+    _chatProvider.cancelAllChatsSubscription();
+    super.dispose();
+  }
+
+  void _onChatsChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<UserModel?> _getUser(String uid) {
+    if (_userFutures.containsKey(uid)) {
+      return _userFutures[uid]!;
+    }
+    final future = context.read<AuthProvider>().getUserById(uid);
+    _userFutures[uid] = future;
+    return future;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = context.read<AuthProvider>();
-    final chatProvider = context.watch<ChatProvider>();
+    final currentUser = authProvider.currentUser;
+    final bool isSupport = currentUser?.role == 'support';
+    final theme = Theme.of(context);
+
     final allItems = _filteredChats;
     final visibleItems = allItems.take(visibleCount).toList();
 
@@ -73,32 +112,33 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: AppColors.lightGreen,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: TextField(
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-                resetPagination();
-              },
-              decoration: InputDecoration(
-                hintText: 'Поиск чатов',
-                hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
-                prefixIcon: Icon(Icons.search, color: AppColors.copper),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                  icon: Icon(Icons.clear_rounded, color: AppColors.oliveGray.withOpacity(0.5)),
-                  onPressed: () {
-                    setState(() => _searchQuery = '');
-                    resetPagination();
-                  },
-                )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              color: theme.colorScheme.surface,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                  resetPagination();
+                },
+                decoration: InputDecoration(
+                  hintText: 'Поиск чатов',
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
+                  prefixIcon: Icon(Icons.search, color: theme.primaryColor),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                    icon: Icon(Icons.clear_rounded, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                    onPressed: () {
+                      setState(() => _searchQuery = '');
+                      resetPagination();
+                    },
+                  )
+                      : null,
+                  border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                ),
               ),
             ),
           ),
@@ -109,43 +149,43 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
             itemCount: visibleItems.length,
             itemBuilder: (context, index) {
               final chat = visibleItems[index];
-              final user1Future = authProvider.getUserById(chat.user1Id);
-              final user2Future = authProvider.getUserById(chat.user2Id);
+              final futureUser1 = _getUser(chat.user1Id);
+              final futureUser2 = _getUser(chat.user2Id);
 
-              return Card(
-                color: AppColors.whiteAntique,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: FutureBuilder(
-                  future: Future.wait([user1Future, user2Future]),
-                  builder: (ctx, AsyncSnapshot<List<UserModel?>> snapshot) {
-                    if (!snapshot.hasData) return const SizedBox.shrink();
-                    final user1 = snapshot.data![0];
-                    final user2 = snapshot.data![1];
-                    final name1 = user1 != null ? '${user1.firstName} ${user1.lastName}' : 'Пользователь ${chat.user1Id}';
-                    final name2 = user2 != null ? '${user2.firstName} ${user2.lastName}' : 'Пользователь ${chat.user2Id}';
-                    final title = '$name1 – $name2';
-                    final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
-                    final timeText = lastMsg != null ? _formatTime(lastMsg.timestamp) : '';
+              return FutureBuilder(
+                future: Future.wait([futureUser1, futureUser2]),
+                builder: (ctx, AsyncSnapshot<List<UserModel?>> snapshot) {
+                  final user1 = snapshot.hasData ? snapshot.data![0] : null;
+                  final user2 = snapshot.hasData ? snapshot.data![1] : null;
 
-                    // Проверяем, участвует ли в чате администратор или поддержка
-                    final isPrivilegedChat = (user1 != null &&
-                        (user1!.role == 'admin' || user1!.role == 'support')) ||
-                        (user2 != null &&
-                            (user2!.role == 'admin' || user2!.role == 'support'));
+                  final name1 = user1 != null ? '${user1.firstName} ${user1.lastName}' : 'Пользователь ${chat.user1Id}';
+                  final name2 = user2 != null ? '${user2.firstName} ${user2.lastName}' : 'Пользователь ${chat.user2Id}';
+                  final title = '$name1 – $name2';
+                  final lastMsg = chat.messages.isNotEmpty ? chat.messages.last : null;
+                  final timeText = lastMsg != null ? _formatTime(lastMsg.timestamp) : '';
+                  final isPrivilegedChat = (user1?.role == 'admin' || user1?.role == 'support') ||
+                      (user2?.role == 'admin' || user2?.role == 'support');
 
-                    return ListTile(
+                  return Card(
+                    key: ValueKey(chat.id),
+                    color: theme.cardTheme.color ?? theme.colorScheme.surface,
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: ListTile(
                       leading: buildUserAvatar(
                         user1,
                         fallbackImage: chat.productImage,
                         fallbackIcon: Icons.chat,
                         radius: 24,
                       ),
-                      title: Text(title, style: const TextStyle(color: AppColors.oliveGray)),
+                      title: Text(
+                        title,
+                        style: TextStyle(color: theme.colorScheme.onSurface),
+                      ),
                       subtitle: Text(
                         lastMsg != null
                             ? (lastMsg.text.isNotEmpty ? lastMsg.text : '[Фото]')
                             : 'Нет сообщений',
-                        style: TextStyle(color: AppColors.oliveGray.withOpacity(0.7)),
+                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -153,22 +193,34 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                           if (timeText.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(right: 4),
-                              child: Text(timeText, style: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 12)),
+                              child: Text(
+                                timeText,
+                                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 12),
+                              ),
                             ),
-                          if (!isPrivilegedChat)   // <--- новое условие
+                          if (!isSupport && !isPrivilegedChat)
                             GestureDetector(
                               onTap: () {
                                 showDialog(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    backgroundColor: AppColors.whiteAntique,
-                                    title: const Text('Удалить чат?', style: TextStyle(color: AppColors.oliveGray)),
-                                    content: const Text('Все сообщения будут удалены.'),
+                                    backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
+                                    title: Text(
+                                      'Удалить чат?',
+                                      style: TextStyle(color: theme.colorScheme.onSurface),
+                                    ),
+                                    content: Text(
+                                      'Все сообщения будут удалены.',
+                                      style: TextStyle(color: theme.colorScheme.onSurface),
+                                    ),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: Text('Отмена', style: TextStyle(color: theme.colorScheme.onSurface)),
+                                      ),
                                       TextButton(
                                         onPressed: () {
-                                          chatProvider.deleteChats({chat.id});
+                                          _chatProvider.deleteChats({chat.id});
                                           Navigator.pop(ctx);
                                         },
                                         child: const Text('Удалить', style: TextStyle(color: Colors.red)),
@@ -177,9 +229,9 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                                   ),
                                 );
                               },
-                              child: const Padding(
-                                padding: EdgeInsets.only(left: 4),
-                                child: Icon(Icons.delete, size: 18, color: AppColors.oliveGray),
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Icon(Icons.delete, size: 18, color: theme.colorScheme.onSurface),
                               ),
                             ),
                         ],
@@ -187,21 +239,22 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chat: chat)));
                       },
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),
         ),
         if (isLoading)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator(color: AppColors.copper)),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
           ),
       ],
     );
   }
+
   String _formatTime(DateTime dt) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

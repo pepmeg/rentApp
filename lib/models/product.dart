@@ -1,15 +1,17 @@
+import '../services/category_service.dart';
+
 class Product {
-  final int id;
-  final int ownerId;
+  final String id;
+  final String ownerId;
   final String name;
+  final String nameLowercase;
   final int price;
   final bool isPricePerHour;
   final String location;
   final List<String> images;
-  final String category;
-  final String description;
-  final String subcategory;
+  final List<String> categoryPath;
   final String brand;
+  final String description;
   final int minRentDays;
   final int minRentHours;
   final DateTime createdAt;
@@ -19,12 +21,12 @@ class Product {
     required this.id,
     required this.ownerId,
     required this.name,
+    required this.nameLowercase,
     required this.price,
     this.isPricePerHour = false,
     required this.location,
     required this.images,
-    this.category = '',
-    this.subcategory = '',
+    required this.categoryPath,
     this.description = '',
     this.brand = '',
     this.minRentDays = 1,
@@ -33,19 +35,18 @@ class Product {
     this.moderationStatus = 'active',
   }) : createdAt = createdAt ?? DateTime.now();
 
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'ownerId': ownerId,
     'name': name,
+    'nameLowercase': name.toLowerCase(),
     'price': price,
     'isPricePerHour': isPricePerHour,
     'location': location,
     'images': images,
-    'category': category,
-    'description': description,
-    'subcategory': subcategory,
+    'categoryPath': categoryPath,
     'brand': brand,
+    'description': description,
     'minRentDays': minRentDays,
     'minRentHours': minRentHours,
     'createdAt': createdAt.toIso8601String(),
@@ -53,22 +54,30 @@ class Product {
   };
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
-    id: json['id'] as int,
-    ownerId: json['ownerId'] as int,
-    name: json['name'] as String,
-    price: json['price'] as int,
+    id: json['id'] as String? ?? '',
+    ownerId: json['ownerId'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    nameLowercase: json['nameLowercase'] as String? ?? (json['name'] as String? ?? '').toLowerCase(),
+    price: json['price'] as int? ?? 0,
     isPricePerHour: json['isPricePerHour'] as bool? ?? false,
-    location: json['location'] as String,
-    images: List<String>.from(json['images'] as List),
-    category: json['category'] as String,
-    subcategory: json['subcategory'] as String? ?? '',
-    description: json['description'] as String,
+    location: json['location'] as String? ?? '',
+    images: json['images'] != null ? List<String>.from(json['images']) : [],
+    categoryPath: json['categoryPath'] != null ? List<String>.from(json['categoryPath']) : [],
+    description: json['description'] as String? ?? '',
     brand: json['brand'] as String? ?? '',
     minRentDays: json['minRentDays'] as int? ?? 1,
-    minRentHours: json['minRentHours'] ?? 1,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    moderationStatus: json['moderationStatus'] as String,
+    minRentHours: json['minRentHours'] as int? ?? 1,
+    createdAt: json['createdAt'] != null
+        ? DateTime.parse(json['createdAt'] as String)
+        : DateTime.now(),
+    moderationStatus: json['moderationStatus'] as String? ?? 'active',
   );
+
+  String get categoryDisplay {
+    if (categoryPath.isEmpty) return 'Без категории';
+    final service = CategoryService();
+    return service.buildPathDisplay(categoryPath);
+  }
 
   String get region {
     if (location.isEmpty) return '';

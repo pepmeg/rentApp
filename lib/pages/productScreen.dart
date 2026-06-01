@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../models/admin_models/report.dart';
-import '../provider/favorite_provider.dart';
 import '../provider/AuthProvider.dart';
-import '../provider/admin_provider.dart';
-import '../utils/colors.dart';
-import '../utils/snackbar_custom.dart';
+import '../provider/favorite_provider.dart';
 import '../widgets/product_screen/product_details_section.dart';
 import '../widgets/product_screen/product_image_gallery.dart';
 import '../widgets/product_screen/product_info_section.dart';
@@ -24,12 +21,13 @@ class ProductScreen extends StatelessWidget {
     final favoriteProvider = context.watch<FavoriteProvider>();
     final authProvider = context.watch<AuthProvider>();
     final currentUser = authProvider.currentUser;
-    final userId = currentUser?.id;
-
+    final userId = currentUser?.uid;
     final isFavorite = userId != null && favoriteProvider.isFavorite(userId, product.id);
     final isOwner = userId == product.ownerId;
     final isUser = authProvider.isUser;
     final isAvailable = product.moderationStatus == 'active';
+    final isBlocked = currentUser?.blocked ?? false;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -41,45 +39,44 @@ class ProductScreen extends StatelessWidget {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                    icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
                     onPressed: () => Navigator.pop(context),
                     constraints: const BoxConstraints(),
                   ),
                   const Spacer(),
                   if (!isOwner && isUser && isAvailable)
                     IconButton(
-                      icon: Icon(Icons.flag_outlined, color: AppColors.oliveGray.withOpacity(0.7)),
-                      onPressed: () => showReportDialog(context,
-                        reporterId: currentUser!.id,
+                      icon: Icon(Icons.flag_outlined, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+                      onPressed: () => showReportDialog(
+                        context,
+                        reporterId: currentUser!.uid,
                         targetType: ReportTargetType.product,
                         targetId: product.id,
                         targetName: product.name,
                       ),
                     ),
-                  const SizedBox(width: 4),
-                  if (userId != null && isUser && !isOwner)
+                  if (userId != null && isUser && !isOwner && !isBlocked)
                     GestureDetector(
                       onTap: () => favoriteProvider.toggleFavorite(userId, product.id),
                       child: Icon(
                         isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? AppColors.copper : AppColors.oliveGray,
+                        color: isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
                         size: 20,
                       ),
                     ),
                 ],
               ),
             ),
-            ProductImageGallery(images: product.images),
+            ProductImageGallery(
+              images: product.images,
+              cacheUrls: currentUser?.uid == product.ownerId,
+            ),
             const SizedBox(height: 20),
             ProductInfoSection(product: product),
             const SizedBox(height: 20),
             ProductDetailsSection(product: product),
             const SizedBox(height: 20),
-            ProductOwnerInfo(
-              futureOwner: product.ownerId > 0
-                  ? authProvider.getUserById(product.ownerId)
-                  : Future.value(null),
-            ),
+            ProductOwnerInfo(ownerId: product.ownerId),
             const SizedBox(height: 20),
             ProductReviewsSection(product: product),
             const SizedBox(height: 10),

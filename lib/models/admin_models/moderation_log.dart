@@ -1,8 +1,8 @@
 class ModerationLog {
   final int id;
-  final int adminId;
-  final int? productId;
-  final int? targetUserId;
+  final String adminId;
+  final String? productId;
+  final String? targetUserId;
   final String action;
   final String? reason;
   final DateTime timestamp;
@@ -29,9 +29,9 @@ class ModerationLog {
 
   factory ModerationLog.fromJson(Map<String, dynamic> json) => ModerationLog(
     id: json['id'],
-    adminId: json['adminId'],
-    productId: json['productId'],
-    targetUserId: json['targetUserId'],
+    adminId: json['adminId'] as String,
+    productId: json['productId'] as String?,
+    targetUserId: json['targetUserId'] as String?,
     action: json['action'],
     reason: json['reason'],
     timestamp: DateTime.parse(json['timestamp']),

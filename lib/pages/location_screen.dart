@@ -1,7 +1,5 @@
-// 📁 lib/pages/location_screen.dart
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import '../utils/colors.dart';
 import '../utils/location_service/location_service.dart';
 import '../utils/location_service/yandex_geocoder_service.dart';
 import '../widgets/location/location_map.dart';
@@ -16,15 +14,13 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final YandexGeocoderService _geocoderService =
-  YandexGeocoderService('0e18582f-c18f-4f3c-afba-11388e46ba46');
+  final YandexGeocoderService _geocoderService = YandexGeocoderService();
 
   double? _userLat, _userLon;
   double? _selectedLat, _selectedLon;
   bool _showMap = false;
   String? _selectedAddress;
 
-  // Состояние подсказок теперь здесь
   List<YandexSuggestItem> _suggestions = [];
   bool _isLoading = false;
   int _selectedIndex = -1;
@@ -51,6 +47,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _userLat = 55.7558;
       _userLon = 37.6173;
     }
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -131,9 +128,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       } catch (_) {}
     }
 
+    if (!mounted) return;
+
     _searchController.text = address;
     _selectedAddress = address;
 
+    if (!mounted) return;
     Navigator.pop(context, {
       'latitude': _selectedLat,
       'longitude': _selectedLon,
@@ -143,7 +143,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   String _formatPlacemark(Placemark place) {
     final parts = <String>[];
-
     String? region = place.administrativeArea;
     if (region != null && region.isNotEmpty) {
       region = region.replaceAll('область', 'обл.');
@@ -187,12 +186,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.spaceCream,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           Container(
-            color: AppColors.spaceCream,
+            color: theme.scaffoldBackgroundColor,
             padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             child: Column(
               children: [
@@ -201,18 +201,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                        icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'Местоположение',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                       ),
                     ],
                   ),
                 ),
-                // Поле поиска (без списка)
                 LocationSearchWidget(
                   controller: _searchController,
                   onChanged: _onSearchChanged,
@@ -227,7 +226,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               ],
             ),
           ),
-          // Карта + подсказки поверх неё
           Expanded(
             child: Stack(
               children: [
@@ -241,9 +239,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   },
                   onConfirm: _confirmSelection,
                 )
-                    : Container(key: const ValueKey('empty'), color: AppColors.spaceCream),
-
-                // Подсказки (не влияют на компоновку)
+                    : Container(key: const ValueKey('empty'), color: theme.scaffoldBackgroundColor),
                 if (_showSuggestions && _suggestions.isNotEmpty)
                   Positioned(
                     top: 0,
@@ -251,7 +247,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     right: 0,
                     bottom: 0,
                     child: Material(
-                      color: AppColors.spaceCream,
+                      color: theme.scaffoldBackgroundColor,
                       elevation: 4,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                       child: ListView.builder(
@@ -266,23 +262,33 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.copper.withOpacity(0.15)
-                                    : AppColors.spaceCream,
+                                    ? theme.primaryColor.withOpacity(0.15)
+                                    : theme.scaffoldBackgroundColor,
                                 border: i < _suggestions.length - 1
-                                    ? Border(bottom: BorderSide(color: AppColors.oliveGray.withOpacity(0.08)))
+                                    ? Border(bottom: BorderSide(color: theme.dividerColor))
                                     : null,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item.title,
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
-                                          color: isSelected ? AppColors.copper : AppColors.oliveGray)),
+                                  Text(
+                                    item.title,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected ? theme.primaryColor : theme.colorScheme.onSurface,
+                                    ),
+                                  ),
                                   if (item.subtitle != null && item.subtitle!.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
-                                      child: Text(item.subtitle!,
-                                          style: TextStyle(fontSize: 13, color: AppColors.oliveGray.withOpacity(0.7))),
+                                      child: Text(
+                                        item.subtitle!,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                        ),
+                                      ),
                                     ),
                                 ],
                               ),

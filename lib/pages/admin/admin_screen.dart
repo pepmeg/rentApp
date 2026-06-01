@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/admin_models/report.dart';
 import '../../provider/AuthProvider.dart';
-import '../../utils/colors.dart';
 import 'admin_products_tab.dart';
 import 'admin_reports_tab.dart';
 import 'admin_users_tab.dart';
@@ -21,7 +20,6 @@ class AdminScreen extends StatefulWidget {
     this.reportFilterType,
     this.productStatusFilter,
   });
-
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -64,6 +62,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (!auth.isAdmin && !auth.isSupport) {
       return const SizedBox.shrink();
     }
+    final theme = Theme.of(context);
 
     final List<Widget> tabs = [];
     final List<Widget> tabViews = [];
@@ -93,18 +92,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
 
     return Scaffold(
-      backgroundColor: AppColors.spaceCream,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Модерация', style: TextStyle(color: AppColors.oliveGray)),
-        backgroundColor: AppColors.whiteAntique,
+        title: Text('Модерация', style: TextStyle(color: theme.colorScheme.onSurface)),
+        backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.oliveGray),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
         bottom: TabBar(
           controller: _tabController,
           labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-          labelColor: AppColors.copper,
-          unselectedLabelColor: AppColors.oliveGray.withOpacity(0.5),
-          indicatorColor: AppColors.copper,
+          labelColor: theme.primaryColor,
+          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.5),
+          indicatorColor: theme.primaryColor,
           indicatorWeight: 3,
           indicatorSize: TabBarIndicatorSize.label,
           labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),

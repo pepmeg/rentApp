@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/user.dart';
 import '../../utils/avatar.dart';
-import '../../utils/colors.dart';
 
 class ProfileStatColumn extends StatelessWidget {
   final String value;
@@ -10,12 +9,19 @@ class ProfileStatColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+          ),
           const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
+          ),
         ],
       ),
     );
@@ -28,10 +34,11 @@ class ProfileStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.whiteAntique,
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
@@ -48,17 +55,24 @@ class Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       constraints: const BoxConstraints(minWidth: 25),
       height: 25,
       padding: const EdgeInsets.symmetric(horizontal: 6),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.spaceCream,
+        color: theme.colorScheme.background,
         borderRadius: BorderRadius.circular(12.5),
       ),
-      child: Text('$count',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          color: theme.colorScheme.onSurface.withOpacity(0.5),
+        ),
+      ),
     );
   }
 }
@@ -77,6 +91,7 @@ class ProfileUserInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -89,15 +104,22 @@ class ProfileUserInfo extends StatelessWidget {
               children: [
                 Text(
                   '${user.firstName} ${user.lastName}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(user.email, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray)),
+                Text(
+                  user.email,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
+                ),
                 if (showPhone) ...[
                   const SizedBox(height: 5),
-                  Text(user.phoneNumber, style: const TextStyle(fontSize: 16, color: AppColors.oliveGray), overflow: TextOverflow.ellipsis),
+                  Text(
+                    user.phoneNumber,
+                    style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ],
             ),
@@ -119,26 +141,29 @@ class ProfileAdsButton extends StatelessWidget {
     required this.onTap,
     super.key,
   });
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
         decoration: BoxDecoration(
-          color: AppColors.whiteAntique,
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Row(
           children: [
-            const Icon(Icons.list_alt_rounded, size: 22, color: AppColors.oliveGray),
+            Icon(Icons.list_alt_rounded, size: 22, color: theme.colorScheme.onSurface),
             const SizedBox(width: 15),
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+            ),
             const Spacer(),
             Badge(count: count),
             const SizedBox(width: 15),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.oliveGray),
+            Icon(Icons.arrow_forward_ios, size: 14, color: theme.colorScheme.onSurface),
           ],
         ),
       ),

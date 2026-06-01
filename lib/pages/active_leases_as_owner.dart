@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/activeLease.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../widgets/lease_card/lease_card.dart';
 
-class ActiveLeases extends StatelessWidget {
-  const ActiveLeases({super.key});
+class ActiveLeasesAsOwner extends StatelessWidget {
+  const ActiveLeasesAsOwner({super.key});
 
   @override
   Widget build(BuildContext context) {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    final leases = context.watch<ActiveLeasesProvider>().getLeasesForUser(user.uid);
+    final leasesProvider = context.watch<ActiveLeasesProvider>();
+    final ownerLeases = leasesProvider.leases.where((lease) =>
+    lease.ownerId == user.uid &&
+        (lease.status == LeaseStatus.active || lease.status == LeaseStatus.pendingCompletion)
+    ).toList();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -30,7 +35,7 @@ class ActiveLeases extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  'Активные аренды',
+                  'Активные аренды (мои товары)',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -41,39 +46,17 @@ class ActiveLeases extends StatelessWidget {
             ),
             const SizedBox(height: 15),
             Expanded(
-              child: leases.isEmpty
+              child: ownerLeases.isEmpty
                   ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.inbox_outlined,
-                      size: 64,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Нет активных аренд',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Когда вы арендуете товар, он появится здесь',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'Нет активных аренд ваших товаров',
+                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
                 ),
               )
                   : ListView.builder(
-                itemCount: leases.length,
+                itemCount: ownerLeases.length,
                 itemBuilder: (context, index) {
-                  final lease = leases[index];
+                  final lease = ownerLeases[index];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: LeaseCard(

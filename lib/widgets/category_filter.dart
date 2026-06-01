@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
-import '../data/product_data.dart';
-import '../data/category.dart';
-import '../models/product.dart';
-import '../utils/colors.dart';
+import 'package:provider/provider.dart';
+import '../models/category_node.dart';
+import '../services/brand_service.dart';
+import '../services/category_service.dart';
 import '../utils/form_fields.dart';
 
 class CategoryFilterSheet extends StatefulWidget {
-  final String? initialCategory;
-  final String? initialSubcategory;
+  final List<String>? initialCategoryPath;
   final int? initialMinPrice;
   final int? initialMaxPrice;
   final String? initialBrand;
   final String? initialRegion;
   final String? initialCity;
   final String? initialSort;
-  final Function(String? category, String? subcategory, int? minPrice, int? maxPrice,
+  final Function(List<String>? categoryPath, int? minPrice, int? maxPrice,
       String? brand, String? region, String? city, String? sort) onApply;
 
   const CategoryFilterSheet({
     super.key,
-    this.initialCategory,
-    this.initialSubcategory,
+    this.initialCategoryPath,
     this.initialMinPrice,
     this.initialMaxPrice,
     this.initialBrand,
@@ -35,51 +33,27 @@ class CategoryFilterSheet extends StatefulWidget {
 }
 
 class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
-  late String? selectedCategory;
-  late String? selectedSubcategory;
+  List<String> _selectedPath = [];
   final TextEditingController minPriceController = TextEditingController();
   final TextEditingController maxPriceController = TextEditingController();
-  late String? selectedBrand;
-  late String? selectedRegion;
-  late String? selectedCity;
-  late String? selectedSort;
+  String? _selectedBrand;
+  String? _selectedRegion;
+  String? _selectedCity;
+  String? _selectedSort;
 
   String? _minPriceError;
   String? _maxPriceError;
 
-  List<Product> get allProducts => ProductData.getAllProducts();
-
-  List<String> get brandOptions {
-    final brands = allProducts
-        .map((p) => p.brand)
-        .where((b) => b.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    return brands;
-  }
-
-  List<String> get regionOptions {
-    final regions = allProducts
-        .map((p) => p.region)
-        .where((r) => r.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    return regions;
-  }
-
   @override
   void initState() {
     super.initState();
-    selectedCategory = widget.initialCategory;
-    selectedSubcategory = widget.initialSubcategory;
+    _selectedPath = List.from(widget.initialCategoryPath ?? []);
     minPriceController.text = widget.initialMinPrice?.toString() ?? '';
     maxPriceController.text = widget.initialMaxPrice?.toString() ?? '';
-    selectedBrand = widget.initialBrand;
-    selectedRegion = widget.initialRegion;
-    selectedCity = widget.initialCity;
-    selectedSort = widget.initialSort;
+    _selectedBrand = widget.initialBrand;
+    _selectedRegion = widget.initialRegion;
+    _selectedCity = widget.initialCity;
+    _selectedSort = widget.initialSort;
   }
 
   @override
@@ -124,38 +98,49 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
     final maxPrice = int.tryParse(maxText);
 
     widget.onApply(
-      selectedCategory,
-      selectedSubcategory,
+      _selectedPath.isEmpty ? null : _selectedPath,
       minPrice,
       maxPrice,
-      selectedBrand,
-      selectedRegion,
-      selectedCity,
-      selectedSort,
+      _selectedBrand,
+      _selectedRegion,
+      _selectedCity,
+      _selectedSort,
     );
     Navigator.pop(context);
   }
 
   void _clearAll() {
     setState(() {
-      selectedCategory = null;
-      selectedSubcategory = null;
+      _selectedPath = [];
       minPriceController.clear();
       maxPriceController.clear();
-      selectedBrand = null;
-      selectedRegion = null;
-      selectedCity = null;
-      selectedSort = null;
+      _selectedBrand = null;
+      _selectedRegion = null;
+      _selectedCity = null;
+      _selectedSort = null;
       _minPriceError = null;
       _maxPriceError = null;
     });
   }
 
+  void _selectCategory(CategoryNode node, int level) {
+    setState(() {
+      _selectedPath = _selectedPath.sublist(0, level);
+      _selectedPath.add(node.id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final service = context.watch<CategoryService>();
+    final roots = service.rootCategories;
+    final brandService = context.watch<BrandService>();
+    final brandOptions = ['Все бренды', ...brandService.brands];
+    final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: theme.scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -171,92 +156,48 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
           children: [
             Row(
               children: [
-                const Text('Фильтры',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+                Text(
+                  'Фильтры',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                ),
                 const Spacer(),
                 TextButton(
                   onPressed: _clearAll,
-                  style: TextButton.styleFrom(foregroundColor: AppColors.copper),
-                  child: const Text('Сбросить всё',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  style: TextButton.styleFrom(foregroundColor: theme.primaryColor),
+                  child: const Text('Сбросить всё', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Text('Сортировка',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
+            Text(
+              'Сортировка',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildSortChip('Сначала новые', 'date_desc'),
-                _buildSortChip('Сначала дешёвые', 'price_asc'),
-                _buildSortChip('Сначала дорогие', 'price_desc'),
-                _buildSortChip('По рейтингу', 'rating'),
+                _buildSortChip(theme, 'Сначала новые', 'date_desc'),
+                _buildSortChip(theme, 'Сначала дешёвые', 'price_asc'),
+                _buildSortChip(theme, 'Сначала дорогие', 'price_desc'),
+                _buildSortChip(theme, 'По рейтингу', 'rating'),
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Категория',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: categories.map((cat) {
-                final isSelected = selectedCategory == cat.name;
-                return ChoiceChip(
-                  label: Text(cat.name),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      selectedCategory = selected ? cat.name : null;
-                      selectedSubcategory = null;
-                    });
-                  },
-                  selectedColor: AppColors.copper.withOpacity(0.2),
-                  backgroundColor: AppColors.spaceCream,
-                  labelStyle: TextStyle(
-                    color: isSelected ? AppColors.copper : AppColors.oliveGray,
-                    fontSize: 14,
-                  ),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                );
-              }).toList(),
-            ),
-            if (selectedCategory != null) ...[
-              const SizedBox(height: 16),
-              const Text('Подкатегория',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8, runSpacing: 8,
-                children: categories
-                    .firstWhere((c) => c.name == selectedCategory)
-                    .subcategories
-                    .map((sub) {
-                  final isSelected = selectedSubcategory == sub;
-                  return ChoiceChip(
-                    label: Text(sub),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => selectedSubcategory = selected ? sub : null);
-                    },
-                    selectedColor: AppColors.copper.withOpacity(0.2),
-                    backgroundColor: AppColors.spaceCream,
-                    labelStyle: TextStyle(
-                      color: isSelected ? AppColors.copper : AppColors.oliveGray,
-                      fontSize: 14,
-                    ),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  );
-                }).toList(),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Column(
+                key: ValueKey(_selectedPath.join(',')),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _buildCategorySelectors(service, roots, theme),
               ),
-            ],
+            ),
             const SizedBox(height: 16),
-            const Text('Цена (₽)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
+            Text(
+              'Цена (₽)',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+            ),
             const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,34 +209,34 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                       TextField(
                         controller: minPriceController,
                         keyboardType: TextInputType.number,
-                        style: TextStyle(color: AppColors.oliveGray, fontSize: 16),
+                        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
                         decoration: InputDecoration(
                           hintText: 'От',
-                          hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
+                          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
                           filled: true,
-                          fillColor: AppColors.whiteAntique,
+                          fillColor: theme.cardTheme.color ?? theme.colorScheme.surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.oliveGray.withOpacity(0.5), width: 2),
+                            borderSide: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.5), width: 2),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.copper.withOpacity(0.7), width: 2),
+                            borderSide: BorderSide(color: theme.primaryColor, width: 2),
                           ),
                           errorBorder: _minPriceError != null
                               ? OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.copper, width: 2),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
                           )
                               : null,
                           focusedErrorBorder: _minPriceError != null
                               ? OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.copper, width: 2),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
                           )
                               : null,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -306,7 +247,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                           padding: const EdgeInsets.only(top: 4, left: 8),
                           child: Text(
                             _minPriceError!,
-                            style: const TextStyle(color: AppColors.copper, fontSize: 12),
+                            style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
                           ),
                         ),
                     ],
@@ -320,34 +261,34 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                       TextField(
                         controller: maxPriceController,
                         keyboardType: TextInputType.number,
-                        style: TextStyle(color: AppColors.oliveGray, fontSize: 16),
+                        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
                         decoration: InputDecoration(
                           hintText: 'До',
-                          hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
+                          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
                           filled: true,
-                          fillColor: AppColors.whiteAntique,
+                          fillColor: theme.cardTheme.color ?? theme.colorScheme.surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.oliveGray.withOpacity(0.5), width: 2),
+                            borderSide: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.5), width: 2),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.copper.withOpacity(0.7), width: 2),
+                            borderSide: BorderSide(color: theme.primaryColor, width: 2),
                           ),
                           errorBorder: _maxPriceError != null
                               ? OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.copper, width: 2),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
                           )
                               : null,
                           focusedErrorBorder: _maxPriceError != null
                               ? OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppColors.copper, width: 2),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
                           )
                               : null,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -358,7 +299,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                           padding: const EdgeInsets.only(top: 4, left: 8),
                           child: Text(
                             _maxPriceError!,
-                            style: const TextStyle(color: AppColors.copper, fontSize: 12),
+                            style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
                           ),
                         ),
                     ],
@@ -367,51 +308,48 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Бренд',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
+            Text(
+              'Бренд',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+            ),
             const SizedBox(height: 8),
             AppDropdownMenu(
-              key: ValueKey('brand_$selectedBrand'),
-              value: selectedBrand,
+              key: ValueKey('brand_$_selectedBrand'),
+              value: _selectedBrand,
               hint: 'Бренд',
-              options: ['Все бренды', ...brandOptions],
-              onChanged: (v) => setState(() => selectedBrand = (v == 'Все бренды') ? null : v),
+              options: brandOptions,
+              onChanged: (v) => setState(() => _selectedBrand = (v == 'Все бренды') ? null : v),
             ),
             const SizedBox(height: 16),
-            const Text('Регион',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
+            Text(
+              'Регион',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+            ),
             const SizedBox(height: 8),
             AppDropdownMenu(
-              key: ValueKey('region_$selectedRegion'),
-              value: selectedRegion,
+              key: ValueKey('region_$_selectedRegion'),
+              value: _selectedRegion,
               hint: 'Регион',
-              options: ['Все регионы', ...regionOptions],
+              options: ['Все регионы'],
               onChanged: (v) => setState(() {
-                selectedRegion = (v == 'Все регионы') ? null : v;
-                selectedCity = null;
+                _selectedRegion = (v == 'Все регионы') ? null : v;
+                _selectedCity = null;
               }),
             ),
-            if (selectedRegion != null) ...[
+            if (_selectedRegion != null) ...[
               const SizedBox(height: 16),
-              const Text('Город',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.oliveGray)),
+              Text(
+                'Город',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+              ),
               const SizedBox(height: 8),
-              Builder(builder: (context) {
-                final cities = allProducts
-                    .where((p) => p.region == selectedRegion)
-                    .map((p) => p.city)
-                    .where((c) => c.isNotEmpty)
-                    .toSet()
-                    .toList()
-                  ..sort();
-                return AppDropdownMenu(
-                  key: ValueKey('city_$selectedCity'),
-                  value: selectedCity,
-                  hint: 'Город',
-                  options: ['Все города', ...cities],
-                  onChanged: (v) => setState(() => selectedCity = (v == 'Все города') ? null : v),
-                );
-              }),
+              AppDropdownMenu(
+                key: ValueKey('city_$_selectedCity'),
+                value: _selectedCity,
+                hint: 'Город',
+                options: ['Все города'],
+                onChanged: (v) => setState(() => _selectedCity = (v == 'Все города') ? null : v),
+              ),
             ],
             const SizedBox(height: 24),
             SizedBox(
@@ -419,8 +357,8 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
               child: ElevatedButton(
                 onPressed: _apply,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.copper,
-                  foregroundColor: AppColors.whiteAntique,
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
@@ -434,18 +372,74 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
     );
   }
 
-  Widget _buildSortChip(String label, String value) {
-    final selected = selectedSort == value;
+  List<Widget> _buildCategorySelectors(CategoryService service, List<CategoryNode> roots, ThemeData theme) {
+    final List<Widget> widgets = [];
+    int level = 0;
+    List<CategoryNode> currentNodes = roots;
+
+    while (true) {
+      if (currentNodes.isEmpty) break;
+
+      final capturedLevel = level;
+      final capturedNodes = List<CategoryNode>.from(currentNodes);
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            level == 0 ? 'Категория' : 'Подкатегория',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+          ),
+        ),
+      );
+
+      final String keyPath = _selectedPath.take(capturedLevel + 1).join('_');
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: AppDropdownMenu(
+            key: ValueKey('cat_${capturedLevel}_$keyPath'),
+            value: level < _selectedPath.length
+                ? service.getCategoryById(_selectedPath[level])?.name
+                : null,
+            hint: '',
+            options: capturedNodes.map((c) => c.name).toList(),
+            onChanged: (selectedName) {
+              if (selectedName == null) return;
+              final selected = capturedNodes.firstWhere(
+                    (c) => c.name == selectedName,
+                orElse: () => throw Exception('Категория "$selectedName" не найдена'),
+              );
+              _selectCategory(selected, capturedLevel);
+            },
+          ),
+        ),
+      );
+      if (level < _selectedPath.length) {
+        final selectedId = _selectedPath[level];
+        final nextChildren = service.getChildren(selectedId);
+        if (nextChildren.isEmpty) break;
+        currentNodes = nextChildren;
+        level++;
+      } else {
+        break;
+      }
+    }
+    return widgets;
+  }
+
+  Widget _buildSortChip(ThemeData theme, String label, String value) {
+    final selected = _selectedSort == value;
     return ChoiceChip(
       label: Text(label),
       selected: selected,
       onSelected: (isSelected) {
-        setState(() => selectedSort = isSelected ? value : null);
+        setState(() => _selectedSort = isSelected ? value : null);
       },
-      selectedColor: AppColors.copper.withOpacity(0.2),
-      backgroundColor: AppColors.spaceCream,
+      selectedColor: theme.primaryColor.withOpacity(0.2),
+      backgroundColor: theme.colorScheme.background,
       labelStyle: TextStyle(
-        color: selected ? AppColors.copper : AppColors.oliveGray,
+        color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
         fontSize: 14,
       ),
       elevation: 0,

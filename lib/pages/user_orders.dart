@@ -1,87 +1,100 @@
-import 'package:AppRent/pages/productScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/product_data.dart';
+import '../services/product_service.dart';
 import '../models/activeLease.dart';
 import '../models/product.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
-import '../utils/colors.dart';
 import '../utils/pagination.dart';
 import '../widgets/userOrders_card.dart';
 import 'edit_product.dart';
+import 'productScreen.dart';
 
 class UserOrders extends StatefulWidget {
-  final int? ownerId;
-
+  final String? ownerId;
   const UserOrders({super.key, this.ownerId});
 
   @override
-  State<UserOrders> createState() => UserOrdersState();
+  State<UserOrders> createState() => _UserOrdersState();
 }
 
-class UserOrdersState extends State<UserOrders> with PaginationMixin {
+class _UserOrdersState extends State<UserOrders> with PaginationMixin {
   String searchQuery = '';
   bool _showActiveRents = false;
+  List<Product> _allProducts = [];
+  bool _isLoading = false;
 
   @override
   int get paginationBatchSize => 12;
 
   @override
-  List<dynamic> get paginationItems => filteredProducts;
+  List<dynamic> get paginationItems => _filteredProducts;
 
-  List<Product> get filteredProducts {
-    final user = context.read<AuthProvider>().currentUser;
-    if (user == null) return [];
+  List<Product> get _filteredProducts {
+    final leasesProvider = context.watch<ActiveLeasesProvider>();
+    final targetId = widget.ownerId ?? context.read<AuthProvider>().currentUser?.uid;
+    var list = _allProducts;
 
-    final targetId = widget.ownerId ?? user.id;
-    var userProducts = ProductData.products
-        .where((p) => p.ownerId == targetId)
-        .where((p) => p.moderationStatus != 'blocked')
-        .toList();
-
-    if (_showActiveRents) {
-      final activeLeases = context
-          .read<ActiveLeasesProvider>()
-          .leases
-          .where((l) => l.status == LeaseStatus.active)
-          .toList();
-      final activeProductIds = activeLeases.map((l) => l.productId).toSet();
-      userProducts = userProducts
-          .where((p) => activeProductIds.contains(p.id))
-          .toList();
+    if (_showActiveRents && targetId != null) {
+      final activeLeaseProductIds = leasesProvider.leases
+          .where((l) =>
+      (l.status == LeaseStatus.active || l.status == LeaseStatus.pendingCompletion) &&
+          l.ownerId == targetId)
+          .map((l) => l.productId)
+          .toSet();
+      list = list.where((p) => activeLeaseProductIds.contains(p.id)).toList();
     }
 
     if (searchQuery.isNotEmpty) {
-      userProducts = userProducts
-          .where(
-            (p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()),
-          )
+      list = list
+          .where((p) => p.name.toLowerCase().contains(searchQuery.toLowerCase()))
           .toList();
     }
 
-    userProducts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
 
-    return userProducts;
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    try {
+      final targetId = widget.ownerId ?? context.read<AuthProvider>().currentUser?.uid;
+      if (targetId != null) {
+        _allProducts = await ProductService.getAllProducts(ownerId: targetId);
+      } else {
+        _allProducts = [];
+      }
+    } catch (e) {
+      debugPrint('Ошибка загрузки товаров: $e');
+    }
+    setState(() => _isLoading = false);
   }
 
   Future<void> _openEditProduct(Product product) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EditProduct(product: product)),
+      MaterialPageRoute(builder: (_) => EditProduct(product: product)),
     );
     if (result == true) {
-      setState(() {});
+      _loadProducts();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final currentUser = context.read<AuthProvider>().currentUser;
-    final targetId = widget.ownerId ?? currentUser?.id;
-    final isOwner = targetId == currentUser?.id;
-    final allItems = filteredProducts;
+    final targetId = widget.ownerId ?? currentUser?.uid;
+    final isOwner = targetId == currentUser?.uid;
+    final allItems = _filteredProducts;
     final visibleItems = allItems.take(visibleCount).toList();
+    final leasesProvider = context.watch<ActiveLeasesProvider>();
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Padding(
@@ -91,34 +104,29 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    size: 24,
-                    color: AppColors.oliveGray,
-                  ),
+                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
                   onPressed: () => Navigator.pop(context),
                   constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 5),
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGreen,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: TextField(
-                      onChanged: (value) {
-                        setState(() => searchQuery = value);
-                        resetPagination();
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Поиск...',
-                        prefixIcon: Icon(Icons.search, color: AppColors.copper),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15,
-                          horizontal: 20,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      color: theme.colorScheme.surface,
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() => searchQuery = value);
+                          resetPagination();
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Поиск...',
+                          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                          prefixIcon: Icon(Icons.search, color: theme.primaryColor),
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                         ),
                       ),
                     ),
@@ -143,8 +151,8 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: !_showActiveRents
-                              ? AppColors.oliveGray
-                              : AppColors.oliveGray.withOpacity(0.4),
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface.withOpacity(0.4),
                         ),
                       ),
                     ),
@@ -162,8 +170,8 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: _showActiveRents
-                              ? AppColors.oliveGray
-                              : AppColors.oliveGray.withOpacity(0.4),
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface.withOpacity(0.4),
                         ),
                       ),
                     ),
@@ -171,15 +179,20 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
                 ],
               ),
               const SizedBox(height: 8),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: AppColors.oliveGray.withOpacity(0.2),
-              ),
+              Divider(height: 1, thickness: 1, color: theme.dividerColor),
               const SizedBox(height: 10),
             ],
             Expanded(
-              child: ListView.builder(
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
+                  : visibleItems.isEmpty
+                  ? Center(
+                child: Text(
+                  _showActiveRents ? 'Нет активных аренд' : 'Нет объявлений',
+                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                ),
+              )
+                  : ListView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 itemCount: visibleItems.length,
@@ -187,11 +200,12 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
                   final product = visibleItems[index];
                   ActiveLease? activeLease;
                   if (_showActiveRents && isOwner) {
-                    final leases = context.read<ActiveLeasesProvider>().leases;
-                    activeLease = leases.cast<ActiveLease?>().firstWhere(
-                      (l) =>
-                          l!.productId == product.id &&
-                          l.status == LeaseStatus.active,
+                    activeLease = leasesProvider.leases.cast<ActiveLease?>().firstWhere(
+                          (l) =>
+                      l != null &&
+                          l.productId == product.id &&
+                          (l.status == LeaseStatus.active || l.status == LeaseStatus.pendingCompletion) &&
+                          l.ownerId == targetId,
                       orElse: () => null,
                     );
                   }
@@ -210,9 +224,7 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => ProductScreen(product: product),
-                        ),
+                        MaterialPageRoute(builder: (_) => ProductScreen(product: product)),
                       );
                     },
                   );
@@ -220,11 +232,9 @@ class UserOrdersState extends State<UserOrders> with PaginationMixin {
               ),
             ),
             if (isLoading)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(
-                  child: CircularProgressIndicator(color: AppColors.copper),
-                ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
               ),
           ],
         ),

@@ -1,24 +1,26 @@
 enum RequestStatus { pending, accepted, rejected }
-
 enum RequestType { lease, completion }
 
 class LeaseRequest {
-  final int id;
-  final int productId;
+  final String firestoreDocId;
+  final String productId;
   final String productName;
   final int pricePerDay;
   final int totalDays;
-  final int requesterId;
+  final String requesterId;
   final String requesterFirstName;
   final String requesterLastName;
   final String? requesterAvatarPath;
-  final int ownerId;
+  final String ownerId;
   final List<String> images;
   RequestStatus status;
-  final RequestType type;
+  RequestType type;
+  final bool isHourly;
+  final bool notificationSent;
+  final double requesterRating;
 
   LeaseRequest({
-    required this.id,
+    required this.firestoreDocId,
     required this.productId,
     required this.productName,
     required this.pricePerDay,
@@ -31,10 +33,12 @@ class LeaseRequest {
     this.images = const [],
     this.status = RequestStatus.pending,
     this.type = RequestType.lease,
+    required this.isHourly,
+    this.notificationSent = false,
+    required this.requesterRating,
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
     'productId': productId,
     'productName': productName,
     'pricePerDay': pricePerDay,
@@ -47,27 +51,27 @@ class LeaseRequest {
     'images': images,
     'status': status.index,
     'type': type.index,
+    'isHourly': isHourly,
+    'notificationSent': notificationSent,
+    'requesterRating': requesterRating,
   };
 
-  factory LeaseRequest.fromJson(Map<String, dynamic> json) => LeaseRequest(
-    id: json['id'] as int,
-    productId: json['productId'] as int,
+  factory LeaseRequest.fromJson(Map<String, dynamic> json, {String? docId}) => LeaseRequest(
+    firestoreDocId: docId ?? '',
+    productId: json['productId'] as String,
     productName: json['productName'] as String,
     pricePerDay: json['pricePerDay'] as int,
     totalDays: json['totalDays'] as int,
-    requesterId: json['requesterId'] as int,
+    requesterId: json['requesterId'] as String,
     requesterFirstName: json['requesterFirstName'] as String? ?? '',
     requesterLastName: json['requesterLastName'] as String? ?? '',
     requesterAvatarPath: json['requesterAvatarPath'] as String?,
-    ownerId: json['ownerId'] as int,
-    images: json['images'] != null
-        ? List<String>.from(json['images'] as List)
-        : [],
-    status: json['status'] != null
-        ? RequestStatus.values[json['status'] as int]
-        : RequestStatus.pending,
-    type: json['type'] != null
-        ? RequestType.values[json['type'] as int]
-        : RequestType.lease,
+    ownerId: json['ownerId'] as String,
+    images: json['images'] != null ? List<String>.from(json['images']) : [],
+    status: RequestStatus.values[json['status'] as int],
+    type: RequestType.values[json['type'] as int],
+    isHourly: json['isHourly'] as bool? ?? false,
+    notificationSent: json['notificationSent'] as bool? ?? false,
+    requesterRating: (json['requesterRating'] as num?)?.toDouble() ?? 5.0,
   );
 }

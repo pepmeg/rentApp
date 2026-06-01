@@ -4,7 +4,6 @@ import '../../models/admin_models/report.dart';
 import '../../pages/admin/admin_screen.dart';
 import '../../provider/admin_provider.dart';
 import '../../provider/AuthProvider.dart';
-import '../../utils/colors.dart';
 
 class AdminDashboardWidget extends StatefulWidget {
   const AdminDashboardWidget({super.key});
@@ -25,6 +24,7 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
     final admin = context.watch<AdminProvider>();
     final auth = context.read<AuthProvider>();
     final bool isAdmin = auth.isAdmin;
+    final theme = Theme.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -32,32 +32,35 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isAdmin) ...[
-            _buildSectionTitle('Товары'),
+            _buildSectionTitle(theme, 'Товары'),
             const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
                   child: _buildMetricCard(
+                    context: context,
                     title: 'Все',
                     value: admin.totalProducts.toString(),
                     icon: Icons.shopping_bag_rounded,
-                    color: AppColors.lightGreen,
+                    color: theme.primaryColor,
                     onTap: () => _openModerationTab(context, 0, productStatusFilter: null),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: _buildMetricCard(
+                    context: context,
                     title: 'Скрытые',
                     value: admin.hiddenProducts.toString(),
                     icon: Icons.visibility_off_rounded,
-                    color: AppColors.macaroniCheese,
+                    color: Colors.orange.shade300,
                     onTap: () => _openModerationTab(context, 0, productStatusFilter: 'hidden'),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: _buildMetricCard(
+                    context: context,
                     title: 'Заблок.',
                     value: admin.blockedProducts.toString(),
                     icon: Icons.block_rounded,
@@ -70,16 +73,17 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
           ],
 
           const SizedBox(height: 16),
-          _buildSectionTitle('Жалобы'),
+          _buildSectionTitle(theme, 'Жалобы'),
           const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
                 child: _buildMetricCard(
+                  context: context,
                   title: 'Всего',
                   value: admin.totalReports.toString(),
                   icon: Icons.report_problem_rounded,
-                  color: AppColors.copper,
+                  color: theme.primaryColor,
                   onTap: () => _openModerationTab(
                     context,
                     isAdmin ? 1 : 0,
@@ -89,10 +93,11 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
               const SizedBox(width: 6),
               Expanded(
                 child: _buildMetricCard(
+                  context: context,
                   title: 'На товары',
                   value: admin.reportsOnProductsCount.toString(),
                   icon: Icons.shopping_bag_rounded,
-                  color: AppColors.lightGreen,
+                  color: theme.primaryColor.withOpacity(0.7),
                   onTap: () => _openModerationTab(
                     context,
                     isAdmin ? 1 : 0,
@@ -103,10 +108,11 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
               const SizedBox(width: 6),
               Expanded(
                 child: _buildMetricCard(
+                  context: context,
                   title: 'На польз.',
                   value: admin.reportsOnUsersCount.toString(),
                   icon: Icons.person,
-                  color: AppColors.oliveGray,
+                  color: theme.colorScheme.onSurface,
                   onTap: () => _openModerationTab(
                     context,
                     isAdmin ? 1 : 0,
@@ -119,22 +125,24 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
 
           if (isAdmin) ...[
             const SizedBox(height: 16),
-            _buildSectionTitle('Пользователи'),
+            _buildSectionTitle(theme, 'Пользователи'),
             const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
                   child: _buildMetricCard(
+                    context: context,
                     title: 'Активные',
                     value: admin.activeUsers.toString(),
                     icon: Icons.people_rounded,
-                    color: AppColors.oliveGray,
+                    color: theme.colorScheme.onSurface,
                     onTap: () => _openModerationTab(context, 2),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: _buildMetricCard(
+                    context: context,
                     title: 'Заблок.',
                     value: admin.blockedUsersCount.toString(),
                     icon: Icons.block_rounded,
@@ -152,30 +160,32 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
     );
   }
 
-  Widget _buildSectionTitle(String text) {
+  Widget _buildSectionTitle(ThemeData theme, String text) {
     return Text(
       text,
       style: TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.w600,
-        color: AppColors.oliveGray.withOpacity(0.8),
+        color: theme.colorScheme.onSurface.withOpacity(0.8),
         letterSpacing: 0.3,
       ),
     );
   }
 
   Widget _buildMetricCard({
+    required BuildContext context,
     required String title,
     required String value,
     required IconData icon,
     required Color color,
     VoidCallback? onTap,
   }) {
+    final theme = Theme.of(context);
     return Material(
-      color: AppColors.whiteAntique,
+      color: theme.cardTheme.color ?? theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(12),
       elevation: 1,
-      shadowColor: AppColors.oliveGray.withOpacity(0.08),
+      shadowColor: theme.colorScheme.onSurface.withOpacity(0.08),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
@@ -198,7 +208,7 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.oliveGray,
+                  color: theme.colorScheme.onSurface,
                   height: 1.0,
                 ),
               ),
@@ -208,7 +218,7 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.oliveGray.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
                 textAlign: TextAlign.center,
               ),

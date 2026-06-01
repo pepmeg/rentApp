@@ -1,13 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/product.dart';
 import '../../pages/productScreen.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/admin_provider.dart';
-import '../../utils/colors.dart';
+import '../../services/product_service.dart';
 import '../../utils/form_fields.dart';
 import '../../utils/pagination.dart';
+import '../../widgets/product_image.dart';
 
 class AdminProductsTab extends StatefulWidget {
   final String? initialStatusFilter;
@@ -20,11 +20,24 @@ class AdminProductsTab extends StatefulWidget {
 class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixin {
   String _searchQuery = '';
   String? _statusFilter;
+  List<Product> _allProducts = [];
+  bool _isLoadingProducts = false;
 
   @override
   void initState() {
     super.initState();
     _statusFilter = widget.initialStatusFilter;
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoadingProducts = true);
+    try {
+      _allProducts = await ProductService.getAllProducts(includeAll: true);
+    } catch (e) {
+      debugPrint('Ошибка загрузки товаров: $e');
+    }
+    setState(() => _isLoadingProducts = false);
   }
 
   @override
@@ -34,8 +47,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
   List<dynamic> get paginationItems => _filteredProducts;
 
   List<Product> get _filteredProducts {
-    final admin = context.read<AdminProvider>();
-    var products = admin.getAllProducts().toList();
+    var products = _allProducts;
 
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
@@ -60,37 +72,30 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
     final visibleItems = allItems.take(visibleCount).toList();
     final auth = context.watch<AuthProvider>();
     final admin = context.watch<AdminProvider>();
+    final theme = Theme.of(context);
 
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: AppColors.lightGreen,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: TextField(
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-                resetPagination();
-              },
-              decoration: InputDecoration(
-                hintText: 'Поиск товаров',
-                hintStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.5), fontSize: 16),
-                prefixIcon: Icon(Icons.search, color: AppColors.copper),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                  icon: Icon(Icons.clear_rounded, color: AppColors.oliveGray.withOpacity(0.5)),
-                  onPressed: () {
-                    setState(() => _searchQuery = '');
-                    resetPagination();
-                  },
-                )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              color: theme.colorScheme.surface,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                  resetPagination();
+                },
+                decoration: InputDecoration(
+                  hintText: 'Поиск товаров',
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
+                  prefixIcon: Icon(Icons.search, color: theme.primaryColor),
+                  border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                ),
               ),
             ),
           ),
@@ -99,17 +104,17 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           child: Row(
             children: [
-              _buildFilterChip('Все', _statusFilter == null, () {
+              _buildFilterChip(theme, 'Все', _statusFilter == null, () {
                 setState(() => _statusFilter = null);
                 resetPagination();
               }),
               const SizedBox(width: 8),
-              _buildFilterChip('Скрытые', _statusFilter == 'hidden', () {
+              _buildFilterChip(theme, 'Скрытые', _statusFilter == 'hidden', () {
                 setState(() => _statusFilter = 'hidden');
                 resetPagination();
               }),
               const SizedBox(width: 8),
-              _buildFilterChip('Заблокированные', _statusFilter == 'blocked', () {
+              _buildFilterChip(theme, 'Заблокированные', _statusFilter == 'blocked', () {
                 setState(() => _statusFilter = 'blocked');
                 resetPagination();
               }),
@@ -117,7 +122,9 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
           ),
         ),
         Expanded(
-          child: ListView.builder(
+          child: _isLoadingProducts
+              ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
+              : ListView.builder(
             controller: scrollController,
             itemCount: visibleItems.length,
             itemBuilder: (context, index) {
@@ -125,7 +132,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
               final ownerFuture = auth.getUserById(product.ownerId);
 
               return Card(
-                color: AppColors.whiteAntique,
+                color: theme.cardTheme.color ?? theme.colorScheme.surface,
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: InkWell(
@@ -150,7 +157,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: _buildProductImage(product, 72),
+                              child: _buildProductImage(product, 72, theme),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
@@ -162,10 +169,10 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                                       Flexible(
                                         child: Text(
                                           product.name,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: AppColors.oliveGray,
+                                            color: theme.colorScheme.onSurface,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -175,7 +182,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: _statusColor(product.moderationStatus).withOpacity(0.15),
+                                          color: _statusColor(product.moderationStatus, theme).withOpacity(0.15),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
@@ -183,7 +190,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
-                                            color: _statusColor(product.moderationStatus),
+                                            color: _statusColor(product.moderationStatus, theme),
                                           ),
                                         ),
                                       ),
@@ -195,20 +202,20 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: AppColors.oliveGray.withOpacity(0.9),
+                                      color: theme.colorScheme.onSurface.withOpacity(0.9),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Icon(Icons.location_on, size: 14, color: AppColors.oliveGray.withOpacity(0.6)),
+                                      Icon(Icons.location_on, size: 14, color: theme.colorScheme.onSurface.withOpacity(0.6)),
                                       const SizedBox(width: 3),
                                       Flexible(
                                         child: Text(
                                           product.location,
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: AppColors.oliveGray.withOpacity(0.7),
+                                            color: theme.colorScheme.onSurface.withOpacity(0.7),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -221,7 +228,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                                     'Владелец: $ownerName',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.oliveGray.withOpacity(0.6),
+                                      color: theme.colorScheme.onSurface.withOpacity(0.6),
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -231,12 +238,12 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                             ),
                             if (auth.isAdmin)
                               AppPopupMenuButton<String>(
-                                backgroundColor: AppColors.spaceCream,
+                                backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
                                 onSelected: (action) => _performAction(admin, product.id, action),
                                 items: _getAvailableActions(product.moderationStatus),
                               )
                             else
-                              const SizedBox(width: 22),
+                              const SizedBox.shrink(),
                           ],
                         );
                       },
@@ -248,42 +255,35 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
           ),
         ),
         if (isLoading)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: CircularProgressIndicator(color: AppColors.copper)),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
           ),
       ],
     );
   }
 
-  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap) {
+  Widget _buildFilterChip(ThemeData theme, String label, bool selected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Chip(
         label: Text(label),
-        backgroundColor: selected ? AppColors.copper.withOpacity(0.2) : AppColors.spaceCream,
+        backgroundColor: selected ? theme.primaryColor.withOpacity(0.1) : (theme.cardTheme.color ?? theme.colorScheme.surface),
         labelStyle: TextStyle(
-          color: selected ? AppColors.copper : AppColors.oliveGray,
+          color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
     );
   }
 
-  Widget _buildProductImage(Product product, double size) {
-    if (product.images.isNotEmpty) {
-      final path = product.images.first;
-      if (path.startsWith('assets/')) {
-        return Image.asset(path, width: size, height: size, fit: BoxFit.cover);
-      } else {
-        return Image.file(File(path), width: size, height: size, fit: BoxFit.cover);
-      }
-    }
-    return Container(
+  Widget _buildProductImage(Product product, double size, ThemeData theme) {
+    return ProductImage(
+      images: product.images,
       width: size,
       height: size,
-      color: AppColors.oliveGray.withOpacity(0.1),
-      child: Icon(Icons.image, color: AppColors.oliveGray.withOpacity(0.5), size: 28),
+      backgroundColor: theme.colorScheme.background,
+      cacheUrls: true,
     );
   }
 
@@ -300,16 +300,16 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
     }
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(String status, ThemeData theme) {
     switch (status) {
       case 'active':
         return Colors.green;
       case 'hidden':
-        return AppColors.macaroniCheese;
+        return Colors.orange;
       case 'blocked':
-        return AppColors.copper;
+        return theme.primaryColor;
       default:
-        return AppColors.oliveGray;
+        return theme.colorScheme.onSurface;
     }
   }
 
@@ -327,17 +327,20 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
     return items;
   }
 
-  void _performAction(AdminProvider admin, int productId, String action) {
+  void _performAction(AdminProvider admin, String productId, String action) async {
+    final auth = context.read<AuthProvider>();
+    final adminId = auth.currentUser?.uid ?? '0';
     switch (action) {
       case 'hide':
-        admin.hideProduct(productId, 0, 'Скрыто администратором');
+        await admin.hideProduct(productId, adminId, 'Скрыто администратором');
         break;
       case 'unhide':
-        admin.unhideProduct(productId, 0, 'Восстановлено администратором');
+        await admin.unhideProduct(productId, adminId, 'Восстановлено администратором');
         break;
       case 'block':
-        admin.blockProduct(productId, 0, 'Заблокировано');
+        await admin.blockProduct(productId, adminId, 'Заблокировано');
         break;
     }
+    await _loadProducts();
   }
 }

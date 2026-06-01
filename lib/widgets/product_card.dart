@@ -1,19 +1,23 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/ReviewsProvider.dart';
 import '../provider/favorite_provider.dart';
-import '../utils/colors.dart';
+import '../services/storage_service.dart';
+import '../theme/theme_data.dart';
 
 class ProductCard extends StatefulWidget {
-  final int id;
+  final String id;
   final String name;
   final int price;
   final String location;
   final List<String> images;
   final bool isPricePerHour;
+  final String ownerId;
   final VoidCallback? onTap;
+  final bool cacheUrls;
 
   const ProductCard({
     required this.id,
@@ -21,8 +25,10 @@ class ProductCard extends StatefulWidget {
     required this.price,
     required this.location,
     required this.images,
+    required this.ownerId,
     this.isPricePerHour = false,
     this.onTap,
+    this.cacheUrls = false,
     super.key,
   });
 
@@ -31,78 +37,89 @@ class ProductCard extends StatefulWidget {
 }
 
 class ProductCardState extends State<ProductCard> {
-  bool isFavorite = false;
+  Future<String?>? _imageFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initImageFuture();
+  }
+
+  @override
+  void didUpdateWidget(ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.images.isNotEmpty && oldWidget.images.isNotEmpty &&
+        widget.images[0] != oldWidget.images[0]) {
+      _initImageFuture();
+    }
+  }
+
+  void _initImageFuture() {
+    if (widget.images.isNotEmpty) {
+      _imageFuture = _resolveUrl(widget.images[0]);
+    } else {
+      _imageFuture = null;
+    }
+  }
+
+  Future<String?> _resolveUrl(String objectKey) async {
+    final cached = await StorageService.getCachedUrl(objectKey);
+    if (cached != null) return cached;
+    try {
+      return await StorageService.getDownloadUrl(objectKey, cache: widget.cacheUrls)
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('Ошибка загрузки изображения $objectKey: $e');
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final favoriteProvider = Provider.of<FavoriteProvider>(context);
+    final favoriteProvider = context.watch<FavoriteProvider>();
     final authProvider = context.read<AuthProvider>();
-    final userId = authProvider.currentUser?.id;
-    final isFavorite = userId != null ? favoriteProvider.isFavorite(userId, widget.id) : false;
-    final isUser = context.read<AuthProvider>().isUser;
+    final user = authProvider.currentUser;
+    final userId = user?.uid;
+    final isBlocked = user?.blocked ?? false;
+    final isOwner = userId == widget.ownerId;
+    final isUser = authProvider.isUser;
+    final isFavorite = userId != null && favoriteProvider.isFavorite(userId, widget.id);
+    final theme = Theme.of(context);
 
-    final reviews = context.watch<ReviewsProvider>()
-        .getReviewsForProduct(widget.id);
+    final reviews = context.watch<ReviewsProvider>().getReviewsForProduct(widget.id);
     final double avgRating = reviews.isEmpty
         ? 0.0
         : reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
-    final String ratingText = reviews.isEmpty
-        ? '—'
-        : avgRating.toStringAsFixed(1);
+    final String ratingText = reviews.isEmpty ? '—' : avgRating.toStringAsFixed(1);
 
     return GestureDetector(
       onTap: widget.onTap,
       child: Card(
-        color: AppColors.whiteAntique,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  child: widget.images.isNotEmpty
-                      ? (widget.images[0].startsWith('assets/')
-                      ? Image.asset(
-                    widget.images[0],
-                    height: 110,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
-                      : Image.file(
-                    File(widget.images[0]),
-                    height: 110,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 110,
-                      color: AppColors.oliveGray,
-                      child: const Icon(Icons.image_not_supported),
-                    ),
-                  ))
-                      : Container(
-                    height: 110,
-                    width: double.infinity,
-                    color: AppColors.oliveGray,
-                    child: const Icon(Icons.image_not_supported),
-                  ),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: _buildImage(theme),
                 ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: GestureDetector(
-                    onTap: () {
-                      if (userId != null && isUser) {
+                if (!isOwner && userId != null && isUser && !isBlocked)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: GestureDetector(
+                      onTap: () {
                         favoriteProvider.toggleFavorite(userId, widget.id);
-                      }
-                    },
-                    child: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? AppColors.copper : AppColors.oliveGray,
-                      size: 20,
+                        setState(() {});
+                      },
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
+                        size: 20,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             Padding(
@@ -118,51 +135,41 @@ class ProductCardState extends State<ProductCard> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.oliveGray,
+                            color: theme.colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
-                        Icons.star,
-                        color: AppColors.yellowSchoolBus,
-                        size: 18,
-                      ),
+                      Icon(Icons.star, color: AppTheme.starColor, size: 18),
                       const SizedBox(width: 2),
                       Text(
                         ratingText,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.normal,
-                          color: AppColors.oliveGray.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    widget.isPricePerHour
-                        ? '${widget.price} ₽/час'
-                        : '${widget.price} ₽/день',
-                    style: TextStyle(fontSize: 15, color: AppColors.oliveGray),
+                    widget.isPricePerHour ? '${widget.price} ₽/час' : '${widget.price} ₽/день',
+                    style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 14,
-                        color: AppColors.oliveGray,
-                      ),
-                      SizedBox(width: 4),
+                      Icon(Icons.location_on, size: 14, color: theme.colorScheme.onSurface),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           widget.location,
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.oliveGray.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -176,6 +183,110 @@ class ProductCardState extends State<ProductCard> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImage(ThemeData theme) {
+    if (widget.images.isEmpty) {
+      return Container(
+        height: 110,
+        width: double.infinity,
+        color: theme.colorScheme.onSurface.withOpacity(0.3),
+        child: const Icon(Icons.image_not_supported),
+      );
+    }
+    final path = widget.images[0];
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: path,
+        height: 110,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          height: 110,
+          width: double.infinity,
+          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 5, color: theme.primaryColor)),
+        ),
+        errorWidget: (context, url, error) => Container(
+          height: 110,
+          width: double.infinity,
+          color: theme.colorScheme.onSurface.withOpacity(0.3),
+          child: const Icon(Icons.broken_image),
+        ),
+      );
+    }
+
+    if (path.startsWith('assets/')) {
+      return Image.asset(
+        path,
+        height: 110,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          height: 110,
+          width: double.infinity,
+          color: theme.colorScheme.onSurface.withOpacity(0.3),
+          child: const Icon(Icons.broken_image),
+        ),
+      );
+    }
+
+    final file = File(path);
+    if (file.existsSync()) {
+      return Image.file(
+        file,
+        height: 110,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          height: 110,
+          width: double.infinity,
+          color: theme.colorScheme.onSurface.withOpacity(0.3),
+          child: const Icon(Icons.broken_image),
+        ),
+      );
+    }
+
+    return FutureBuilder<String?>(
+      future: _imageFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 110,
+            width: double.infinity,
+            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 5, color: theme.primaryColor)),
+          );
+        }
+        final url = snapshot.data;
+        if (url == null || url.isEmpty) {
+          return Container(
+            height: 110,
+            width: double.infinity,
+            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            child: const Icon(Icons.broken_image),
+          );
+        }
+        return CachedNetworkImage(
+          imageUrl: url,
+          height: 110,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            height: 110,
+            width: double.infinity,
+            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 5, color: theme.primaryColor)),
+          ),
+          errorWidget: (context, url, error) => Container(
+            height: 110,
+            width: double.infinity,
+            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            child: const Icon(Icons.broken_image),
+          ),
+        );
+      },
     );
   }
 }

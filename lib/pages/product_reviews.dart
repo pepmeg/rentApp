@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../utils/colors.dart';
 import '../widgets/product_screen/product_reviews/review_card.dart';
 import '../provider/ReviewsProvider.dart';
 
 class ProductReviewsPage extends StatelessWidget {
-  final int productId;
+  final String productId;
   const ProductReviewsPage({required this.productId, super.key});
 
   @override
   Widget build(BuildContext context) {
     final reviews = context.watch<ReviewsProvider>()
         .getReviewsForProduct(productId);
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Padding(
@@ -22,18 +22,26 @@ class ProductReviewsPage extends StatelessWidget {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
                   onPressed: () => Navigator.pop(context),
                   constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 5),
-                const Text('Все отзывы', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+                Text(
+                  'Все отзывы',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Expanded(
               child: reviews.isEmpty
-                  ? const Center(child: Text('Нет отзывов', style: TextStyle(color: AppColors.oliveGray)))
+                  ? Center(
+                child: Text(
+                  'Нет отзывов',
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                ),
+              )
                   : ListView.builder(
                 itemCount: reviews.length,
                 itemBuilder: (context, index) => Padding(

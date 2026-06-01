@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import '../data/category.dart';
-import '../data/product_data.dart';
+import '../provider/bottom_nav_provider.dart';
+import '../services/product_service.dart';
 import '../models/product.dart';
 import '../provider/AuthProvider.dart';
-import '../utils/colors.dart';
+import '../services/storage_service.dart';
 import '../utils/form_fields.dart';
 import '../utils/snackbar_custom.dart';
+import '../widgets/category_picker.dart';
 import 'location_screen.dart';
 
 class EditProduct extends StatefulWidget {
@@ -29,9 +30,9 @@ class _EditProductState extends State<EditProduct> {
   late TextEditingController descriptionController;
   late TextEditingController brandController;
   late List<String> _imagePaths;
-  String? _selectedCategory;
-  String? _selectedSubcategory;
   late bool _isPricePerHour;
+  List<String> _categoryPath = [];
+
   static const int maxImages = 10;
 
   Future<String> _saveImagePermanently(String sourcePath) async {
@@ -46,7 +47,7 @@ class _EditProductState extends State<EditProduct> {
       await File(sourcePath).copy(savedImage.path);
       return savedImage.path;
     } catch (e) {
-      print('Ошибка сохранения: $e');
+      debugPrint('Ошибка сохранения: $e');
       return sourcePath;
     }
   }
@@ -57,17 +58,15 @@ class _EditProductState extends State<EditProduct> {
     final p = widget.product;
     nameController = TextEditingController(text: p.name);
     priceController = TextEditingController(text: p.price.toString());
-    // Для почасового товара в поле показываем minRentHours, иначе minRentDays
     daysController = TextEditingController(
       text: (p.isPricePerHour ? p.minRentHours : p.minRentDays).toString(),
     );
     locationController = TextEditingController(text: p.location);
     descriptionController = TextEditingController(text: p.description);
     brandController = TextEditingController(text: p.brand);
-    _imagePaths = List.from(p.images);
-    _selectedCategory = p.category.isEmpty ? null : p.category;
-    _selectedSubcategory = p.subcategory.isEmpty ? null : p.subcategory;
+    _imagePaths = List<String>.from(p.images);
     _isPricePerHour = p.isPricePerHour;
+    _categoryPath = List<String>.from(p.categoryPath);
   }
 
   @override
@@ -84,9 +83,11 @@ class _EditProductState extends State<EditProduct> {
   Future<void> _pickImages() async {
     final picker = ImagePicker();
     final pickedFiles = await picker.pickMultiImage();
-    if (pickedFiles == null || pickedFiles.isEmpty) return;
+    if (!mounted) return;
+    if (pickedFiles.isEmpty) return;
     final remaining = maxImages - _imagePaths.length;
     if (remaining <= 0) {
+      if (!mounted) return;
       SnackBarCustom.show(context, message: 'Лимит 10 фото');
       return;
     }
@@ -95,111 +96,119 @@ class _EditProductState extends State<EditProduct> {
       final permanentPath = await _saveImagePermanently(file.path);
       _imagePaths.add(permanentPath);
     }
+    if (!mounted) return;
     setState(() {});
   }
 
   Future<void> _replaceImage(int index) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (!mounted) return;
     if (picked != null) {
-      final permanentPath = await _saveImagePermanently(picked.path);
-      setState(() => _imagePaths[index] = permanentPath);
+      final localPath = await _saveImagePermanently(picked.path);
+      final cloudUrl = await StorageService.uploadProductImage(localPath);
+      if (!mounted) return;
+      setState(() => _imagePaths[index] = cloudUrl);
     }
   }
 
-  void _saveChanges() {
+  Future<void> _saveChanges() async {
     final name = nameController.text.trim();
     final price = int.tryParse(priceController.text.trim());
     if (name.isEmpty || price == null) {
+      if (!mounted) return;
       SnackBarCustom.show(context, message: 'Введите название и цену');
       return;
     }
 
-    final authProvider = context.read<AuthProvider>();
-    final currentUser = authProvider.currentUser;
+    if (_categoryPath.isEmpty) {
+      if (!mounted) return;
+      SnackBarCustom.show(context, message: 'Выберите категорию');
+      return;
+    }
+
+    final currentUser = context.read<AuthProvider>().currentUser;
     String location = locationController.text.trim();
-    if (location.isEmpty &&
-        currentUser != null &&
-        currentUser.address != null &&
-        currentUser.address!.isNotEmpty) {
-      location = currentUser.address!;
+    if (location.isEmpty && currentUser != null && currentUser.address.isNotEmpty) {
+      location = currentUser.address;
       locationController.text = location;
     }
 
-    final int rentDays;
-    final int rentHours;
-    final int daysValue = int.tryParse(daysController.text.trim()) ?? 1;
-    if (_isPricePerHour) {
-      rentHours = daysValue.clamp(1, 720);
-      rentDays = 1;
-    } else {
-      rentDays = daysValue.clamp(1, 365);
-      rentHours = 0;
-    }
+    final daysValue = int.tryParse(daysController.text.trim()) ?? 1;
+    final rentDays = _isPricePerHour ? 1 : daysValue.clamp(1, 365);
+    final rentHours = _isPricePerHour ? daysValue.clamp(1, 720) : 0;
 
-    final updatedProduct = Product(
+    final updated = Product(
       id: widget.product.id,
       ownerId: widget.product.ownerId,
       name: name,
+      nameLowercase: name.toLowerCase(),
       price: price,
       location: location.isEmpty ? 'Не указано' : location,
-      images: List.from(_imagePaths),
-      createdAt: widget.product.createdAt,
-      category: _selectedCategory ?? '',
-      subcategory: _selectedSubcategory ?? '',
+      images: List<String>.from(_imagePaths),
+      categoryPath: _categoryPath,
       description: descriptionController.text.trim(),
       brand: brandController.text.trim(),
       minRentDays: rentDays,
       minRentHours: rentHours,
       isPricePerHour: _isPricePerHour,
+      createdAt: widget.product.createdAt,
     );
 
-    ProductData.updateProduct(widget.product.id, updatedProduct);
-    SnackBarCustom.show(context, message: 'Товар обновлён');
-    context.read<AuthProvider>().notifyListeners();
-    Navigator.pop(context, true);
+    try {
+      await ProductService.updateProduct(updated);
+      context.read<BottomNavProvider>().incrementHomeRefreshCounter();
+      if (!mounted) return;
+      SnackBarCustom.show(context, message: 'Товар обновлён');
+      Navigator.pop(context, true);
+    } catch (_) {
+      if (!mounted) return;
+      SnackBarCustom.show(context, message: 'Ошибка обновления');
+    }
   }
 
-  void _deleteProduct() {
+  Future<void> _deleteProduct() async {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.whiteAntique,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
+        backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Text(
+          'Удалить товар',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
         ),
-        title: const Text('Удалить товар',
-            style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.oliveGray)),
-        content: const Text('Вы уверены? Товар исчезнет навсегда.',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.normal,
-                color: AppColors.oliveGray)),
+        content: Text(
+          'Вы уверены? Товар исчезнет навсегда.',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: AppColors.oliveGray)),
+            child: Text(
+              'Отмена',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
+            ),
           ),
           TextButton(
-            onPressed: () {
-              ProductData.deleteProduct(widget.product.id);
-              context.read<AuthProvider>().notifyListeners();
-              Navigator.pop(ctx);
-              Navigator.pop(context, true);
-              SnackBarCustom.show(context, message: 'Товар удалён');
+            onPressed: () async {
+              final navigatorCtx = Navigator.of(ctx);
+              final navigatorContext = Navigator.of(context);
+              try {
+                await ProductService.deleteProduct(widget.product.id);
+                if (!mounted) return;
+                navigatorCtx.pop();
+                navigatorContext.pop(true);
+                SnackBarCustom.show(context, message: 'Товар удалён');
+              } catch (_) {
+                if (!mounted) return;
+                SnackBarCustom.show(context, message: 'Ошибка удаления');
+              }
             },
-            child: const Text('Удалить',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                    color: AppColors.copper)),
+            child: Text(
+              'Удалить',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -212,6 +221,7 @@ class _EditProductState extends State<EditProduct> {
     final price = int.tryParse(priceText);
     final commission = price != null ? Product.commissionForPrice(price) : null;
     final commissionRate = price != null ? (price > 1000 ? 3 : 5) : null;
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Padding(
@@ -223,18 +233,14 @@ class _EditProductState extends State<EditProduct> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        size: 24, color: AppColors.oliveGray),
+                    icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
                     onPressed: () => Navigator.pop(context),
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(width: 5),
-                  const Text(
+                  Text(
                     'Редактировать товар',
-                    style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.oliveGray),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                   ),
                 ],
               ),
@@ -254,11 +260,10 @@ class _EditProductState extends State<EditProduct> {
                           width: 100,
                           margin: const EdgeInsets.only(right: 10),
                           decoration: BoxDecoration(
-                            color: AppColors.whiteAntique,
+                            color: theme.cardTheme.color ?? theme.colorScheme.surface,
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          child: const Icon(Icons.add_a_photo,
-                              color: AppColors.oliveGray),
+                          child: Icon(Icons.add_a_photo, color: theme.colorScheme.onSurface),
                         ),
                       )
                           : const SizedBox.shrink();
@@ -271,10 +276,7 @@ class _EditProductState extends State<EditProduct> {
                         margin: const EdgeInsets.only(right: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(15),
-                          image: DecorationImage(
-                            image: FileImage(File(_imagePaths[index])),
-                            fit: BoxFit.cover,
-                          ),
+                          image: DecorationImage(image: FileImage(File(_imagePaths[index])), fit: BoxFit.cover),
                         ),
                       ),
                     );
@@ -284,31 +286,11 @@ class _EditProductState extends State<EditProduct> {
               const SizedBox(height: 10),
               AppTextField(controller: nameController, hint: 'Название товара'),
               const SizedBox(height: 10),
-              AppDropdownMenu(
-                key: ValueKey('category_$_selectedCategory'),
-                value: _selectedCategory,
-                hint: 'Категория',
-                options: categories.map((cat) => cat.name).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                    _selectedSubcategory = null;
-                  });
+              CategoryPicker(
+                initialPath: _categoryPath,
+                onPathChanged: (path) {
+                  setState(() => _categoryPath = path);
                 },
-              ),
-              const SizedBox(height: 10),
-              AppDropdownMenu(
-                key: ValueKey('subcategory_$_selectedCategory'),
-                value: _selectedSubcategory,
-                hint: 'Подкатегория',
-                options: _selectedCategory != null
-                    ? categories
-                    .firstWhere((c) => c.name == _selectedCategory)
-                    .subcategories
-                    : [],
-                onChanged: _selectedCategory != null
-                    ? (value) => setState(() => _selectedSubcategory = value)
-                    : null,
               ),
               const SizedBox(height: 10),
               AppTextField(controller: brandController, hint: 'Бренд'),
@@ -325,9 +307,7 @@ class _EditProductState extends State<EditProduct> {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     'Сервисный сбор $commissionRate% (~ $commission ₽)',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.oliveGray.withOpacity(0.6)),
+                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.6)),
                   ),
                 ),
               const SizedBox(height: 10),
@@ -340,41 +320,26 @@ class _EditProductState extends State<EditProduct> {
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: _isPricePerHour
-                              ? Colors.transparent
-                              : AppColors.copper,
+                          color: _isPricePerHour ? Colors.transparent : theme.primaryColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _isPricePerHour
-                                ? AppColors.oliveGray.withOpacity(0.3)
-                                : AppColors.copper,
+                            color: _isPricePerHour ? theme.colorScheme.onSurface.withOpacity(0.3) : theme.primaryColor,
                             width: 1.5,
                           ),
                           boxShadow: _isPricePerHour
                               ? []
-                              : [
-                            BoxShadow(
-                              color: AppColors.copper.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
+                              : [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.calendar_today,
-                                size: 18,
-                                color: _isPricePerHour
-                                    ? AppColors.oliveGray
-                                    : Colors.white),
+                            Icon(Icons.calendar_today, size: 18,
+                                color: _isPricePerHour ? theme.colorScheme.onSurface : Colors.white),
                             const SizedBox(width: 8),
                             Text('за день',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: _isPricePerHour
-                                        ? AppColors.oliveGray
-                                        : Colors.white)),
+                                    color: _isPricePerHour ? theme.colorScheme.onSurface : Colors.white)),
                           ],
                         ),
                       ),
@@ -388,41 +353,26 @@ class _EditProductState extends State<EditProduct> {
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: _isPricePerHour
-                              ? AppColors.copper
-                              : Colors.transparent,
+                          color: _isPricePerHour ? theme.primaryColor : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _isPricePerHour
-                                ? AppColors.copper
-                                : AppColors.oliveGray.withOpacity(0.3),
+                            color: _isPricePerHour ? theme.primaryColor : theme.colorScheme.onSurface.withOpacity(0.3),
                             width: 1.5,
                           ),
                           boxShadow: _isPricePerHour
-                              ? [
-                            BoxShadow(
-                              color: AppColors.copper.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            )
-                          ]
+                              ? [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
                               : [],
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.schedule,
-                                size: 18,
-                                color: _isPricePerHour
-                                    ? Colors.white
-                                    : AppColors.oliveGray),
+                            Icon(Icons.schedule, size: 18,
+                                color: _isPricePerHour ? Colors.white : theme.colorScheme.onSurface),
                             const SizedBox(width: 8),
                             Text('за час',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: _isPricePerHour
-                                        ? Colors.white
-                                        : AppColors.oliveGray)),
+                                    color: _isPricePerHour ? Colors.white : theme.colorScheme.onSurface)),
                           ],
                         ),
                       ),
@@ -433,10 +383,7 @@ class _EditProductState extends State<EditProduct> {
               const SizedBox(height: 10),
               AppTextField(
                 controller: daysController,
-                hint: _isPricePerHour
-                    ? 'Минимальный срок (часы)'
-                    : 'Минимальный срок (дни)',
-                maxLines: 1,
+                hint: _isPricePerHour ? 'Минимальный срок (часы)' : 'Минимальный срок (дни)',
                 keyboardType: TextInputType.number,
                 maxLength: 3,
                 validator: (v) {
@@ -444,8 +391,7 @@ class _EditProductState extends State<EditProduct> {
                   final value = int.tryParse(v.trim());
                   final maxVal = _isPricePerHour ? 720 : 365;
                   final unit = _isPricePerHour ? 'час' : 'день';
-                  if (value == null || value < 1)
-                    return 'Срок должен быть ≥ 1 $unit';
+                  if (value == null || value < 1) return 'Срок должен быть ≥ 1 $unit';
                   if (value > maxVal) return 'Максимум $maxVal $unit';
                   return null;
                 },
@@ -453,22 +399,17 @@ class _EditProductState extends State<EditProduct> {
               const SizedBox(height: 10),
               GestureDetector(
                 onTap: () async {
-                  final result = await Navigator.push(
-                    context,
+                  final navigator = Navigator.of(context);
+                  final result = await navigator.push(
                     MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
                   );
+                  if (!mounted) return;
                   if (result != null) {
-                    setState(() {
-                      locationController.text = result['address'] ?? '';
-                    });
+                    setState(() => locationController.text = result['address'] ?? '');
                   }
                 },
                 child: AbsorbPointer(
-                  child: AppTextField(
-                    controller: locationController,
-                    hint: 'Местоположение (нажмите для выбора)',
-                    maxLength: 200,
-                  ),
+                  child: AppTextField(controller: locationController, hint: 'Местоположение (нажмите для выбора)', maxLength: 200),
                 ),
               ),
               const SizedBox(height: 10),
@@ -482,29 +423,25 @@ class _EditProductState extends State<EditProduct> {
               ElevatedButton(
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.copper,
-                  foregroundColor: AppColors.spaceCream,
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text('Сохранить изменения',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                child: const Text('Сохранить изменения', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: _deleteProduct,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade700,
+                  backgroundColor: theme.colorScheme.error,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text('Удалить товар',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                child: const Text('Удалить товар', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
             ],

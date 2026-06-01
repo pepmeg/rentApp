@@ -1,14 +1,15 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/product_data.dart';
 import '../../models/activeLease.dart';
 import '../../models/lease_request.dart';
 import '../../pages/productScreen.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/LeaseRequestProvider.dart';
 import '../../provider/activeLeasesProvider.dart';
-import '../../utils/colors.dart';
+import '../../services/connectivityService.dart';
+import '../../services/product_service.dart';
 import '../../utils/snackbar_custom.dart';
 import 'lease_calendar.dart';
 
@@ -20,8 +21,8 @@ class LeaseCard extends StatefulWidget {
   State<LeaseCard> createState() => _LeaseCardState();
 }
 
-class _LeaseCardState extends State<LeaseCard>
-    with SingleTickerProviderStateMixin {
+
+class _LeaseCardState extends State<LeaseCard> with SingleTickerProviderStateMixin {
   late Timer _timer;
   String _durationText = '';
   bool _showCalendar = false;
@@ -30,14 +31,14 @@ class _LeaseCardState extends State<LeaseCard>
   late AnimationController _calendarAnimController;
   late Animation<double> _calendarAnimation;
 
+  bool get _isHourly => widget.lease.isHourly;
+
   @override
   void initState() {
     super.initState();
     _updateDuration();
-    _timer =
-        Timer.periodic(const Duration(seconds: 60), (_) => _updateDuration());
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _updateDuration());
     _displayMonth = DateTime(DateTime.now().year, DateTime.now().month);
-
     _calendarAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -73,15 +74,14 @@ class _LeaseCardState extends State<LeaseCard>
       final diff = now.difference(lease.startDate!);
       final days = diff.inDays;
       final hours = diff.inHours % 24;
-      final product = ProductData.getProductById(lease.productId);
-      final isHourly = product?.isPricePerHour ?? false;
 
-      if (isHourly) {
-        final totalHours = diff.inHours;
-        _durationText = totalHours > 0 ? '$totalHours ч.' : 'менее часа';
+      if (_isHourly) {
+        int totalHours = diff.inHours;
+        if (diff.inMinutes % 60 > 0 || diff.inSeconds % 60 > 0) totalHours++;
+        _durationText = '$totalHours ч.';
       } else {
         if (days > 0) {
-          _durationText = '$days дн. ${hours}ч';
+          _durationText = '$days дн. $hours ч';
         } else if (hours > 0) {
           _durationText = '$hours ч.';
         } else {
@@ -97,72 +97,91 @@ class _LeaseCardState extends State<LeaseCard>
   void _cancelPendingLease() {
     final lease = widget.lease;
     if (lease.status != LeaseStatus.pending) return;
-    context
-        .read<ActiveLeasesProvider>()
-        .removePendingLeaseByProductId(lease.productId);
+    context.read<ActiveLeasesProvider>().removePendingLeaseByProductId(lease.productId);
     final requestProvider = context.read<LeaseRequestProvider>();
-    final requests = requestProvider.requests;
-    final relatedRequest = requests.cast<LeaseRequest?>().firstWhere(
-          (r) =>
-      r!.productId == lease.productId &&
-          r.status == RequestStatus.pending,
-      orElse: () => null,
-    );
-    if (relatedRequest != null) {
-      requestProvider.rejectRequest(relatedRequest.id);
+
+    if (lease.requestId != null) {
+      requestProvider.rejectRequest(
+        lease.requestId!,
+        leasesProvider: context.read<ActiveLeasesProvider>(),
+      );
+    } else {
+      final requests = requestProvider.requests;
+      final relatedRequest = requests.cast<LeaseRequest?>().firstWhere(
+            (r) => r!.productId == lease.productId && r.status == RequestStatus.pending,
+        orElse: () => null,
+      );
+      if (relatedRequest != null) {
+        requestProvider.rejectRequest(
+          relatedRequest.firestoreDocId,
+          leasesProvider: context.read<ActiveLeasesProvider>(),
+        );
+      }
     }
     SnackBarCustom.show(context, message: 'Запрос отменён');
   }
 
+  void _completeLease() {
+    final leasesProvider = context.read<ActiveLeasesProvider>();
+    final leaseRequestProvider = context.read<LeaseRequestProvider>();
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return;
+    leasesProvider.requestCompleteLease(widget.lease.productId);
+    leaseRequestProvider.requestCompleteLease(
+      widget.lease,
+      userId: user.uid,
+      requesterRating: user.rating,
+      leasesProvider: leasesProvider,
+    );
+    SnackBarCustom.show(context, message: 'Запрос на завершение отправлен владельцу');
+  }
+
   String _priceUnit() {
-    final product = ProductData.getProductById(widget.lease.productId);
-    final bool isHourly = product?.isPricePerHour ?? false;
-    return isHourly ? '₽/час' : '₽/день';
+    return _isHourly ? '₽/час' : '₽/день';
+  }
+
+  Future<void> _openProduct() async {
+    try {
+      final product = await ProductService.getProductById(widget.lease.productId);
+      if (product != null && mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ProductScreen(product: product)),
+        );
+      }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final lease = widget.lease;
     final bool isPending = lease.status == LeaseStatus.pending;
-    final bool isActive =
-        lease.status == LeaseStatus.active && !lease.isCompleted;
-
-    final product = ProductData.getProductById(lease.productId);
-    final bool isHourly = product?.isPricePerHour ?? false;
+    final bool isActive = lease.status == LeaseStatus.active && !lease.isCompleted;
+    final connectivity = context.read<ConnectivityService>();
+    final theme = Theme.of(context);
 
     return InkWell(
-      onTap: _showCalendar
-          ? null
-          : () {
-        if (product != null) {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => ProductScreen(product: product)));
-        } else {
-          SnackBarCustom.show(context, message: 'Товар не найден');
-        }
-      },
+      onTap: _openProduct,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-        padding:
-        const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
         decoration: BoxDecoration(
-          color: AppColors.whiteAntique,
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок и статус
             Row(
               children: [
                 Expanded(
-                  child: Text(lease.name,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.oliveGray)),
+                  child: Text(
+                    lease.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -171,59 +190,52 @@ class _LeaseCardState extends State<LeaseCard>
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isPending
-                        ? AppColors.yellowSchoolBus
+                        ? Colors.amber
                         : (isActive
-                        ? AppColors.lightGreen
-                        : AppColors.copper.withOpacity(0.15)),
+                        ? theme.primaryColor.withOpacity(0.2)
+                        : theme.primaryColor.withOpacity(0.15)),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Text(
-                    isPending
-                        ? 'Ожидание'
-                        : (isActive ? 'В аренде' : 'На проверке'),
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.oliveGray),
+                    isPending ? 'Ожидание' : (isActive ? 'В аренде' : 'На проверке'),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            // Анимированная строка: время ↔ цена
             if (!isPending)
               AnimatedCrossFade(
                 duration: const Duration(milliseconds: 300),
-                crossFadeState: _showCalendar
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
+                crossFadeState: _showCalendar ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                 firstChild: Row(
                   children: [
                     GestureDetector(
                       onTap: _toggleCalendar,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.spaceCream,
+                          color: theme.colorScheme.background,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.calendar_today,
-                                size: 16, color: AppColors.oliveGray),
+                            Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.onSurface),
                             const SizedBox(width: 6),
                             Text(
                               _durationText.isNotEmpty
                                   ? _durationText
-                                  : (isHourly
-                                  ? '${lease.currentDay} ч.'
-                                  : '${lease.currentDay} дн.'),
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.oliveGray),
+                                  : (_isHourly ? '${lease.currentDay} ч.' : '${lease.currentDay} дн.'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: theme.colorScheme.onSurface,
+                              ),
                             ),
                           ],
                         ),
@@ -232,10 +244,11 @@ class _LeaseCardState extends State<LeaseCard>
                     const Spacer(),
                     Text(
                       '${lease.pricePerDay} ${_priceUnit()}',
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.oliveGray),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
@@ -243,10 +256,11 @@ class _LeaseCardState extends State<LeaseCard>
                   children: [
                     Text(
                       '${lease.pricePerDay} ${_priceUnit()}',
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.oliveGray),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
@@ -259,10 +273,11 @@ class _LeaseCardState extends State<LeaseCard>
                       alignment: Alignment.centerLeft,
                       child: Text(
                         '${lease.pricePerDay} ${_priceUnit()}',
-                        style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.oliveGray),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
                     ),
                   ),
@@ -296,11 +311,9 @@ class _LeaseCardState extends State<LeaseCard>
                 child: OutlinedButton.icon(
                   onPressed: _cancelPendingLease,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.oliveGray,
-                    side: BorderSide(
-                        color: AppColors.oliveGray.withOpacity(0.3)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: theme.colorScheme.onSurface,
+                    side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   icon: const Icon(Icons.close, size: 18),
@@ -315,43 +328,44 @@ class _LeaseCardState extends State<LeaseCard>
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.copper.withOpacity(0.1),
+                  color: theme.primaryColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text('Ожидание подтверждения',
-                    style: TextStyle(color: AppColors.copper)),
+                child: Text(
+                  'Ожидание подтверждения',
+                  style: TextStyle(color: theme.primaryColor),
+                ),
               ),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    final leaseRequestProvider =
-                    context.read<LeaseRequestProvider>();
-                    final leasesProvider =
-                    context.read<ActiveLeasesProvider>();
-                    final requests = leaseRequestProvider.requests;
-                    final completionRequest =
-                    requests.cast<LeaseRequest?>().firstWhere(
-                          (r) =>
-                      r!.productId == lease.productId &&
-                          r.type == RequestType.completion &&
-                          r.status == RequestStatus.pending,
-                      orElse: () => null,
-                    );
+                  onPressed: () async {
+                    final leaseRequestProvider = context.read<LeaseRequestProvider>();
+                    final leasesProvider = context.read<ActiveLeasesProvider>();
+                    LeaseRequest? completionRequest;
+                    for (final r in leaseRequestProvider.requests) {
+                      if (r.productId == lease.productId && r.type == RequestType.completion && r.status == RequestStatus.pending) {
+                        completionRequest = r;
+                        break;
+                      }
+                    }
                     if (completionRequest != null) {
-                      leaseRequestProvider.rejectCompletion(
-                          completionRequest.id, leasesProvider);
-                      SnackBarCustom.show(context,
-                          message: 'Запрос на завершение отменён');
+                      final docRef = FirebaseFirestore.instance.collection("lease_requests").doc(completionRequest.firestoreDocId);
+                      await docRef.update({
+                        'type': RequestType.lease.index,
+                        'status': RequestStatus.accepted.index,
+                      });
+                      completionRequest.type = RequestType.lease;
+                      completionRequest.status = RequestStatus.accepted;
+                      leaseRequestProvider.notifyListeners();
+                      await leasesProvider.cancelCompletionRequest(lease.productId);
                     }
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.oliveGray,
-                    side: BorderSide(
-                        color: AppColors.oliveGray.withOpacity(0.3)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: theme.colorScheme.onSurface,
+                    side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   icon: const Icon(Icons.undo, size: 18),
@@ -359,43 +373,27 @@ class _LeaseCardState extends State<LeaseCard>
                 ),
               ),
             ],
-            if (isActive) ...[
+            if (isActive && !(context.read<AuthProvider>().currentUser?.blocked ?? false)) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    final leasesProvider =
-                    context.read<ActiveLeasesProvider>();
-                    final leaseRequestProvider =
-                    context.read<LeaseRequestProvider>();
-                    final user =
-                        context.read<AuthProvider>().currentUser;
-                    if (user == null) return;
-                    leasesProvider
-                        .requestCompleteLease(lease.productId);
-                    leaseRequestProvider.addRequest(LeaseRequest(
-                      id: DateTime.now().millisecondsSinceEpoch,
-                      productId: lease.productId,
-                      productName: lease.name,
-                      pricePerDay: lease.pricePerDay,
-                      totalDays: lease.totalDays,
-                      requesterId: user.id,
-                      requesterFirstName: user.firstName,
-                      requesterLastName: user.lastName,
-                      requesterAvatarPath: user.avatarPath,
-                      ownerId: lease.ownerId,
-                      type: RequestType.completion,
-                    ));
-                    SnackBarCustom.show(context,
-                        message:
-                        'Запрос на завершение отправлен владельцу');
+                    if (!connectivity.hasInternet) {
+                      SnackBarCustom.show(
+                        context,
+                        message: 'Нет интернета. Действие будет выполнено при подключении.',
+                        actionLabel: 'Повторить',
+                        onAction: () => _completeLease(),
+                      );
+                      return;
+                    }
+                    _completeLease();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.copper,
-                    foregroundColor: AppColors.whiteAntique,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     elevation: 0,
                   ),
@@ -413,13 +411,10 @@ class _LeaseCardState extends State<LeaseCard>
   bool _canGoPreviousMonth() {
     final start = widget.lease.startDate;
     if (start == null) return false;
-    final firstDayOfPrev =
-    DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
-    final lastDayOfPrev =
-    DateTime(_displayMonth.year, _displayMonth.month, 0);
+    final firstDayOfPrev = DateTime(_displayMonth.year, _displayMonth.month - 1, 1);
+    final lastDayOfPrev = DateTime(_displayMonth.year, _displayMonth.month, 0);
     final today = DateTime.now();
-    return lastDayOfPrev
-        .isAfter(start.subtract(const Duration(days: 1))) &&
+    return lastDayOfPrev.isAfter(start.subtract(const Duration(days: 1))) &&
         firstDayOfPrev.isBefore(today);
   }
 
@@ -427,8 +422,7 @@ class _LeaseCardState extends State<LeaseCard>
     final start = widget.lease.startDate;
     if (start == null) return false;
     final today = DateTime.now();
-    final firstDayOfNext =
-    DateTime(_displayMonth.year, _displayMonth.month + 1, 1);
+    final firstDayOfNext = DateTime(_displayMonth.year, _displayMonth.month + 1, 1);
     return firstDayOfNext.isBefore(today) &&
         firstDayOfNext.isAfter(start.subtract(const Duration(days: 1)));
   }

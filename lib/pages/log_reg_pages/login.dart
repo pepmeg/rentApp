@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../pages/registration.dart';
-import '../provider/chat_provider.dart';
-import '../utils/colors.dart';
-import '../provider/AuthProvider.dart';
-import '../provider/bottom_nav_provider.dart';
-import '../utils/form_fields.dart';
-import '../utils/snackbar_custom.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'registration.dart';
+import '../../provider/AuthProvider.dart';
+import '../../utils/form_fields.dart';
+import '../../utils/snackbar_custom.dart';
 
 class Login extends StatefulWidget {
   @override
@@ -30,17 +28,23 @@ class LoginState extends State<Login> {
       emailController.text.trim(),
       passwordController.text,
     );
-
     if (error == null) {
-      context.read<BottomNavProvider>().setIndex(0);
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } else {
+      if (error == 'Нет подключения к интернету') {
+        final cachedEmail = await SharedPreferences.getInstance().then((prefs) => prefs.getString('cached_user_email'));
+        if (cachedEmail == emailController.text.trim()) {
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          return;
+        }
+      }
       SnackBarCustom.show(context, message: error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -52,9 +56,9 @@ class LoginState extends State<Login> {
                 'Войдите в аккаунт',
                 style: TextStyle(fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.oliveGray),
+                    color: theme.colorScheme.onSurface),
               ),
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -62,17 +66,18 @@ class LoginState extends State<Login> {
                     'Почта',
                     style: TextStyle(fontSize: 16,
                         fontWeight: FontWeight.normal,
-                        color: AppColors.oliveGray),
+                        color: theme.colorScheme.onSurface),
                   ),
                 ],
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               AppTextField(
                 controller: emailController,
                 hint: 'yourmail@shrestha.com',
                 keyboardType: TextInputType.emailAddress,
+                maxLines: 1,
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -80,11 +85,11 @@ class LoginState extends State<Login> {
                     'Пароль',
                     style: TextStyle(fontSize: 16,
                         fontWeight: FontWeight.normal,
-                        color: AppColors.oliveGray),
+                        color: theme.colorScheme.onSurface),
                   ),
                 ],
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               AppTextField(
                 controller: passwordController,
                 hint: '••••••••',
@@ -92,49 +97,49 @@ class LoginState extends State<Login> {
                 obscure: true,
                 isPassword: true,
               ),
-              SizedBox(height: 70),
+              const SizedBox(height: 70),
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
                   return ElevatedButton(
                     onPressed: authProvider.isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.copper,
-                      foregroundColor: AppColors.oliveGray,
+                      backgroundColor: theme.primaryColor,
+                      foregroundColor: theme.colorScheme.onPrimary,
                       minimumSize: const Size(double.infinity, 48),
-                      padding: const EdgeInsetsGeometry.symmetric(vertical: 5),
+                      padding: const EdgeInsets.symmetric(vertical: 5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: authProvider.isLoading
-                        ? CircularProgressIndicator()
+                        ? const CircularProgressIndicator()
                         : Text(
                       'Войти',
                       style: TextStyle(fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.spaceCream),
+                          color: theme.colorScheme.onPrimary),
                     ),
                   );
                 },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               Text(
                 'Нет аккаунта?',
                 style: TextStyle(fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.oliveGray),
+                    color: theme.colorScheme.onSurface),
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => Registration()));
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.oliveGray,
-                  foregroundColor: AppColors.oliveGray,
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   minimumSize: const Size(double.infinity, 48),
-                  padding: const EdgeInsetsGeometry.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -143,7 +148,7 @@ class LoginState extends State<Login> {
                   'Создать аккаунт',
                   style: TextStyle(fontSize: 16,
                       fontWeight: FontWeight.normal,
-                      color: AppColors.spaceCream),
+                      color: theme.colorScheme.onPrimary),
                 ),
               ),
             ],

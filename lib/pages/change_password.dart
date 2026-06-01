@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../provider/AuthProvider.dart';
-import '../utils/colors.dart';
 import '../utils/snackbar_custom.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -47,8 +45,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.spaceCream,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
         child: Column(
@@ -57,14 +56,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 24, color: AppColors.oliveGray),
+                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
                   onPressed: () => Navigator.pop(context),
                   constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 5),
-                const Text(
+                Text(
                   'Смена пароля',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.oliveGray),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
                 ),
               ],
             ),
@@ -92,8 +91,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               child: ElevatedButton(
                 onPressed: _changePassword,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.copper,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -116,27 +115,28 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     required String label,
     required IconData icon,
   }) {
+    final theme = Theme.of(context);
     return TextField(
       controller: controller,
       obscureText: true,
-      style: const TextStyle(fontSize: 16, color: AppColors.oliveGray),
+      style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: AppColors.oliveGray.withOpacity(0.7), size: 22),
+        prefixIcon: Icon(icon, color: theme.colorScheme.onSurface.withOpacity(0.7), size: 22),
         labelText: label,
-        labelStyle: TextStyle(color: AppColors.oliveGray.withOpacity(0.7)),
+        labelStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
         filled: true,
-        fillColor: AppColors.whiteAntique,
+        fillColor: theme.cardTheme.color ?? theme.colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: AppColors.oliveGray.withOpacity(0.2)),
+          borderSide: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: AppColors.oliveGray, width: 2),
+          borderSide: BorderSide(color: theme.colorScheme.onSurface, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),

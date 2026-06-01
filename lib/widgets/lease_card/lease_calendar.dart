@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../utils/colors.dart';
 
 class LeaseCalendar extends StatelessWidget {
   final DateTime startDate;
@@ -30,7 +29,7 @@ class LeaseCalendar extends StatelessWidget {
     final firstDayOfMonth = DateTime(displayMonth.year, displayMonth.month, 1);
     final lastDayOfMonth = DateTime(displayMonth.year, displayMonth.month + 1, 0);
     final daysInMonth = lastDayOfMonth.day;
-    final int offsetPrev = (firstDayOfMonth.weekday - 1); // пн=0
+    final int offsetPrev = (firstDayOfMonth.weekday - 1);
 
     final List<DateTime> allDays = [];
     final prevMonthLastDay = DateTime(displayMonth.year, displayMonth.month, 0);
@@ -50,6 +49,7 @@ class LeaseCalendar extends StatelessWidget {
 
     final cleanStart = DateTime(startDate.year, startDate.month, startDate.day);
     final cleanToday = DateTime(today.year, today.month, today.day);
+    final theme = Theme.of(context);
 
     return GestureDetector(
       onTap: () {},
@@ -57,7 +57,7 @@ class LeaseCalendar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.whiteAntique,
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: GestureDetector(
@@ -88,13 +88,16 @@ class LeaseCalendar extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: onClose,
-                        child: const Icon(Icons.close, size: 20, color: AppColors.oliveGray),
+                        child: Icon(Icons.close, size: 20, color: theme.colorScheme.onSurface),
                       ),
                       const Spacer(),
                       Text(
                         DateFormat('LLLL yyyy', 'ru').format(displayMonth),
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.oliveGray),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
                       ),
                       const Spacer(),
                       const SizedBox(width: 20),
@@ -104,7 +107,13 @@ class LeaseCalendar extends StatelessWidget {
                   Row(
                     children: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((d) => Expanded(
                       child: Center(
-                        child: Text(d, style: TextStyle(fontSize: 11, color: AppColors.oliveGray.withOpacity(0.6))),
+                        child: Text(
+                          d,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
                       ),
                     )).toList(),
                   ),
@@ -141,7 +150,7 @@ class LeaseCalendar extends StatelessWidget {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: isInRange
-                              ? AppColors.copper.withOpacity(0.25)
+                              ? theme.primaryColor.withOpacity(0.25)
                               : Colors.transparent,
                           borderRadius: borderRadius,
                         ),
@@ -152,11 +161,11 @@ class LeaseCalendar extends StatelessWidget {
                             fontWeight: isInRange ? FontWeight.w600 : FontWeight.normal,
                             color: isCurrentMonth
                                 ? (isInRange
-                                ? AppColors.oliveGray
-                                : AppColors.oliveGray.withOpacity(0.8))
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withOpacity(0.8))
                                 : (isInRange
-                                ? AppColors.oliveGray.withOpacity(0.6)
-                                : AppColors.oliveGray.withOpacity(0.3)),
+                                ? theme.colorScheme.onSurface.withOpacity(0.6)
+                                : theme.colorScheme.onSurface.withOpacity(0.3)),
                           ),
                         ),
                       );

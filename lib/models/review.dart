@@ -1,7 +1,7 @@
 class Review {
-  final int id;
-  final int productId;
-  final int userId;
+  final String id;
+  final String productId;
+  final String userId;
   final String userName;
   final String userAvatarPath;
   final DateTime createdAt;
@@ -20,7 +20,6 @@ class Review {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
     'productId': productId,
     'userId': userId,
     'userName': userName,
@@ -30,14 +29,14 @@ class Review {
     'text': text,
   };
 
-  factory Review.fromJson(Map<String, dynamic> json) => Review(
-    id: json['id'],
-    productId: json['productId'],
-    userId: json['userId'],
-    userName: json['userName'],
-    userAvatarPath: json['userAvatarPath'] ?? '',
-    createdAt: DateTime.parse(json['createdAt']),
-    rating: json['rating'],
-    text: json['text'],
+  factory Review.fromJson(Map<String, dynamic> json, {required String docId}) => Review(
+    id: docId,
+    productId: json['productId'] as String,
+    userId: json['userId'] as String,
+    userName: json['userName'] as String,
+    userAvatarPath: json['userAvatarPath'] as String? ?? '',
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    rating: json['rating'] as int,
+    text: json['text'] as String,
   );
 }

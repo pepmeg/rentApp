@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
 
 class SnackBarCustom {
   static void show(
@@ -8,32 +7,33 @@ class SnackBarCustom {
         String? actionLabel,
         VoidCallback? onAction,
       }) {
+    final theme = Theme.of(context);
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(
             message,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.normal,
-              color: AppColors.whiteAntique,
+              color: theme.colorScheme.onPrimary,
             ),
           ),
-          action: actionLabel != null
+          action: actionLabel != null && onAction != null
               ? SnackBarAction(
             label: actionLabel,
-            textColor: AppColors.copper,
-            onPressed: onAction ?? () {},
+            textColor: theme.colorScheme.primary,
+            onPressed: onAction,
           )
               : null,
-          backgroundColor: AppColors.oliveGray,
+          backgroundColor: theme.colorScheme.primaryContainer ?? theme.colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 5),
         ),
       );
   }

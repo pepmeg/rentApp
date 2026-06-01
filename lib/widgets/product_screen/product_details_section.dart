@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/product.dart';
-import '../../utils/colors.dart';
+import '../../services/category_service.dart';
 import '../../widgets/plural.dart';
 
 class ProductDetailsSection extends StatelessWidget {
@@ -10,62 +11,121 @@ class ProductDetailsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final categoryService = context.watch<CategoryService>();
+    final theme = Theme.of(context);
+
+    String categoryName = 'Не указана';
+    String subcategoryName = '';
+    if (product.categoryPath.isNotEmpty) {
+      final rootId = product.categoryPath.first;
+      final rootNode = categoryService.getCategoryById(rootId);
+      categoryName = rootNode?.name ?? 'Не указана';
+      if (product.categoryPath.length > 1) {
+        final subId = product.categoryPath[1];
+        final subNode = categoryService.getCategoryById(subId);
+        subcategoryName = subNode?.name ?? '';
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          color: AppColors.spaceCream,
+          color: theme.colorScheme.surface,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Подробности', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+            Text(
+              'Подробности',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 2),
-            _buildRow('Категория:', product.category.isNotEmpty ? product.category : 'Не указана'),
+            _buildRow(context, 'Категория:', categoryName),
+            if (subcategoryName.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              _buildRow(context, 'Подкатегория:', subcategoryName),
+            ],
             const SizedBox(height: 5),
-            _buildRow('Подкатегория:', product.subcategory.isNotEmpty ? product.subcategory : 'Не указана'),
-            const SizedBox(height: 5),
-            _buildRow('Бренд:', product.brand.isNotEmpty ? product.brand : 'Не указан'),
+            _buildRow(context, 'Бренд:', product.brand.isNotEmpty ? product.brand : 'Не указан'),
             const SizedBox(height: 5),
             _buildRow(
+              context,
               'Мин. срок аренды:',
               product.isPricePerHour
                   ? '${product.minRentHours} ${Plural.hours(product.minRentHours)}'
                   : '${product.minRentDays} ${Plural.days(product.minRentDays)}',
             ),
             const SizedBox(height: 5),
-            const Text('Описание', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+            Text(
+              'Описание',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 10),
             Text(
               product.description.isNotEmpty ? product.description : 'Нет описания',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 5),
-            const Text('Местоположение', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.oliveGray)),
+            Text(
+              'Местоположение',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 5),
             Text(
               product.location.isNotEmpty ? product.location : 'Не указано',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
-
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRow(String label, String value) {
+  Widget _buildRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray.withOpacity(0.5))),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.normal,
+            color: theme.colorScheme.onSurface.withOpacity(0.5),
+          ),
+        ),
         const SizedBox(width: 4),
         Flexible(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.normal,
+              color: theme.colorScheme.onSurface,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             softWrap: true,

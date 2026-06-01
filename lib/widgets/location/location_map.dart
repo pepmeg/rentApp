@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
-import '../../utils/colors.dart';
 import '../../utils/location_service/location_service.dart';
 
 class LocationMapWidget extends StatefulWidget {
@@ -97,6 +96,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Stack(
       children: [
         YandexMap(
@@ -109,8 +109,8 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
             widget.onPointChanged(position.target.latitude, position.target.longitude);
           },
         ),
-        const Center(
-          child: Icon(Icons.place, size: 48, color: AppColors.copper),
+        Center(
+          child: Icon(Icons.place, size: 48, color: theme.primaryColor),
         ),
         Positioned(
           top: 16,
@@ -118,9 +118,9 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
           child: FloatingActionButton(
             heroTag: 'location',
             mini: true,
-            backgroundColor: AppColors.whiteAntique,
+            backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
             onPressed: _goToCurrentLocation,
-            child: const Icon(Icons.my_location, color: AppColors.oliveGray),
+            child: Icon(Icons.my_location, color: theme.colorScheme.onSurface),
           ),
         ),
         if (widget.onConfirm != null)
@@ -133,8 +133,8 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
               icon: const Icon(Icons.check),
               label: const Text('Выбрать'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.copper,
-                foregroundColor: AppColors.whiteAntique,
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),

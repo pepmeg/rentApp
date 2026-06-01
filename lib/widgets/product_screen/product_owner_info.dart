@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/user.dart';
-import '../../pages/person.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/bottom_nav_provider.dart';
 import '../../utils/avatar.dart';
-import '../../utils/colors.dart';
 
 class ProductOwnerInfo extends StatelessWidget {
-  final Future<UserModel?> futureOwner;
-
-  const ProductOwnerInfo({required this.futureOwner, super.key});
+  final String ownerId;
+  static final Map<String, Future<UserModel?>> _userFutures = {};
+  const ProductOwnerInfo({required this.ownerId, super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final future = _getUserFuture(ownerId, authProvider);
+    final theme = Theme.of(context);
+
     return FutureBuilder<UserModel?>(
-      future: futureOwner,
+      future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -25,7 +27,7 @@ class ProductOwnerInfo extends StatelessWidget {
 
         return GestureDetector(
           onTap: () {
-            context.read<BottomNavProvider>().showUserProfile(owner.id);
+            context.read<BottomNavProvider>().showUserProfile(owner.uid);
             Navigator.popUntil(context, (route) => route.isFirst);
           },
           child: Padding(
@@ -39,13 +41,26 @@ class ProductOwnerInfo extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${owner.firstName} ${owner.lastName}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        '${owner.firstName} ${owner.lastName}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 5),
-                      Text('${owner.phoneNumber}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.oliveGray), overflow: TextOverflow.ellipsis),
+                      Text(
+                        owner.phoneNumber,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.normal,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -55,5 +70,14 @@ class ProductOwnerInfo extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<UserModel?> _getUserFuture(String uid, AuthProvider authProvider) {
+    if (_userFutures.containsKey(uid)) {
+      return _userFutures[uid]!;
+    }
+    final future = authProvider.getUserById(uid);
+    _userFutures[uid] = future;
+    return future;
   }
 }
