@@ -155,20 +155,35 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
-  void _showImageViewer(int messageIndex, int imageIndex) {
+  void _showImageViewer(int messageIndex, int imageIndex) async {
     final chat = _chatProvider.getChatById(widget.chat.id);
     if (chat == null) return;
     final msg = chat.messages[messageIndex];
     if (msg.images == null || msg.images!.isEmpty) return;
-    final urls = msg.images!;
+    final List<String> resolvedUrls = [];
+
+    for (final imgPath in msg.images!) {
+      if (imgPath.startsWith('http://') || imgPath.startsWith('https://')) {
+        resolvedUrls.add(imgPath);
+      } else {
+        final file = File(imgPath);
+        if (file.existsSync()) {
+          resolvedUrls.add(imgPath);
+        } else {
+          final url = await StorageService.getDownloadUrl(imgPath, cache: true);
+          resolvedUrls.add(url ?? imgPath);
+        }
+      }
+    }
+
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ImageViewer(
-          imageUrls: urls,
+          imageUrls: resolvedUrls,
           initialIndex: imageIndex,
-          onDismiss: () {
-          },
         ),
       ),
     );

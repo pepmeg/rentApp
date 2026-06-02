@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/product.dart';
 import '../models/review.dart';
-import '../models/user.dart';
 import '../pages/productScreen.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/ReviewsProvider.dart';
@@ -95,11 +94,22 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     }
   }
 
+  Set<String> _collectUserIds(List<Review> reviews) {
+    final Set<String> ids = {};
+    for (final r in reviews) {
+      if (r.userId.isNotEmpty) ids.add(r.userId);
+    }
+    return ids;
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return const SizedBox.shrink();
     final theme = Theme.of(context);
+    final auth = context.read<AuthProvider>();
+
+    final userIdsToLoad = _collectUserIds(_filteredReviews);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -195,99 +205,107 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                   ],
                 ),
               )
-                  : ListView.separated(
-                itemCount: _filteredReviews.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final review = _filteredReviews[index];
-                  final productName = _getProductName(review.productId);
-                  final dateFormatted = DateFormat('dd MMM yyyy', 'ru').format(review.createdAt);
-                  final rating = review.rating;
+                  : FutureBuilder(
+                future: userIdsToLoad.isEmpty
+                    ? Future.value(null)
+                    : auth.preloadUsers(userIdsToLoad.toList()),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting && _filteredReviews.isNotEmpty) {
+                    final cachedCount = userIdsToLoad.where((id) => auth.getCachedUser(id) != null).length;
+                    if (cachedCount == 0) {
+                      return Center(child: CircularProgressIndicator(color: theme.primaryColor));
+                    }
+                  }
 
-                  return GestureDetector(
-                    onTap: () => _onReviewTap(review.productId),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.cardTheme.color ?? theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colorScheme.onSurface.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              FutureBuilder<UserModel?>(
-                                future: context.read<AuthProvider>().getUserById(review.userId),
-                                builder: (context, snapshot) {
-                                  final author = snapshot.data;
-                                  return buildUserAvatar(author, radius: 20);
-                                },
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      review.userName,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.colorScheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      dateFormatted,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: theme.primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  productName,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: theme.colorScheme.onSurface.withOpacity(0.8),
-                                  ),
-                                ),
+                  return ListView.separated(
+                    itemCount: _filteredReviews.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final review = _filteredReviews[index];
+                      final productName = _getProductName(review.productId);
+                      final dateFormatted = DateFormat('dd MMM yyyy', 'ru').format(review.createdAt);
+                      final rating = review.rating;
+                      final author = auth.getCachedUser(review.userId);
+                      return GestureDetector(
+                        onTap: () => _onReviewTap(review.productId),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.cardTheme.color ?? theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.onSurface.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: List.generate(5, (i) => Icon(
-                              i < rating ? Icons.star : Icons.star_border,
-                              size: 18,
-                              color: AppTheme.starColor,
-                            )),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  buildUserAvatar(author, radius: 20),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          review.userName,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          dateFormatted,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: theme.primaryColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      productName,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: List.generate(5, (i) => Icon(
+                                  i < rating ? Icons.star : Icons.star_border,
+                                  size: 18,
+                                  color: AppTheme.starColor,
+                                )),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                review.text,
+                                style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            review.text,
-                            style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

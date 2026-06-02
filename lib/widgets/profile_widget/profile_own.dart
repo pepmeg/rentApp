@@ -257,14 +257,24 @@ class _ProfileOwnState extends State<ProfileOwn> {
   void _showExitMenu(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final theme = Theme.of(context);
+    final isDark = themeProvider.isDarkMode;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.only(top: 12, bottom: 24),
+        padding: const EdgeInsets.only(top: 8, bottom: 32),
         decoration: BoxDecoration(
           color: theme.cardTheme.color ?? theme.colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -273,43 +283,96 @@ class _ProfileOwnState extends State<ProfileOwn> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 20),
-            _buildMenuOption(
-              icon: Icons.brightness_6,
-              label: themeProvider.isDarkMode ? 'Светлая тема' : 'Тёмная тема',
-              color: theme.colorScheme.onSurface,
-              onTap: () {
-                Navigator.pop(ctx);
-                themeProvider.toggleTheme();
-              },
-              theme: theme,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
+              child: Row(
+                children: [
+                  Text(
+                    'Настройки',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-            _buildMenuOption(
-              icon: Icons.logout,
-              label: 'Выйти',
-              color: theme.colorScheme.onSurface,
-              onTap: () {
-                Navigator.pop(ctx);
-                _logoutAndNavigate(context);
-              },
-              theme: theme,
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                children: [
+                  _buildModernMenuItem(
+                    icon: isDark ? Icons.dark_mode : Icons.light_mode,
+                    iconColor: theme.primaryColor,
+                    title: isDark ? 'Тёмная тема' : 'Светлая тема',
+                    subtitle: isDark ? 'Включена' : 'Выключена',
+                    trailing: Switch.adaptive(
+                      value: isDark,
+                      onChanged: (_) {
+                        Navigator.pop(ctx);
+                        themeProvider.toggleTheme();
+                      },
+                      activeColor: theme.primaryColor,
+                    ),
+                    theme: theme,
+                  ),
+                ],
+              ),
             ),
-            Divider(color: theme.dividerColor, height: 1, indent: 20, endIndent: 20),
-            _buildMenuOption(
-              icon: Icons.delete_forever_outlined,
-              label: 'Удалить аккаунт',
-              color: Colors.redAccent,
-              isDestructive: true,
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmDeleteAccount(context);
-              },
-              theme: theme,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: theme.colorScheme.onSurface.withOpacity(0.1),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                children: [
+                  _buildModernMenuItem(
+                    icon: Icons.logout,
+                    iconColor: theme.colorScheme.onSurface.withOpacity(0.7),
+                    title: 'Выйти из аккаунта',
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _logoutAndNavigate(context);
+                    },
+                    theme: theme,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: theme.colorScheme.onSurface.withOpacity(0.1),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: _buildModernMenuItem(
+                icon: Icons.delete_forever_outlined,
+                iconColor: Colors.redAccent,
+                iconBgColor: Colors.redAccent.withOpacity(0.1),
+                title: 'Удалить аккаунт',
+                subtitle: 'Все данные будут удалены безвозвратно',
+                titleColor: Colors.redAccent,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmDeleteAccount(context);
+                },
+                theme: theme,
+              ),
             ),
           ],
         ),
@@ -317,33 +380,71 @@ class _ProfileOwnState extends State<ProfileOwn> {
     );
   }
 
-  Widget _buildMenuOption({
+  Widget _buildModernMenuItem({
     required IconData icon,
-    required String label,
-    required Color color,
-    bool isDestructive = false,
-    required VoidCallback onTap,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    Color? titleColor,
+    Color? iconBgColor,
+    Widget? trailing,
+    VoidCallback? onTap,
     required ThemeData theme,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        splashColor: theme.primaryColor.withOpacity(0.1),
+        highlightColor: theme.primaryColor.withOpacity(0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: color),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: isDestructive ? FontWeight.w600 : FontWeight.w500,
-                  color: color,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconBgColor ?? iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: titleColor ?? theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    if (subtitle != null && trailing == null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
+              if (trailing != null)
+                trailing
+              else if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  size: 22,
+                ),
             ],
           ),
         ),
@@ -358,6 +459,7 @@ class _ProfileOwnState extends State<ProfileOwn> {
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
+
   void _confirmDeleteAccount(BuildContext context) {
     final userId = context.read<AuthProvider>().currentUser!.uid;
     final theme = Theme.of(context);

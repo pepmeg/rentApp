@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/admin_models/report.dart';
+import '../../models/product.dart';
 import '../../models/user.dart';
 import '../../provider/bottom_nav_provider.dart';
 import '../../services/product_service.dart';
@@ -11,16 +11,11 @@ import '../../provider/AuthProvider.dart';
 import '../../utils/pagination.dart';
 import '../productScreen.dart';
 
-class _ReportCacheData {
-  final bool isLoading;
-  final UserModel? reporter;
-  final String? targetLabel;
+class _ReportBundleData {
+  final Map<String, UserModel> users;
+  final Map<String, Product> products;
 
-  _ReportCacheData({
-    this.isLoading = false,
-    this.reporter,
-    this.targetLabel,
-  });
+  _ReportBundleData({required this.users, required this.products});
 }
 
 class AdminReportsTab extends StatefulWidget {
@@ -34,8 +29,6 @@ class AdminReportsTab extends StatefulWidget {
 class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin {
   ReportTargetType? _filterTargetType;
   String _searchQuery = '';
-
-  final Map<String, _ReportCacheData> _reportDataCache = {};
 
   @override
   void initState() {
@@ -68,57 +61,65 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     reports.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return reports;
   }
+  ({Set<String> userIds, Set<String> productIds}) _collectIds(List<Report> reports) {
+    final Set<String> userIds = {};
+    final Set<String> productIds = {};
 
-  Future<void> _loadReportData(Report report, bool isProductReport) async {
-    if (_reportDataCache.containsKey(report.firestoreDocId)) return;
-    setState(() {
-      _reportDataCache[report.firestoreDocId] = _ReportCacheData(isLoading: true);
-    });
-
-    final auth = context.read<AuthProvider>();
-
-    try {
-      final reporter = await auth.getUserById(report.reporterId);
-
-      String? targetLabel;
-      if (isProductReport && report.productId != null) {
-        final productDoc = await FirebaseFirestore.instance
-            .collection('products')
-            .doc(report.productId!)
-            .get();
-        final productName = productDoc.data()?['name'] as String?;
-        targetLabel = productName != null
-            ? 'На товар "$productName"'
-            : 'На товар #${report.productId}';
-      } else if (!isProductReport && report.targetUserId != null) {
-        final targetUser = await auth.getUserById(report.targetUserId!);
-        targetLabel = targetUser != null
-            ? 'На пользователя ${targetUser.firstName} ${targetUser.lastName}'
-            : 'На пользователя #${report.targetUserId}';
-      } else {
-        targetLabel = 'Неизвестно';
+    for (final r in reports) {
+      if (r.reporterId.isNotEmpty) userIds.add(r.reporterId);
+      if (r.targetUserId != null && r.targetUserId!.isNotEmpty) {
+        userIds.add(r.targetUserId!);
       }
-
-      if (mounted) {
-        setState(() {
-          _reportDataCache[report.firestoreDocId] = _ReportCacheData(
-            isLoading: false,
-            reporter: reporter,
-            targetLabel: targetLabel,
-          );
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _reportDataCache[report.firestoreDocId] = _ReportCacheData(
-            isLoading: false,
-            reporter: null,
-            targetLabel: 'Ошибка загрузки',
-          );
-        });
+      if (r.targetType == ReportTargetType.product &&
+          r.productId != null &&
+          r.productId!.isNotEmpty) {
+        productIds.add(r.productId!);
       }
     }
+    return (userIds: userIds, productIds: productIds);
+  }
+
+  Future<_ReportBundleData> _loadBundle(List<Report> reports) async {
+    final ids = _collectIds(reports);
+    final auth = context.read<AuthProvider>();
+    await auth.preloadUsers(ids.userIds.toList());
+
+    final Map<String, UserModel> usersMap = {};
+    for (final uid in ids.userIds) {
+      final u = auth.getCachedUser(uid);
+      if (u != null) usersMap[uid] = u;
+    }
+
+    Map<String, Product> productsMap = {};
+    if (ids.productIds.isNotEmpty) {
+      try {
+        final products = await ProductService.getProductsByIds(ids.productIds.toList());
+        for (final p in products) {
+          productsMap[p.id] = p;
+        }
+      } catch (e) {
+        debugPrint('Ошибка пакетной загрузки товаров: $e');
+      }
+    }
+
+    return _ReportBundleData(users: usersMap, products: productsMap);
+  }
+
+  String _buildTargetLabel(Report report, _ReportBundleData bundle) {
+    if (report.targetType == ReportTargetType.product && report.productId != null) {
+      final product = bundle.products[report.productId!];
+      if (product != null) {
+        return 'На товар "${product.name}"';
+      }
+      return 'На товар #${report.productId}';
+    } else if (report.targetType == ReportTargetType.user && report.targetUserId != null) {
+      final user = bundle.users[report.targetUserId!];
+      if (user != null) {
+        return 'На пользователя ${user.firstName} ${user.lastName}';
+      }
+      return 'На пользователя #${report.targetUserId}';
+    }
+    return 'Неизвестно';
   }
 
   @override
@@ -130,240 +131,208 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     final currentUserId = auth.currentUser?.uid;
     final theme = Theme.of(context);
 
-    for (final report in visibleItems) {
-      final isProductReport = report.targetType == ReportTargetType.product;
-      if (!_reportDataCache.containsKey(report.firestoreDocId)) {
-        _loadReportData(report, isProductReport);
-      }
+    if (visibleItems.isEmpty) {
+      return Column(
+        children: [
+          _buildSearchBar(theme),
+          _buildFilterBar(theme),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.report_off_outlined,
+                    size: 64,
+                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Нет жалоб',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Жалобы на товары и пользователей будут отображаться здесь',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isLoading)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
+            ),
+        ],
+      );
     }
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              color: theme.colorScheme.surface,
-              child: TextField(
-                onChanged: (value) {
-                  setState(() => _searchQuery = value);
-                  resetPagination();
-                },
-                decoration: InputDecoration(
-                  hintText: 'Поиск жалоб',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
-                  prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                    icon: Icon(Icons.clear_rounded, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                    onPressed: () {
-                      setState(() => _searchQuery = '');
-                      resetPagination();
-                    },
-                  )
-                      : null,
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          child: Row(
-            children: [
-              _buildFilterChip(theme, 'Все', _filterTargetType == null, () {
-                setState(() => _filterTargetType = null);
-                resetPagination();
-                _reportDataCache.clear();
-              }),
-              const SizedBox(width: 8),
-              _buildFilterChip(theme, 'Товары', _filterTargetType == ReportTargetType.product, () {
-                setState(() => _filterTargetType = ReportTargetType.product);
-                resetPagination();
-                _reportDataCache.clear();
-              }),
-              const SizedBox(width: 8),
-              _buildFilterChip(theme, 'Пользователи', _filterTargetType == ReportTargetType.user, () {
-                setState(() => _filterTargetType = ReportTargetType.user);
-                resetPagination();
-                _reportDataCache.clear();
-              }),
-            ],
-          ),
-        ),
+        _buildSearchBar(theme),
+        _buildFilterBar(theme),
         Expanded(
-          child: visibleItems.isEmpty
-              ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.report_off_outlined,
-                  size: 64,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Нет жалоб',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Жалобы на товары и пользователей будут отображаться здесь',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          )
-              : ListView.builder(
-            controller: scrollController,
-            itemCount: visibleItems.length,
-            itemBuilder: (context, index) {
-              final report = visibleItems[index];
-              final isProductReport = report.targetType == ReportTargetType.product;
+          child: FutureBuilder<_ReportBundleData>(
+            future: _loadBundle(visibleItems),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting || !snapshot.hasData) {
+                return Center(child: CircularProgressIndicator(color: theme.primaryColor));
+              }
 
-              final cached = _reportDataCache[report.firestoreDocId];
-              final isLoading = cached?.isLoading ?? true;
-              final reporter = cached?.reporter;
-              final reporterName = reporter != null
-                  ? '${reporter.firstName} ${reporter.lastName}'
-                  : null;
-              final targetLabel = cached?.targetLabel ?? 'Загрузка...';
-              final isUnread = currentUserId != null && !report.readByUserIds.contains(currentUserId);
+              final bundle = snapshot.data!;
 
-              return Card(
-                elevation: 1,
-                shadowColor: theme.colorScheme.onSurface.withOpacity(0.08),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                color: theme.cardTheme.color ?? theme.colorScheme.surface,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () => _navigateToTarget(context, report: report, isProductReport: isProductReport),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: isProductReport ? theme.primaryColor.withOpacity(0.2) : theme.primaryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: Icon(
-                                isProductReport ? Icons.shopping_bag : Icons.person,
-                                color: theme.colorScheme.onSurface,
-                                size: 24,
-                              ),
-                            ),
-                            if (isUnread && !isLoading)
-                              Positioned(
-                                top: -4,
-                                left: -4,
-                                child: Container(
-                                  width: 14,
-                                  height: 14,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: theme.primaryColor,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () async {
-                            if (currentUserId != null && !report.readByUserIds.contains(currentUserId)) {
-                              await context.read<AdminProvider>().markReportAsRead(report.firestoreDocId, currentUserId);
-                            }
-                            _showReportDialog(
+              return ListView.builder(
+                controller: scrollController,
+                itemCount: visibleItems.length,
+                itemBuilder: (context, index) {
+                  final report = visibleItems[index];
+                  final isProductReport = report.targetType == ReportTargetType.product;
+                  final reporter = bundle.users[report.reporterId];
+                  final reporterName = reporter != null
+                      ? '${reporter.firstName} ${reporter.lastName}'
+                      : 'Пользователь ${report.reporterId}';
+                  final targetLabel = _buildTargetLabel(report, bundle);
+                  final isUnread = currentUserId != null && !report.readByUserIds.contains(currentUserId);
+
+                  return Card(
+                    elevation: 1,
+                    shadowColor: theme.colorScheme.onSurface.withOpacity(0.08),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    color: theme.cardTheme.color ?? theme.colorScheme.surface,
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _navigateToTarget(
                               context,
                               report: report,
-                              reporter: reporter,
-                              targetLabel: targetLabel,
                               isProductReport: isProductReport,
-                              currentUserId: currentUserId,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Row(
+                              bundle: bundle,
+                            ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isLoading
-                                            ? 'Загрузка...'
-                                            : (reporterName ?? 'Пользователь ${report.reporterId}'),
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        isLoading ? 'Загрузка данных...' : targetLabel,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: theme.colorScheme.onSurface.withOpacity(0.8),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        report.reason,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                        ),
-                                      ),
-                                    ],
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isProductReport
+                                        ? theme.primaryColor.withOpacity(0.2)
+                                        : theme.primaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  child: Icon(
+                                    isProductReport ? Icons.shopping_bag : Icons.person,
+                                    color: theme.colorScheme.onSurface,
+                                    size: 24,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatDate(report.createdAt),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                if (isUnread)
+                                  Positioned(
+                                    top: -4,
+                                    left: -4,
+                                    child: Container(
+                                      width: 14,
+                                      height: 14,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: theme.primaryColor,
+                                      ),
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () async {
+                                if (currentUserId != null && !report.readByUserIds.contains(currentUserId)) {
+                                  await context
+                                      .read<AdminProvider>()
+                                      .markReportAsRead(report.firestoreDocId, currentUserId);
+                                }
+                                _showReportDialog(
+                                  context,
+                                  report: report,
+                                  reporter: reporter,
+                                  targetLabel: targetLabel,
+                                  isProductReport: isProductReport,
+                                  currentUserId: currentUserId,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            reporterName,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: theme.colorScheme.onSurface,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            targetLabel,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            report.reason,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _formatDate(report.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -377,12 +346,74 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     );
   }
 
+  Widget _buildSearchBar(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Container(
+          color: theme.colorScheme.surface,
+          child: TextField(
+            onChanged: (value) {
+              setState(() => _searchQuery = value);
+              resetPagination();
+            },
+            decoration: InputDecoration(
+              hintText: 'Поиск жалоб',
+              hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
+              prefixIcon: Icon(Icons.search, color: theme.primaryColor),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                icon: Icon(Icons.clear_rounded, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                onPressed: () {
+                  setState(() => _searchQuery = '');
+                  resetPagination();
+                },
+              )
+                  : null,
+              border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterBar(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Row(
+        children: [
+          _buildFilterChip(theme, 'Все', _filterTargetType == null, () {
+            setState(() => _filterTargetType = null);
+            resetPagination();
+          }),
+          const SizedBox(width: 8),
+          _buildFilterChip(theme, 'Товары', _filterTargetType == ReportTargetType.product, () {
+            setState(() => _filterTargetType = ReportTargetType.product);
+            resetPagination();
+          }),
+          const SizedBox(width: 8),
+          _buildFilterChip(theme, 'Пользователи', _filterTargetType == ReportTargetType.user, () {
+            setState(() => _filterTargetType = ReportTargetType.user);
+            resetPagination();
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFilterChip(ThemeData theme, String label, bool selected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Chip(
         label: Text(label),
-        backgroundColor: selected ? theme.primaryColor.withOpacity(0.1) : (theme.cardTheme.color ?? theme.colorScheme.surface),
+        backgroundColor: selected
+            ? theme.primaryColor.withOpacity(0.1)
+            : (theme.cardTheme.color ?? theme.colorScheme.surface),
         labelStyle: TextStyle(
           color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
           fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -397,13 +428,14 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     return DateFormat(dateFormat).format(date);
   }
 
-  Future<void> _showReportDialog(BuildContext context, {
-    required Report report,
-    required UserModel? reporter,
-    required String targetLabel,
-    required bool isProductReport,
-    String? currentUserId,
-  }) async {
+  Future<void> _showReportDialog(
+      BuildContext context, {
+        required Report report,
+        required UserModel? reporter,
+        required String targetLabel,
+        required bool isProductReport,
+        String? currentUserId,
+      }) async {
     if (currentUserId != null && !report.readByUserIds.contains(currentUserId)) {
       report.readByUserIds.add(currentUserId);
       await context.read<AdminProvider>().markReportAsRead(report.firestoreDocId, currentUserId);
@@ -460,11 +492,20 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     );
   }
 
-  void _navigateToTarget(BuildContext context, {required Report report, required bool isProductReport}) async {
+  void _navigateToTarget(
+      BuildContext context, {
+        required Report report,
+        required bool isProductReport,
+        required _ReportBundleData bundle,
+      }) async {
     if (isProductReport && report.productId != null) {
-      final product = await ProductService.getProductById(report.productId!);
-      if (product != null && mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ProductScreen(product: product)));
+      final productId = report.productId!;
+      Product? product = bundle.products[productId];
+      if (product == null) {
+        product = await ProductService.getProductById(productId);
+      }
+      if (mounted && product != null) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ProductScreen(product: product!)));
       }
     } else if (!isProductReport && report.targetUserId != null) {
       if (mounted) {

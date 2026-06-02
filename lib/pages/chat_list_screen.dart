@@ -16,12 +16,12 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   bool _selectionMode = false;
   final Set<String> _selectedChatIds = {};
-  List<Chat>? _pinnedChats;
-  bool _isLoadingPinned = true;
-  bool _pinnedLoadingStarted = false;
   String? _lastUserId;
   bool _isManualRefresh = false;
   bool _initialLoadDone = false;
+
+  List<Chat> _cachedSortedChats = [];
+  String? _cachedChatsSignature;
 
   @override
   void initState() {
@@ -39,13 +39,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
     if (userId != null && userId != _lastUserId) {
       _lastUserId = userId;
       if (_initialLoadDone) {
+        _cachedSortedChats = [];
+        _cachedChatsSignature = null;
         _loadChatsAndPinned();
       }
     } else if (userId == null && _lastUserId != null) {
       _lastUserId = null;
       setState(() {
-        _pinnedChats = null;
-        _isLoadingPinned = false;
+        _cachedSortedChats = [];
+        _cachedChatsSignature = null;
       });
     }
   }
@@ -53,99 +55,66 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Future<void> _loadChatsAndPinned() async {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
+
+    await _ensurePinnedChatsLoaded(user.uid);
     await context.read<ChatProvider>().loadChatsForUser(user.uid);
-    if (!_pinnedLoadingStarted) {
-      await _loadPinnedChats();
-    }
+
     _initialLoadDone = true;
-    if (mounted) setState(() {});
+    if (mounted) {
+      _cachedChatsSignature = null;
+      setState(() {});
+    }
+  }
+
+  Future<void> _ensurePinnedChatsLoaded(String userId) async {
+    final chatProvider = context.read<ChatProvider>();
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
+    if (user == null) return;
+
+    String? companionUid;
+    final role = user.role;
+
+    try {
+      if (role == 'admin' || role == 'user') {
+        companionUid = await auth.getSupportUid();
+      } else if (role == 'support') {
+        companionUid = await auth.getAdminUid();
+      }
+
+      if (companionUid != null) {
+        final existing = chatProvider.getChatsForUser(userId).where((c) {
+          return (c.user1Id == userId && c.user2Id == companionUid) ||
+              (c.user2Id == userId && c.user1Id == companionUid);
+        }).toList();
+
+        if (existing.isEmpty) {
+          final companion = await auth.getUserById(companionUid);
+          final companionName = companion != null
+              ? '${companion.firstName} ${companion.lastName}'
+              : (role == 'support' ? 'Администратор' : 'Поддержка');
+
+          await chatProvider.getOrCreateChat(
+            userId,
+            companionUid,
+            productId: null,
+            companionName: companionName,
+            companionAvatar: companion?.avatarUrl,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Ошибка подготовки закрепленного чата: $e');
+    }
   }
 
   Future<void> _refresh() async {
     setState(() => _isManualRefresh = true);
     try {
+      _cachedChatsSignature = null;
       await _loadChatsAndPinned();
     } finally {
       if (mounted) setState(() => _isManualRefresh = false);
-    }
-  }
-
-  Future<void> _loadPinnedChats() async {
-    if (_pinnedLoadingStarted) return;
-    _pinnedLoadingStarted = true;
-    setState(() => _isLoadingPinned = true);
-
-    final user = context.read<AuthProvider>().currentUser;
-    if (user == null) {
-      setState(() => _isLoadingPinned = false);
-      return;
-    }
-
-    final List<Chat> pinned = [];
-    final role = user.role;
-    final auth = context.read<AuthProvider>();
-
-    try {
-      if (role == 'admin') {
-        final supportUid = await auth.getSupportUid();
-        if (supportUid != null) {
-          final supportChat = await _getOrCreateChatBetween(user.uid, supportUid);
-          if (supportChat != null && !pinned.any((c) => c.id == supportChat.id)) {
-            pinned.add(supportChat);
-          }
-        }
-      } else if (role == 'support') {
-        final adminUid = await auth.getAdminUid();
-        if (adminUid != null) {
-          final adminChat = await _getOrCreateChatBetween(user.uid, adminUid);
-          if (adminChat != null && !pinned.any((c) => c.id == adminChat.id)) {
-            pinned.add(adminChat);
-          }
-        }
-      } else if (role == 'user') {
-        final supportUid = await auth.getSupportUid();
-        if (supportUid != null) {
-          final supportChat = await _getOrCreateChatBetween(user.uid, supportUid);
-          if (supportChat != null && !pinned.any((c) => c.id == supportChat.id)) {
-            pinned.add(supportChat);
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Ошибка загрузки закреплённых чатов: $e');
-    }
-
-    if (mounted) {
-      setState(() {
-        _pinnedChats = pinned;
-        _isLoadingPinned = false;
-      });
-    }
-  }
-
-  Future<Chat?> _getOrCreateChatBetween(String userId1, String userId2) async {
-    final chatProvider = context.read<ChatProvider>();
-    for (final chat in chatProvider.getChatsForUser(userId1)) {
-      if ((chat.user1Id == userId1 && chat.user2Id == userId2) ||
-          (chat.user1Id == userId2 && chat.user2Id == userId1)) {
-        return chat;
-      }
-    }
-
-    final companion = await context.read<AuthProvider>().getUserById(userId2);
-    final companionName = companion != null ? '${companion.firstName} ${companion.lastName}' : 'Собеседник';
-
-    try {
-      return await chatProvider.getOrCreateChat(
-        userId1,
-        userId2,
-        productId: null,
-        companionName: companionName,
-        companionAvatar: companion?.avatarUrl,
-      );
-    } catch (e) {
-      debugPrint('Ошибка создания чата между $userId1 и $userId2: $e');
-      return null;
     }
   }
 
@@ -180,21 +149,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
     _exitSelectionMode();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final user = context.read<AuthProvider>().currentUser;
-    if (user == null) return const SizedBox.shrink();
-
-    final chatProvider = context.watch<ChatProvider>();
-    final allUserChats = chatProvider.getChatsForUser(user.uid);
-    final isLoading = (chatProvider.isLoadingChats && allUserChats.isEmpty) || _isManualRefresh;
-
+  List<Chat> _buildSortedChats(String userId, List<Chat> allChats) {
+    final signature = allChats.map((c) {
+      final lastTime = c.messages.isNotEmpty
+          ? c.messages.last.timestamp.millisecondsSinceEpoch
+          : 0;
+      final role = c.companionRole ?? '';
+      return '${c.id}_${lastTime}_$role';
+    }).join('|');
+    if (signature == _cachedChatsSignature && _cachedSortedChats.isNotEmpty) {
+      return _cachedSortedChats;
+    }
     final Set<String> pinnedIds = {};
     final List<Chat> pinned = [];
     final List<Chat> regular = [];
 
-    for (final chat in allUserChats) {
-      final bool isPinned = chat.companionRole == 'admin' || chat.companionRole == 'support';
+    for (final chat in allChats) {
+      final role = chat.companionRole;
+      final bool isPinned = role == 'admin' || role == 'support';
+
       if (isPinned && !pinnedIds.contains(chat.id)) {
         pinned.add(chat);
         pinnedIds.add(chat.id);
@@ -206,10 +179,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
     regular.sort((a, b) {
       final aTime = a.messages.isNotEmpty ? a.messages.last.timestamp : DateTime(0);
       final bTime = b.messages.isNotEmpty ? b.messages.last.timestamp : DateTime(0);
-      return bTime.compareTo(aTime);
+      final timeCompare = bTime.compareTo(aTime);
+      if (timeCompare != 0) return timeCompare;
+      return a.id.compareTo(b.id);
     });
 
-    final chats = [...pinned, ...regular];
+    _cachedSortedChats = [...pinned, ...regular];
+    _cachedChatsSignature = signature;
+    return _cachedSortedChats;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    final chatProvider = context.watch<ChatProvider>();
+    final allUserChats = chatProvider.getChatsForUser(user.uid);
+    final isLoading = (chatProvider.isLoadingChats && allUserChats.isEmpty) || _isManualRefresh;
+    final chats = _buildSortedChats(user.uid, allUserChats);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -264,24 +252,37 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ],
                   ),
                 )
-                    : ListView.separated(
+                    : ListView.builder(
                   itemCount: chats.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final chat = chats[index];
                     final isSelected = _selectedChatIds.contains(chat.id);
-                    final bool isSupportAdminChat = chat.user1Id == '0' || chat.user2Id == '0' || chat.user1Id == '999' || chat.user2Id == '999';
+                    final bool isSupportAdminChat =
+                        chat.user1Id == '0' ||
+                            chat.user2Id == '0' ||
+                            chat.user1Id == '999' ||
+                            chat.user2Id == '999';
+                    final isPinned = chat.companionRole == 'admin' ||
+                        chat.companionRole == 'support';
 
-                    return ChatListItem(
-                      chat: chat,
-                      isSelected: isSelected,
-                      selectionMode: _selectionMode,
-                      onTap: () => _toggleSelection(chat.id),
-                      onLongPress: !isSupportAdminChat
-                          ? () {
-                        if (!_selectionMode) _enterSelectionMode(chat.id);
-                      }
-                          : null,
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index < chats.length - 1 ? 8 : 0,
+                      ),
+                      child: ChatListItem(
+                        key: ValueKey('chat_${chat.id}'),
+                        chat: chat,
+                        isSelected: isSelected,
+                        selectionMode: _selectionMode,
+                        currentUserId: user.uid,
+                        isPinned: isPinned,
+                        onTap: () => _toggleSelection(chat.id),
+                        onLongPress: !isSupportAdminChat
+                            ? () {
+                          if (!_selectionMode) _enterSelectionMode(chat.id);
+                        }
+                            : null,
+                      ),
                     );
                   },
                 ),

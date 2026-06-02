@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/messager_model/chat.dart';
-import '../../models/user.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/chat_provider.dart';
 import '../../utils/avatar.dart';
@@ -19,7 +18,6 @@ class AdminChatsTab extends StatefulWidget {
 class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
   String _searchQuery = '';
   late ChatProvider _chatProvider;
-  final Map<String, Future<UserModel?>> _userFutures = {};
 
   @override
   int get paginationBatchSize => 10;
@@ -89,13 +87,13 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
     }
   }
 
-  Future<UserModel?> _getUser(String uid) {
-    if (_userFutures.containsKey(uid)) {
-      return _userFutures[uid]!;
+  Set<String> _collectUserIds(List<Chat> chats) {
+    final Set<String> uids = {};
+    for (final chat in chats) {
+      uids.add(chat.user1Id);
+      uids.add(chat.user2Id);
     }
-    final future = context.read<AuthProvider>().getUserById(uid);
-    _userFutures[uid] = future;
-    return future;
+    return uids;
   }
 
   @override
@@ -104,9 +102,9 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
     final currentUser = authProvider.currentUser;
     final bool isSupport = currentUser?.role == 'support';
     final theme = Theme.of(context);
-
     final allItems = _filteredChats;
     final visibleItems = allItems.take(visibleCount).toList();
+    final uidsToLoad = _collectUserIds(visibleItems);
 
     return Column(
       children: [
@@ -144,20 +142,23 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            controller: scrollController,
-            itemCount: visibleItems.length,
-            itemBuilder: (context, index) {
-              final chat = visibleItems[index];
-              final futureUser1 = _getUser(chat.user1Id);
-              final futureUser2 = _getUser(chat.user2Id);
+          child: FutureBuilder(
+            future: authProvider.preloadUsers(uidsToLoad.toList()),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting && visibleItems.isNotEmpty) {
+                final cachedCount = uidsToLoad.where((uid) => authProvider.getCachedUser(uid) != null).length;
+                if (cachedCount == 0) {
+                  return Center(child: CircularProgressIndicator(color: theme.primaryColor));
+                }
+              }
 
-              return FutureBuilder(
-                future: Future.wait([futureUser1, futureUser2]),
-                builder: (ctx, AsyncSnapshot<List<UserModel?>> snapshot) {
-                  final user1 = snapshot.hasData ? snapshot.data![0] : null;
-                  final user2 = snapshot.hasData ? snapshot.data![1] : null;
-
+              return ListView.builder(
+                controller: scrollController,
+                itemCount: visibleItems.length,
+                itemBuilder: (context, index) {
+                  final chat = visibleItems[index];
+                  final user1 = authProvider.getCachedUser(chat.user1Id);
+                  final user2 = authProvider.getCachedUser(chat.user2Id);
                   final name1 = user1 != null ? '${user1.firstName} ${user1.lastName}' : 'Пользователь ${chat.user1Id}';
                   final name2 = user2 != null ? '${user2.firstName} ${user2.lastName}' : 'Пользователь ${chat.user2Id}';
                   final title = '$name1 – $name2';
@@ -165,7 +166,6 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                   final timeText = lastMsg != null ? _formatTime(lastMsg.timestamp) : '';
                   final isPrivilegedChat = (user1?.role == 'admin' || user1?.role == 'support') ||
                       (user2?.role == 'admin' || user2?.role == 'support');
-
                   return Card(
                     key: ValueKey(chat.id),
                     color: theme.cardTheme.color ?? theme.colorScheme.surface,

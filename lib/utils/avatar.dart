@@ -36,16 +36,11 @@ Widget buildUserAvatar(
       if (snapshot.connectionState == ConnectionState.waiting) {
         return _buildLoadingAvatar(context, radius);
       }
-      if (snapshot.hasError || snapshot.data == null) {
+      if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
         return _buildFallbackAvatar(context, radius, fallbackImage, fallbackIcon);
       }
 
-      final resolvedUrl = snapshot.data!;
-      if (resolvedUrl.isNotEmpty) {
-        return _buildNetworkAvatar(context, resolvedUrl, radius);
-      }
-
-      return _buildFallbackAvatar(context, radius, fallbackImage, fallbackIcon);
+      return _buildNetworkAvatar(context, snapshot.data!, radius);
     },
   );
 }
@@ -114,15 +109,13 @@ Future<String?> _resolveImageUrl(String? pathOrUrl) {
 }
 
 Future<String?> _fetchImageUrl(String pathOrUrl) async {
-  // Если это уже полный HTTP/HTTPS URL – используем напрямую
   if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
     return pathOrUrl;
   }
-  // Если это локальный файл или ассет – не трогаем (fallback)
   if (pathOrUrl.startsWith('assets/')) return null;
+
   final file = File(pathOrUrl);
   if (file.existsSync()) return null;
-  // Иначе считаем, что это ключ Minio
   try {
     return await StorageService.getDownloadUrl(pathOrUrl).timeout(const Duration(seconds: 10));
   } catch (e) {

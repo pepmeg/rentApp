@@ -27,6 +27,7 @@ import 'package:AppRent/provider/theme_provider.dart';
 import 'package:AppRent/services/brand_service.dart';
 import 'package:AppRent/services/category_service.dart';
 import 'package:AppRent/services/connectivityService.dart';
+import 'package:AppRent/services/github_update_service.dart';
 import 'package:AppRent/services/product_service.dart';
 import 'package:AppRent/services/secure_storage_service.dart';
 import 'package:AppRent/theme/theme_data.dart';
@@ -146,6 +147,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CategoryService>().startListening();
       context.read<BrandService>().startListening();
+    });
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        GitHubUpdateService.checkForUpdate(context);
+      }
     });
   }
 

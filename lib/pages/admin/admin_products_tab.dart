@@ -65,6 +65,13 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
     products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return products;
   }
+  Set<String> _collectOwnerIds(List<Product> products) {
+    final Set<String> ids = {};
+    for (final p in products) {
+      if (p.ownerId.isNotEmpty) ids.add(p.ownerId);
+    }
+    return ids;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +80,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
     final auth = context.watch<AuthProvider>();
     final admin = context.watch<AdminProvider>();
     final theme = Theme.of(context);
+    final ownerIds = _collectOwnerIds(visibleItems);
 
     return Column(
       children: [
@@ -124,35 +132,41 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
         Expanded(
           child: _isLoadingProducts
               ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
-              : ListView.builder(
-            controller: scrollController,
-            itemCount: visibleItems.length,
-            itemBuilder: (context, index) {
-              final product = visibleItems[index];
-              final ownerFuture = auth.getUserById(product.ownerId);
-
-              return Card(
-                color: theme.cardTheme.color ?? theme.colorScheme.surface,
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => ProductScreen(product: product)),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: FutureBuilder(
-                      future: ownerFuture,
-                      builder: (context, snapshot) {
-                        final ownerName = (snapshot.data != null)
-                            ? '${snapshot.data!.firstName} ${snapshot.data!.lastName}'
-                            : 'Нет данных';
-
-                        return Row(
+              : FutureBuilder(
+            future: ownerIds.isEmpty
+                ? Future.value(null)
+                : auth.preloadUsers(ownerIds.toList()),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting && visibleItems.isNotEmpty) {
+                final cachedCount = ownerIds.where((id) => auth.getCachedUser(id) != null).length;
+                if (cachedCount == 0) {
+                  return Center(child: CircularProgressIndicator(color: theme.primaryColor));
+                }
+              }
+              return ListView.builder(
+                controller: scrollController,
+                itemCount: visibleItems.length,
+                itemBuilder: (context, index) {
+                  final product = visibleItems[index];
+                  final owner = auth.getCachedUser(product.ownerId);
+                  final ownerName = (owner != null)
+                      ? '${owner.firstName} ${owner.lastName}'
+                      : 'Нет данных';
+                  return Card(
+                    color: theme.cardTheme.color ?? theme.colorScheme.surface,
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ProductScreen(product: product)),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ClipRRect(
@@ -245,11 +259,11 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
                             else
                               const SizedBox.shrink(),
                           ],
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),

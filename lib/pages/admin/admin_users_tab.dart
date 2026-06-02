@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/activeLease.dart';
 import '../../models/admin_models/report.dart';
 import '../../models/lease_request.dart';
+import '../../models/product.dart';
 import '../../models/user.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/admin_provider.dart';
@@ -273,9 +274,13 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
     }
   }
 
-  void _showUserHistory(BuildContext context, String userId) {
+  void _showUserHistory(BuildContext context, String userId) async {
     final leases = context.read<ActiveLeasesProvider>().getRentedLeasesForUser(userId);
+    final auth = context.read<AuthProvider>();
     final theme = Theme.of(context);
+    final ownerIds = leases.map((l) => l.ownerId).toSet().toList();
+    await auth.preloadUsers(ownerIds);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -290,40 +295,37 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
             itemCount: leases.length,
             itemBuilder: (_, i) {
               final lease = leases[i];
-              return FutureBuilder<UserModel?>(
-                future: context.read<AuthProvider>().getUserById(lease.ownerId),
-                builder: (context, snapshot) {
-                  final ownerName = snapshot.data != null
-                      ? '${snapshot.data!.firstName} ${snapshot.data!.lastName}'
-                      : 'Неизвестно';
-                  final startDateFormatted = lease.startDate != null
-                      ? DateFormat('dd.MM.yyyy').format(lease.startDate!)
-                      : '—';
-                  return ListTile(
-                    dense: true,
-                    title: Text(lease.name, style: TextStyle(color: theme.colorScheme.onSurface)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Владелец: $ownerName', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
-                        Text('Начало: $startDateFormatted', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
-                      ],
-                    ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (action) {
-                        Navigator.pop(ctx);
-                        _performLeaseAction(context, lease, action, userId);
-                      },
-                      itemBuilder: (_) => [
-                        if (lease.status == LeaseStatus.active || lease.status == LeaseStatus.pending)
-                          const PopupMenuItem(value: 'cancel', child: Text('Отменить')),
-                        if (lease.status == LeaseStatus.active)
-                          const PopupMenuItem(value: 'complete', child: Text('Завершить')),
-                        const PopupMenuItem(value: 'delete', child: Text('Удалить')),
-                      ],
-                    ),
-                  );
-                },
+              final owner = auth.getCachedUser(lease.ownerId);
+              final ownerName = owner != null
+                  ? '${owner.firstName} ${owner.lastName}'
+                  : 'Неизвестно';
+              final startDateFormatted = lease.startDate != null
+                  ? DateFormat('dd.MM.yyyy').format(lease.startDate!)
+                  : '—';
+
+              return ListTile(
+                dense: true,
+                title: Text(lease.name, style: TextStyle(color: theme.colorScheme.onSurface)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Владелец: $ownerName', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                    Text('Начало: $startDateFormatted', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                  ],
+                ),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (action) {
+                    Navigator.pop(ctx);
+                    _performLeaseAction(context, lease, action, userId);
+                  },
+                  itemBuilder: (_) => [
+                    if (lease.status == LeaseStatus.active || lease.status == LeaseStatus.pending)
+                      const PopupMenuItem(value: 'cancel', child: Text('Отменить')),
+                    if (lease.status == LeaseStatus.active)
+                      const PopupMenuItem(value: 'complete', child: Text('Завершить')),
+                    const PopupMenuItem(value: 'delete', child: Text('Удалить')),
+                  ],
+                ),
               );
             },
           ),
@@ -419,11 +421,41 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
     SnackBarCustom.show(context, message: 'Действие выполнено');
   }
 
-  void _showUserReports(BuildContext context, String userId) {
+  void _showUserReports(BuildContext context, String userId) async {
     final admin = context.read<AdminProvider>();
-    admin.loadUserProducts(userId);
+    await admin.loadUserProducts(userId);
     final reports = admin.getReportsRelatedToUser(userId);
+    final auth = context.read<AuthProvider>();
     final theme = Theme.of(context);
+
+    if (reports.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
+          title: Text('Жалобы на пользователя', style: TextStyle(color: theme.colorScheme.onSurface)),
+          content: Text('Жалоб нет', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5))),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Закрыть', style: TextStyle(color: theme.primaryColor)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final reporterIds = reports.map((r) => r.reporterId).toSet().toList();
+    final productIds = reports.where((r) => r.productId != null).map((r) => r.productId!).toSet().toList();
+    await auth.preloadUsers(reporterIds);
+    Map<String, Product> productMap = {};
+    if (productIds.isNotEmpty) {
+      final products = await ProductService.getProductsByIds(productIds);
+      for (final p in products) {
+        productMap[p.id] = p;
+      }
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -431,57 +463,45 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
         title: Text('Жалобы на пользователя', style: TextStyle(color: theme.colorScheme.onSurface)),
         content: SizedBox(
           width: double.maxFinite,
-          child: reports.isEmpty
-              ? Text('Жалоб нет', style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)))
-              : ListView.builder(
+          child: ListView.builder(
             shrinkWrap: true,
             itemCount: reports.length,
             itemBuilder: (_, i) {
               final r = reports[i];
               final isOnUser = r.targetType == ReportTargetType.user;
-              return FutureBuilder<dynamic>(
-                future: isOnUser
-                    ? Future.value(null)
-                    : ProductService.getProductById(r.productId ?? ''),
-                builder: (ctx, snapshot) {
-                  final productName = snapshot.data?.name ?? 'Товар #${r.productId}';
-                  return FutureBuilder<UserModel?>(
-                    future: context.read<AuthProvider>().getUserById(r.reporterId),
-                    builder: (ctx, reporterSnapshot) {
-                      final reporterName = reporterSnapshot.data != null
-                          ? '${reporterSnapshot.data!.firstName} ${reporterSnapshot.data!.lastName}'
-                          : 'Пользователь ${r.reporterId}';
-                      return ListTile(
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(reporterName, style: TextStyle(color: theme.colorScheme.onSurface)),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isOnUser ? theme.primaryColor.withOpacity(0.1) : theme.primaryColor.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                isOnUser ? 'На пользователя' : 'На товар "$productName"',
-                                style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface),
-                              ),
-                            ),
-                          ],
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(r.reason, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
-                            Text(DateFormat('dd.MM.yyyy HH:mm').format(r.createdAt),
-                                style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5))),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
+              final reporter = auth.getCachedUser(r.reporterId);
+              final reporterName = reporter != null
+                  ? '${reporter.firstName} ${reporter.lastName}'
+                  : 'Пользователь ${r.reporterId}';
+              final product = r.productId != null ? productMap[r.productId] : null;
+              final productName = product?.name ?? 'Товар #${r.productId}';
+              return ListTile(
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(reporterName, style: TextStyle(color: theme.colorScheme.onSurface)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isOnUser ? theme.primaryColor.withOpacity(0.1) : theme.primaryColor.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isOnUser ? 'На пользователя' : 'На товар "$productName"',
+                        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(r.reason, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                    Text(DateFormat('dd.MM.yyyy HH:mm').format(r.createdAt),
+                        style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5))),
+                  ],
+                ),
               );
             },
           ),

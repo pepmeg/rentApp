@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../utils/const.dart';
@@ -25,13 +26,13 @@ class AuthProvider extends ChangeNotifier {
 
   bool _profileLoaded = false;
   bool get isProfileLoaded => _profileLoaded;
+  final Map<String, UserModel?> _userCache = {};
+  final Set<String> _fetchingUids = {};
 
   AuthProvider() {
     _loadCachedUser();
     _auth.authStateChanges().listen(_onAuthStateChanged);
   }
-
-  final Map<String, UserModel> _userCache = {};
 
   Future<void> _loadCachedUser() async {
     try {
@@ -96,6 +97,46 @@ class AuthProvider extends ChangeNotifier {
     }
     _profileLoaded = true;
     notifyListeners();
+  }
+
+  UserModel? getCachedUser(String uid) {
+    return _userCache[uid];
+  }
+
+  Future<void> preloadUsers(List<String> uids) async {
+    final missingUids = uids.where((uid) =>
+    !_userCache.containsKey(uid) && !_fetchingUids.contains(uid)
+    ).toSet().toList();
+
+    if (missingUids.isEmpty) return;
+    _fetchingUids.addAll(missingUids);
+
+    final chunks = <List<String>>[];
+    for (var i = 0; i < missingUids.length; i += 10) {
+      chunks.add(missingUids.sublist(i, i + 10 > missingUids.length ? missingUids.length : i + 10));
+    }
+    for (final chunk in chunks) {
+      try {
+        final snapshot = await _firestore.collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+
+        for (final doc in snapshot.docs) {
+          _userCache[doc.id] = UserModel.fromJson(doc.data());
+        }
+      } catch (e) {
+        debugPrint('Ошибка пакетной загрузки пользователей: $e');
+      }
+    }
+    _fetchingUids.removeAll(missingUids);
+    notifyListeners();
+  }
+
+  Future<UserModel?> getUserById(String uid) async {
+    if (_userCache.containsKey(uid)) return _userCache[uid];
+    await preloadUsers([uid]);
+
+    return _userCache[uid];
   }
 
   Future<String?> register(
@@ -165,20 +206,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-Future<void> syncUserProfile() async {
-  final firebaseUser = _auth.currentUser;
-  if (firebaseUser == null) return;
-  try {
-    final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
-    if (doc.exists) {
-      _currentUser = UserModel.fromJson(doc.data()!);
-      await _cacheUser(_currentUser!);
-      notifyListeners();
+  Future<void> syncUserProfile() async {
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser == null) return;
+    try {
+      final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+      if (doc.exists) {
+        _currentUser = UserModel.fromJson(doc.data()!);
+        await _cacheUser(_currentUser!);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Ошибка синхронизации профиля: $e');
     }
-  } catch (e) {
-    debugPrint('Ошибка синхронизации профиля: $e');
   }
-}
 
   Future<String?> changePassword(String oldPassword, String newPassword) async {
     final user = _auth.currentUser;
@@ -211,21 +252,6 @@ Future<void> syncUserProfile() async {
       _currentUser = null;
       notifyListeners();
     }
-  }
-
-  Future<UserModel?> getUserById(String uid) async {
-    if (_userCache.containsKey(uid)) return _userCache[uid];
-    try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        final user = UserModel.fromJson(doc.data()!);
-        _userCache[uid] = user;
-        return user;
-      }
-    } catch (e) {
-      debugPrint('Ошибка загрузки пользователя: $e');
-    }
-    return null;
   }
 
   Future<String?> getSupportUid() async {

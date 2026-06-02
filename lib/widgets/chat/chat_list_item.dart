@@ -13,7 +13,9 @@ class ChatListItem extends StatelessWidget {
   final Chat chat;
   final bool isSelected;
   final bool selectionMode;
-  final VoidCallback onTap;
+  final String? currentUserId;
+  final bool isPinned;
+  final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
   const ChatListItem({
@@ -21,7 +23,9 @@ class ChatListItem extends StatelessWidget {
     required this.chat,
     required this.isSelected,
     required this.selectionMode,
-    required this.onTap,
+    this.currentUserId,
+    this.isPinned = false,
+    this.onTap,
     this.onLongPress,
   });
 
@@ -32,20 +36,32 @@ class ChatListItem extends StatelessWidget {
 
     final chatProvider = context.watch<ChatProvider>();
     final lastMessage = chat.messages.isNotEmpty ? chat.messages.last : null;
-    final isUnread = lastMessage != null && chatProvider.isChatUnread(chat.id, user.uid);
     final timeText = lastMessage != null ? formatLastMessageTime(lastMessage.timestamp) : '';
     final productName = chat.productName ?? '';
     final companionId = chat.user1Id == user.uid ? chat.user2Id : chat.user1Id;
-    final futureUser = context.read<AuthProvider>().getUserById(companionId);
-    final bool isSupportAdminChat = chat.user1Id == '0' || chat.user2Id == '0' || chat.user1Id == '999' || chat.user2Id == '999';
-
+    final bool isSupportAdminChat = chat.user1Id == '0' || chat.user2Id == '0' ||
+        chat.user1Id == '999' || chat.user2Id == '999';
     final bool canSelect = selectionMode && !isSupportAdminChat;
     final theme = Theme.of(context);
+    final companion = context.read<AuthProvider>().getCachedUser(companionId);
+    final name = companion != null
+        ? '${companion.firstName} ${companion.lastName}'
+        : (chat.companionName ?? 'Собеседник');
+    final bool isLastMessageFromMe = lastMessage?.senderId == user.uid;
+    final int unreadCount = chatProvider.unreadMessageCount(chat.id, user.uid);
+    final bool showUnreadBadge = unreadCount > 0 && !isLastMessageFromMe;
+    final bool isUnread = showUnreadBadge && chatProvider.isChatUnread(chat.id, user.uid);
+    final leading = buildUserAvatar(
+      companion,
+      fallbackImage: chat.productImage,
+      fallbackIcon: Icons.chat,
+      radius: 26,
+    );
 
     return GestureDetector(
       onTap: () {
         if (selectionMode && canSelect) {
-          onTap();
+          onTap?.call();
         } else if (!selectionMode) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chat: chat)));
         }
@@ -66,23 +82,22 @@ class ChatListItem extends StatelessWidget {
             ),
           ],
         ),
-        child: FutureBuilder<UserModel?>(
-          future: futureUser,
-          builder: (ctx, snapshot) {
-            final companion = snapshot.data;
-            final name = companion != null
-                ? '${companion.firstName} ${companion.lastName}'
-                : (chat.companionName ?? 'Собеседник');
-            final unreadCount = chatProvider.unreadMessageCount(chat.id, user.uid);
-
-            final leading = buildUserAvatar(
-              companion,
-              fallbackImage: chat.productImage,
-              fallbackIcon: Icons.chat,
-              radius: 26,
-            );
-
-            return Row(
+        child: Stack(
+          children: [
+            if (isPinned)
+              Positioned(
+                left: -12,
+                top: 8,
+                bottom: 8,
+                child: Container(
+                  width: 3,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 leading,
@@ -108,7 +123,7 @@ class ChatListItem extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.normal,
-                            color: theme.colorScheme.onSurface,
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -138,7 +153,7 @@ class ChatListItem extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 4),
-                    if (unreadCount > 0)
+                    if (showUnreadBadge)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                         margin: const EdgeInsets.only(top: 2),
@@ -160,8 +175,8 @@ class ChatListItem extends StatelessWidget {
                   ],
                 ),
               ],
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
