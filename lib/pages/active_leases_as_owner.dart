@@ -4,6 +4,7 @@ import '../models/activeLease.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../widgets/lease_card/lease_card.dart';
+import '../widgets/screen_header.dart';
 
 class ActiveLeasesAsOwner extends StatelessWidget {
   const ActiveLeasesAsOwner({super.key});
@@ -21,31 +22,14 @@ class ActiveLeasesAsOwner extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Активные аренды (мои товары)',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Expanded(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ScreenHeader(title: 'Активные аренды (мои товары)'),
+          const SizedBox(height: 15),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ownerLeases.isEmpty
                   ? Center(
                 child: Text(
@@ -67,8 +51,8 @@ class ActiveLeasesAsOwner extends StatelessWidget {
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

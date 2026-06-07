@@ -17,6 +17,9 @@ import '../../utils/avatar.dart';
 import '../../utils/form_fields.dart';
 import '../../utils/pagination.dart';
 import '../../utils/snackbar_custom.dart';
+import '../../widgets/search_field.dart';
+import '../../widgets/confirm_dialog.dart';
+import '../../widgets/filter_chip.dart';
 
 class AdminUsersTab extends StatefulWidget {
   final bool initialShowBlocked;
@@ -68,43 +71,34 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              color: theme.colorScheme.surface,
-              child: TextField(
-                onChanged: (value) {
-                  setState(() => _searchQuery = value);
-                  resetPagination();
-                },
-                decoration: InputDecoration(
-                  hintText: 'Поиск',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
-                  prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                ),
-              ),
-            ),
-          ),
+        SearchField(
+          hintText: 'Поиск пользователей',
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+            resetPagination();
+          },
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           child: Row(
             children: [
-              _buildFilterChip(theme, 'Все', !_showBlockedOnly, () {
-                setState(() => _showBlockedOnly = false);
-                resetPagination();
-              }),
+              AppFilterChip(
+                label: 'Все',
+                isSelected: !_showBlockedOnly,
+                onTap: () {
+                  setState(() => _showBlockedOnly = false);
+                  resetPagination();
+                },
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip(theme, 'Заблокированные', _showBlockedOnly, () {
-                setState(() => _showBlockedOnly = true);
-                resetPagination();
-              }),
+              AppFilterChip(
+                label: 'Заблокированные',
+                isSelected: _showBlockedOnly,
+                onTap: () {
+                  setState(() => _showBlockedOnly = true);
+                  resetPagination();
+                },
+              ),
             ],
           ),
         ),
@@ -159,14 +153,8 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
                       : AppPopupMenuButton<String>(
                     backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
                     onSelected: (action) {
-                      if (action == 'block') {
-                        admin.blockUser(user.uid);
-                        _cancelUserLeases(context, user.uid);
-                        _hideUserProducts(user.uid);
-                        _forceLogoutIfCurrentUser(context, user.uid);
-                      } else if (action == 'unblock') {
-                        admin.unblockUser(user.uid);
-                        _restoreUserProducts(user.uid);
+                      if (action == 'block' || action == 'unblock') {
+                        _confirmBlockUser(context, user.uid, action == 'block');
                       } else if (action == 'history') {
                         _showUserHistory(context, user.uid);
                       } else if (action == 'reports') {
@@ -209,18 +197,30 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
     );
   }
 
-  Widget _buildFilterChip(ThemeData theme, String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Chip(
-        label: Text(label),
-        backgroundColor: selected ? theme.primaryColor.withOpacity(0.1) : (theme.cardTheme.color ?? theme.colorScheme.surface),
-        labelStyle: TextStyle(
-          color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
+  Future<void> _confirmBlockUser(BuildContext context, String userId, bool block) async {
+    final confirm = await showConfirmDialog(
+      context,
+      title: block ? 'Заблокировать пользователя?' : 'Разблокировать пользователя?',
+      message: block
+          ? 'Пользователь не сможет пользоваться приложением, а его товары будут скрыты.'
+          : 'Пользователь снова получит доступ к приложению.',
+      confirmText: block ? 'Заблокировать' : 'Разблокировать',
+      icon: block ? Icons.block : Icons.check_circle_outline,
+      isDestructive: block,
     );
+
+    if (confirm == true && mounted) {
+      final admin = context.read<AdminProvider>();
+      if (block) {
+        admin.blockUser(userId);
+        _cancelUserLeases(context, userId);
+        _hideUserProducts(userId);
+        _forceLogoutIfCurrentUser(context, userId);
+      } else {
+        admin.unblockUser(userId);
+        _restoreUserProducts(userId);
+      }
+    }
   }
 
   void _forceLogoutIfCurrentUser(BuildContext context, String userId) {
@@ -455,7 +455,6 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
         productMap[p.id] = p;
       }
     }
-
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

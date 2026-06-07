@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../utils/snackbar_custom.dart';
+import '../widgets/app_button.dart';
+import '../widgets/screen_header.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -48,64 +50,44 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Смена пароля',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            _buildPasswordField(
-              controller: _oldPasswordController,
-              label: 'Старый пароль',
-              icon: Icons.lock,
-            ),
-            const SizedBox(height: 20),
-            _buildPasswordField(
-              controller: _newPasswordController,
-              label: 'Новый пароль',
-              icon: Icons.lock_open,
-            ),
-            const SizedBox(height: 20),
-            _buildPasswordField(
-              controller: _confirmPasswordController,
-              label: 'Подтверждение пароля',
-              icon: Icons.lock_outline,
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _changePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ScreenHeader(title: 'Смена пароля'),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 30),
+                  _buildPasswordField(
+                    controller: _oldPasswordController,
+                    label: 'Старый пароль',
+                    icon: Icons.lock,
                   ),
-                ),
-                child: const Text(
-                  'Сменить пароль',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
+                  const SizedBox(height: 20),
+                  _buildPasswordField(
+                    controller: _newPasswordController,
+                    label: 'Новый пароль',
+                    icon: Icons.lock_open,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildPasswordField(
+                    controller: _confirmPasswordController,
+                    label: 'Подтверждение пароля',
+                    icon: Icons.lock_outline,
+                  ),
+                  const SizedBox(height: 30),
+                  Button(
+                    text: 'Сменить пароль',
+                    onPressed: _changePassword,
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

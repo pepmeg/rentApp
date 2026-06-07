@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../provider/AuthProvider.dart';
 import '../../utils/form_fields.dart';
 import '../../utils/snackbar_custom.dart';
+import '../../widgets/app_button.dart';
 
 class Registration extends StatefulWidget {
   const Registration({super.key});
@@ -146,23 +147,10 @@ class RegistrationState extends State<Registration> {
                 const SizedBox(height: 30),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
-                    return ElevatedButton(
+                    return Button(
+                      text: 'Зарегистрироваться',
                       onPressed: authProvider.isLoading ? null : register,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        minimumSize: const Size(double.infinity, 48),
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                      ),
-                      child: authProvider.isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text(
-                        'Зарегистрироваться',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      isLoading: authProvider.isLoading,
                     );
                   },
                 ),

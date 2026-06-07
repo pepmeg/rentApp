@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/ReviewsProvider.dart';
@@ -113,10 +114,20 @@ class ProductCardState extends State<ProductCard> {
                         favoriteProvider.toggleFavorite(userId, widget.id);
                         setState(() {});
                       },
-                      child: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
-                        size: 20,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'assets/icons/heart.svg',
+                            width: 20,
+                            height: 20,
+                            colorFilter: ColorFilter.mode(
+                              isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

@@ -8,6 +8,8 @@ import '../../services/product_service.dart';
 import '../../utils/form_fields.dart';
 import '../../utils/pagination.dart';
 import '../../widgets/product_image.dart';
+import '../../widgets/search_field.dart';
+import '../../widgets/filter_chip.dart';
 
 class AdminProductsTab extends StatefulWidget {
   final String? initialStatusFilter;
@@ -65,6 +67,7 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
     products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return products;
   }
+
   Set<String> _collectOwnerIds(List<Product> products) {
     final Set<String> ids = {};
     for (final p in products) {
@@ -84,48 +87,43 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              color: theme.colorScheme.surface,
-              child: TextField(
-                onChanged: (value) {
-                  setState(() => _searchQuery = value);
-                  resetPagination();
-                },
-                decoration: InputDecoration(
-                  hintText: 'Поиск товаров',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
-                  prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                ),
-              ),
-            ),
-          ),
+        SearchField(
+          hintText: 'Поиск товаров',
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+            resetPagination();
+          },
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           child: Row(
             children: [
-              _buildFilterChip(theme, 'Все', _statusFilter == null, () {
-                setState(() => _statusFilter = null);
-                resetPagination();
-              }),
+              AppFilterChip(
+                label: 'Все',
+                isSelected: _statusFilter == null,
+                onTap: () {
+                  setState(() => _statusFilter = null);
+                  resetPagination();
+                },
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip(theme, 'Скрытые', _statusFilter == 'hidden', () {
-                setState(() => _statusFilter = 'hidden');
-                resetPagination();
-              }),
+              AppFilterChip(
+                label: 'Скрытые',
+                isSelected: _statusFilter == 'hidden',
+                onTap: () {
+                  setState(() => _statusFilter = 'hidden');
+                  resetPagination();
+                },
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip(theme, 'Заблокированные', _statusFilter == 'blocked', () {
-                setState(() => _statusFilter = 'blocked');
-                resetPagination();
-              }),
+              AppFilterChip(
+                label: 'Заблокированные',
+                isSelected: _statusFilter == 'blocked',
+                onTap: () {
+                  setState(() => _statusFilter = 'blocked');
+                  resetPagination();
+                },
+              ),
             ],
           ),
         ),
@@ -274,20 +272,6 @@ class _AdminProductsTabState extends State<AdminProductsTab> with PaginationMixi
             child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
           ),
       ],
-    );
-  }
-
-  Widget _buildFilterChip(ThemeData theme, String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Chip(
-        label: Text(label),
-        backgroundColor: selected ? theme.primaryColor.withOpacity(0.1) : (theme.cardTheme.color ?? theme.colorScheme.surface),
-        labelStyle: TextStyle(
-          color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
     );
   }
 

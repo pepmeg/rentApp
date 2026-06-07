@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/lease_card/lease_card.dart';
+import '../widgets/screen_header.dart';
 
 class ActiveLeases extends StatelessWidget {
   const ActiveLeases({super.key});
@@ -16,59 +18,19 @@ class ActiveLeases extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Активные аренды',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Expanded(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ScreenHeader(title: 'Активные аренды'),
+          const SizedBox(height: 15),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: leases.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.inbox_outlined,
-                      size: 64,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Нет активных аренд',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Когда вы арендуете товар, он появится здесь',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                    ),
-                  ],
-                ),
+                  ? const EmptyState(
+                icon: Icons.inbox_outlined,
+                title: 'Нет активных аренд',
+                subtitle: 'Когда вы арендуете товар, он появится здесь',
               )
                   : ListView.builder(
                 itemCount: leases.length,
@@ -84,8 +46,8 @@ class ActiveLeases extends StatelessWidget {
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

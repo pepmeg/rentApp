@@ -6,8 +6,9 @@ import '../models/product.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/activeLeasesProvider.dart';
 import '../utils/pagination.dart';
+import '../widgets/search_field.dart';
 import '../widgets/userOrders_card.dart';
-import 'edit_product.dart';
+import 'add_edit_form.dart';
 import 'productScreen.dart';
 
 class UserOrders extends StatefulWidget {
@@ -79,7 +80,7 @@ class _UserOrdersState extends State<UserOrders> with PaginationMixin {
   Future<void> _openEditProduct(Product product) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => EditProduct(product: product)),
+      MaterialPageRoute(builder: (_) => ProductForm(product: product)),
     );
     if (result == true) {
       _loadProducts();
@@ -110,26 +111,13 @@ class _UserOrdersState extends State<UserOrders> with PaginationMixin {
                 ),
                 const SizedBox(width: 5),
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      color: theme.colorScheme.surface,
-                      child: TextField(
-                        onChanged: (value) {
-                          setState(() => searchQuery = value);
-                          resetPagination();
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Поиск...',
-                          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                          prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                          border: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                        ),
-                      ),
-                    ),
+                  child: SearchField(
+                    hintText: 'Поиск...',
+                    padding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      setState(() => searchQuery = value);
+                      resetPagination();
+                    },
                   ),
                 ),
               ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/admin_provider.dart';
+import '../../widgets/stat_card.dart';
 
 class AdminDashboardTab extends StatelessWidget {
   const AdminDashboardTab({super.key});
@@ -13,34 +14,37 @@ class AdminDashboardTab extends StatelessWidget {
       crossAxisCount: 2,
       padding: const EdgeInsets.all(16),
       children: [
-        _buildMetricCard(theme, 'Товаров', admin.totalProducts.toString(), Icons.shopping_bag),
-        _buildMetricCard(theme, 'Жалоб', admin.totalReports.toString(), Icons.report),
-        _buildMetricCard(theme, 'Скрыто', admin.hiddenProducts.toString(), Icons.visibility_off),
-        _buildMetricCard(theme, 'Заблокировано', admin.blockedProducts.toString(), Icons.block),
-        _buildMetricCard(theme, 'Активных пользователей', admin.activeUsers.toString(), Icons.people),
-        _buildMetricCard(theme, 'Заблокированных пользователей', admin.blockedUsersCount.toString(), Icons.block),
+        StatCard(
+          value: admin.totalProducts.toString(),
+          label: 'Товаров',
+          icon: Icons.shopping_bag,
+        ),
+        StatCard(
+          value: admin.totalReports.toString(),
+          label: 'Жалоб',
+          icon: Icons.report,
+        ),
+        StatCard(
+          value: admin.hiddenProducts.toString(),
+          label: 'Скрыто',
+          icon: Icons.visibility_off,
+        ),
+        StatCard(
+          value: admin.blockedProducts.toString(),
+          label: 'Заблокировано',
+          icon: Icons.block,
+        ),
+        StatCard(
+          value: admin.activeUsers.toString(),
+          label: 'Активных пользователей',
+          icon: Icons.people,
+        ),
+        StatCard(
+          value: admin.blockedUsersCount.toString(),
+          label: 'Заблокированных пользователей',
+          icon: Icons.block,
+        ),
       ],
-    );
-  }
-
-  Widget _buildMetricCard(ThemeData theme, String title, String value, IconData icon) {
-    return Card(
-      color: theme.cardTheme.color ?? theme.colorScheme.surface,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 32, color: theme.primaryColor),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-          ),
-          Text(
-            title,
-            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
-          ),
-        ],
-      ),
     );
   }
 }

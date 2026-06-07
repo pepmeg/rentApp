@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:AppRent/pages/active_leases.dart';
-import 'package:AppRent/pages/add_product.dart';
+import 'package:AppRent/pages/add_edit_form.dart';
 import 'package:AppRent/pages/admin/admin_screen.dart';
 import 'package:AppRent/pages/chat_list_screen.dart';
 import 'package:AppRent/pages/chat_screen.dart';
@@ -216,7 +216,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final List<Widget> screens = [
       const Home(),
       if (isUser && !isBlocked) const Favorite(),
-      if (isUser && !isBlocked) const AddProduct(),
+      if (isUser && !isBlocked) const ProductForm(),
       if (isUser && !isBlocked) const ShoppingBasket(),
       const ChatListScreen(),
       Profile(

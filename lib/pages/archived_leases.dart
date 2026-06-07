@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../provider/AuthProvider.dart';
 import '../provider/archived_leases_provider.dart';
 import '../widgets/CompletedLeaseCard.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/screen_header.dart';
 
 class ArchivedLeasesScreen extends StatefulWidget {
   const ArchivedLeasesScreen({super.key});
@@ -18,9 +20,15 @@ class _ArchivedLeasesScreenState extends State<ArchivedLeasesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = context.read<AuthProvider>().currentUser?.uid;
+      final userId = context
+          .read<AuthProvider>()
+          .currentUser
+          ?.uid;
       if (userId != null) {
-        context.read<ArchivedLeasesProvider>().loadArchivedForUser(userId).then((_) {
+        context
+            .read<ArchivedLeasesProvider>()
+            .loadArchivedForUser(userId)
+            .then((_) {
           if (mounted) setState(() => _isLoading = false);
         });
       } else {
@@ -36,35 +44,20 @@ class _ArchivedLeasesScreenState extends State<ArchivedLeasesScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'История аренд',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Expanded(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ScreenHeader(title: 'История аренд'),
+          const SizedBox(height: 15),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _isLoading
                   ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
                   : leases.isEmpty
-                  ? Center(
-                child: Text(
-                  'Нет завершённых аренд',
-                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                ),
+                  ? const EmptyState(
+                icon: Icons.history,
+                title: 'Нет завершённых аренд',
               )
                   : ListView.builder(
                 itemCount: leases.length,
@@ -77,8 +70,8 @@ class _ArchivedLeasesScreenState extends State<ArchivedLeasesScreen> {
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

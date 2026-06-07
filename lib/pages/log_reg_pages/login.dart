@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../widgets/app_button.dart';
 import 'registration.dart';
 import '../../provider/AuthProvider.dart';
 import '../../utils/form_fields.dart';
@@ -100,56 +101,27 @@ class LoginState extends State<Login> {
               const SizedBox(height: 70),
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
-                  return ElevatedButton(
+                  return Button(
+                    text: 'Войти',
                     onPressed: authProvider.isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primaryColor,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                      minimumSize: const Size(double.infinity, 48),
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: authProvider.isLoading
-                        ? const CircularProgressIndicator()
-                        : Text(
-                      'Войти',
-                      style: TextStyle(fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimary),
-                    ),
+                    isLoading: authProvider.isLoading,
+                    size: ButtonSize.large,
+                    borderRadius: 8,
                   );
                 },
               ),
               const SizedBox(height: 15),
               Text(
                 'Нет аккаунта?',
-                style: TextStyle(fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
               ),
               const SizedBox(height: 15),
-              ElevatedButton(
+              Button(
+                text: 'Создать аккаунт',
                 onPressed: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => Registration()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => Registration()));
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  minimumSize: const Size(double.infinity, 48),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'Создать аккаунт',
-                  style: TextStyle(fontSize: 16,
-                      fontWeight: FontWeight.normal,
-                      color: theme.colorScheme.onPrimary),
-                ),
+                borderRadius: 8,
               ),
             ],
           ),

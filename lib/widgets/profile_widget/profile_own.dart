@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../pages/active_leases.dart';
 import '../../pages/archived_leases.dart';
 import '../../pages/edit_profile.dart';
-import '../../pages/my_reviews_screen.dart';
+import '../../pages/reviews_screen.dart';
 import '../../pages/user_orders.dart';
 import '../../pages/notifications.dart';
 import '../../provider/AuthProvider.dart';
@@ -17,8 +17,11 @@ import '../../provider/activeLeasesProvider.dart';
 import '../../provider/basket_provider.dart';
 import '../../provider/chat_provider.dart';
 import '../../provider/favorite_provider.dart';
+import '../../utils/snackbar_custom.dart';
 import '../admin_widget/AdminDashboardWidget.dart';
+import '../confirm_dialog.dart';
 import '../lease_card/lease_card.dart';
+import '../stat_card.dart';
 import 'profile_common.dart';
 
 class ProfileOwn extends StatefulWidget {
@@ -152,60 +155,31 @@ class _ProfileOwnState extends State<ProfileOwn> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStatColumn(
+          StatCard(
             value: '$activeOrders',
             label: 'Активных',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ActiveLeases()),
             ),
-            theme: theme,
           ),
-          _buildStatColumn(
+          StatCard(
             value: '$completedCount',
             label: 'Завершено',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ArchivedLeasesScreen()),
             ),
-            theme: theme,
           ),
-          _buildStatColumn(
+          StatCard(
             value: ratingText,
             label: 'Рейтинг',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const MyReviewsScreen()),
+              MaterialPageRoute(builder: (_) => const ReviewsScreen()),
             ),
-            theme: theme,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStatColumn({
-    required String value,
-    required String label,
-    VoidCallback? onTap,
-    required ThemeData theme,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              label,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: theme.colorScheme.onSurface),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -460,70 +434,44 @@ class _ProfileOwnState extends State<ProfileOwn> {
     }
   }
 
-  void _confirmDeleteAccount(BuildContext context) {
-    final userId = context.read<AuthProvider>().currentUser!.uid;
-    final theme = Theme.of(context);
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final navigatorCtx = Navigator.of(ctx);
-        final navigatorContext = Navigator.of(context);
-        final chatProvider = context.read<ChatProvider>();
-        final leasesProvider = context.read<ActiveLeasesProvider>();
-        final requestProvider = context.read<LeaseRequestProvider>();
-        final basketProvider = context.read<BasketProvider>();
-        final reviewsProvider = context.read<ReviewsProvider>();
-        final favoriteProvider = context.read<FavoriteProvider>();
-        final auth = context.read<AuthProvider>();
-        return AlertDialog(
-          backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                'Удалить аккаунт?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-              ),
-            ],
-          ),
-          content: Text(
-            'Это действие необратимо. Все ваши данные будут удалены.',
-            style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => navigatorCtx.pop(),
-              child: Text('Отмена', style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                navigatorCtx.pop();
-                await ProductService.deleteProductsByOwner(userId);
-                chatProvider.deleteChatsForUser(userId);
-                leasesProvider.deleteLeasesForUser(userId);
-                requestProvider.deleteRequestsForUser(userId);
-                basketProvider.clearCartForUser(userId);
-                reviewsProvider.deleteReviewsByUser(userId);
-                favoriteProvider.clearFavoritesForUser(userId);
-                await auth.deleteAccount();
-                if (navigatorContext.context.mounted) {
-                  navigatorContext.pushReplacementNamed('/login');
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.error,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text('Удалить', style: TextStyle(fontWeight: FontWeight.w600)),
-            ),
-          ],
-        );
-      },
+  void _confirmDeleteAccount(BuildContext context) async {
+    final confirm = await showConfirmDialog(
+      context,
+      title: 'Удалить аккаунт?',
+      message: 'Это действие необратимо. Все ваши данные, объявления и история будут удалены безвозвратно.',
+      confirmText: 'Удалить',
+      icon: Icons.warning_amber_rounded,
     );
+
+    if (confirm != true || !mounted) return;
+
+    final userId = context.read<AuthProvider>().currentUser!.uid;
+    final chatProvider = context.read<ChatProvider>();
+    final leasesProvider = context.read<ActiveLeasesProvider>();
+    final requestProvider = context.read<LeaseRequestProvider>();
+    final basketProvider = context.read<BasketProvider>();
+    final reviewsProvider = context.read<ReviewsProvider>();
+    final favoriteProvider = context.read<FavoriteProvider>();
+    final auth = context.read<AuthProvider>();
+
+    try {
+      await ProductService.deleteProductsByOwner(userId);
+      chatProvider.deleteChatsForUser(userId);
+      leasesProvider.deleteLeasesForUser(userId);
+      requestProvider.deleteRequestsForUser(userId);
+      basketProvider.clearCartForUser(userId);
+      reviewsProvider.deleteReviewsByUser(userId);
+      favoriteProvider.clearFavoritesForUser(userId);
+      await auth.deleteAccount();
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarCustom.show(context, message: 'Ошибка удаления аккаунта');
+      }
+    }
   }
 
   Widget _buildActiveLeasesSection(BuildContext context, List leases, ThemeData theme) {

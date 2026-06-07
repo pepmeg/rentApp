@@ -3,7 +3,8 @@ import 'package:geocoding/geocoding.dart';
 import '../utils/location_service/location_service.dart';
 import '../utils/location_service/yandex_geocoder_service.dart';
 import '../widgets/location/location_map.dart';
-import '../widgets/location/location_search.dart';
+import '../widgets/screen_header.dart';
+import '../widgets/search_field.dart';
 
 class LocationPickerScreen extends StatefulWidget {
   const LocationPickerScreen({super.key});
@@ -159,7 +160,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
     String? district = place.subAdministrativeArea;
     if (district != null && district.isNotEmpty) {
-      final cleanDistrict = district.replaceFirst(RegExp(r'^город\s+', caseSensitive: false), '');
+      final cleanDistrict = district.replaceFirst(
+          RegExp(r'^город\s+', caseSensitive: false), '');
       if (cleanDistrict != city && cleanDistrict != region) {
         parts.add(cleanDistrict);
       }
@@ -168,12 +170,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     String street = '';
     if (place.street != null && place.street!.isNotEmpty) {
       street = place.street!;
-      street = street.replaceFirst(RegExp(r'^ул\.\s*', caseSensitive: false), '');
-      street = street.replaceFirst(RegExp(r'\s*ул\.\s*$', caseSensitive: false), '');
+      street =
+          street.replaceFirst(RegExp(r'^ул\.\s*', caseSensitive: false), '');
+      street =
+          street.replaceFirst(RegExp(r'\s*ул\.\s*$', caseSensitive: false), '');
       street = street.replaceAll(RegExp(r'\bул\.\b', caseSensitive: false), '');
       street = street.trim();
       if (street.isNotEmpty) {
-        if (place.subThoroughfare != null && place.subThoroughfare!.isNotEmpty) {
+        if (place.subThoroughfare != null &&
+            place.subThoroughfare!.isNotEmpty) {
           street += ', ${place.subThoroughfare!}';
         }
         parts.add('ул. $street');
@@ -193,33 +198,27 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         children: [
           Container(
             color: theme.scaffoldBackgroundColor,
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            padding: EdgeInsets.only(top: MediaQuery
+                .of(context)
+                .padding
+                .top),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Местоположение',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                      ),
-                    ],
-                  ),
+                const ScreenHeader(
+                  title: 'Местоположение',
+                  titleSize: 20,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
-                LocationSearchWidget(
+                SearchField(
                   controller: _searchController,
                   onChanged: _onSearchChanged,
+                  hintText: 'Поиск адреса',
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
                   onClear: () {
-                    _searchController.clear();
                     setState(() {
                       _suggestions = [];
                       _showSuggestions = false;
+                      _selectedIndex = -1;
                     });
                   },
                 ),
@@ -239,7 +238,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   },
                   onConfirm: _confirmSelection,
                 )
-                    : Container(key: const ValueKey('empty'), color: theme.scaffoldBackgroundColor),
+                    : Container(key: const ValueKey('empty'),
+                    color: theme.scaffoldBackgroundColor),
                 if (_showSuggestions && _suggestions.isNotEmpty)
                   Positioned(
                     top: 0,
@@ -249,7 +249,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     child: Material(
                       color: theme.scaffoldBackgroundColor,
                       elevation: 4,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20)),
                       child: ListView.builder(
                         padding: EdgeInsets.zero,
                         itemCount: _suggestions.length,
@@ -259,13 +260,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           return InkWell(
                             onTap: () => _selectSuggestion(i),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? theme.primaryColor.withOpacity(0.15)
                                     : theme.scaffoldBackgroundColor,
                                 border: i < _suggestions.length - 1
-                                    ? Border(bottom: BorderSide(color: theme.dividerColor))
+                                    ? Border(bottom: BorderSide(
+                                    color: theme.dividerColor))
                                     : null,
                               ),
                               child: Column(
@@ -276,17 +279,21 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
-                                      color: isSelected ? theme.primaryColor : theme.colorScheme.onSurface,
+                                      color: isSelected
+                                          ? theme.primaryColor
+                                          : theme.colorScheme.onSurface,
                                     ),
                                   ),
-                                  if (item.subtitle != null && item.subtitle!.isNotEmpty)
+                                  if (item.subtitle != null &&
+                                      item.subtitle!.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Text(
                                         item.subtitle!,
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                          color: theme.colorScheme.onSurface
+                                              .withOpacity(0.7),
                                         ),
                                       ),
                                     ),

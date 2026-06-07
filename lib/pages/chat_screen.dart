@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import '../services/connectivityService.dart';
+import '../services/image_file_service.dart';
 import '../services/product_service.dart';
 import '../models/messager_model/chat.dart';
 import '../models/messager_model/message.dart';
@@ -598,7 +599,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final currentImages = List<String>.from(msg.images ?? []);
     final newPaths = <String>[];
     for (final file in pickedFiles) {
-      final savedPath = await _saveImagePermanently(file.path);
+      final savedPath = await ImageFileService.saveChatImage(file.path);
       newPaths.add(savedPath);
     }
     final sortedIndices = _selectedImageIndices.toList()..sort((a, b) => b.compareTo(a));
@@ -623,22 +624,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       newImages: currentImages.isEmpty ? null : currentImages,
     );
     _deselectImages();
-  }
-
-  Future<String> _saveImagePermanently(String sourcePath) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final chatDir = Directory('${directory.path}/chat_images');
-      if (!await chatDir.exists()) {
-        await chatDir.create(recursive: true);
-      }
-      final fileName = 'chat_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final savedImage = File('${chatDir.path}/$fileName');
-      await File(sourcePath).copy(savedImage.path);
-      return savedImage.path;
-    } catch (e) {
-      return sourcePath;
-    }
   }
 
   @override
@@ -770,7 +755,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   int added = 0;
                   for (int i = 0; i < pickedFiles.length && added < remaining; i++) {
                     final key = await StorageService.uploadChatImage(
-                        await _saveImagePermanently(pickedFiles[i].path));
+                        await ImageFileService.saveChatImage(pickedFiles[i].path));
                     newPaths.add(key);
                     added++;
                   }
@@ -791,7 +776,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   int added = 0;
                   for (int i = 0; i < pickedFiles.length && added < remaining; i++) {
                     final key = await StorageService.uploadChatImage(
-                        await _saveImagePermanently(pickedFiles[i].path));
+                        await ImageFileService.saveChatImage(pickedFiles[i].path));
                     newPaths.add(key);
                     added++;
                   }

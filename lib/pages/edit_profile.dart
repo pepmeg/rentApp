@@ -5,8 +5,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../models/user.dart';
 import '../provider/AuthProvider.dart';
+import '../services/image_file_service.dart';
 import '../services/storage_service.dart';
 import '../utils/avatar.dart';
+import '../widgets/app_button.dart';
+import '../widgets/screen_header.dart';
 import 'change_password.dart';
 import '../utils/form_fields.dart';
 import 'location_screen.dart';
@@ -47,22 +50,6 @@ class _EditProfileState extends State<EditProfile> {
     emailController.dispose();
     locationController.dispose();
     super.dispose();
-  }
-
-  Future<String> _saveAvatarPermanently(String sourcePath) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final avatarDir = Directory('${directory.path}/avatars');
-      if (!await avatarDir.exists()) {
-        await avatarDir.create(recursive: true);
-      }
-      final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final savedImage = File('${avatarDir.path}/$fileName');
-      await File(sourcePath).copy(savedImage.path);
-      return savedImage.path;
-    } catch (e) {
-      return sourcePath;
-    }
   }
 
   Future<void> save() async {
@@ -108,7 +95,7 @@ class _EditProfileState extends State<EditProfile> {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      final localPath = await _saveAvatarPermanently(pickedFile.path);
+      final localPath = await ImageFileService.saveAvatar(pickedFile.path);
       final oldKey = _extractKeyFromPath(context.read<AuthProvider>().currentUser?.avatarUrl ?? '');
       final newKey = await StorageService.uploadAvatar(localPath, oldKey: oldKey);
       if (!mounted) return;
@@ -141,19 +128,10 @@ class _EditProfileState extends State<EditProfile> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                    onPressed: () => Navigator.pop(context),
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'Редактировать профиль',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                  ),
-                ],
+              const ScreenHeader(
+                title: 'Редактировать профиль',
+                useSafeArea: true,
+                padding: EdgeInsets.zero,
               ),
               const SizedBox(height: 20),
               GestureDetector(
@@ -194,39 +172,22 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 10),
               _buildField(phoneController, 'Номер телефона', theme),
               const SizedBox(height: 20),
-              ElevatedButton(
+              Button(
+                text: 'Сохранить',
                 onPressed: save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: const Text(
-                  'Сохранить',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                size: ButtonSize.large,
               ),
               const SizedBox(height: 12),
-              ElevatedButton(
+              Button(
+                text: 'Сменить пароль',
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.onSurface,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: const Text(
-                  'Сменить пароль',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                variant: ButtonVariant.secondary,
+                size: ButtonSize.large,
               ),
             ],
           ),

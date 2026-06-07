@@ -10,6 +10,7 @@ import '../widgets/product_screen/product_info_section.dart';
 import '../widgets/product_screen/product_owner_info.dart';
 import '../widgets/product_screen/product_reviews/product_reviews_section.dart';
 import '../widgets/report_dialog.dart';
+import '../widgets/screen_header.dart';
 
 class ProductScreen extends StatelessWidget {
   final Product product;
@@ -34,52 +35,53 @@ class ProductScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-              child: Row(
-                children: [
+            ScreenHeader(
+              showBackButton: true,
+              title: null,
+              actions: [
+                if (!isOwner && isUser && isAvailable)
                   IconButton(
-                    icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                    onPressed: () => Navigator.pop(context),
-                    constraints: const BoxConstraints(),
+                    icon: Icon(Icons.flag_outlined, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+                    onPressed: () => showReportDialog(
+                      context,
+                      reporterId: currentUser!.uid,
+                      targetType: ReportTargetType.product,
+                      targetId: product.id,
+                      targetName: product.name,
+                    ),
                   ),
-                  const Spacer(),
-                  if (!isOwner && isUser && isAvailable)
-                    IconButton(
-                      icon: Icon(Icons.flag_outlined, color: theme.colorScheme.onSurface.withOpacity(0.7)),
-                      onPressed: () => showReportDialog(
-                        context,
-                        reporterId: currentUser!.uid,
-                        targetType: ReportTargetType.product,
-                        targetId: product.id,
-                        targetName: product.name,
-                      ),
+                if (userId != null && isUser && !isOwner && !isBlocked)
+                  GestureDetector(
+                    onTap: () => favoriteProvider.toggleFavorite(userId, product.id),
+                    child: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
+                      size: 20,
                     ),
-                  if (userId != null && isUser && !isOwner && !isBlocked)
-                    GestureDetector(
-                      onTap: () => favoriteProvider.toggleFavorite(userId, product.id),
-                      child: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
-                        size: 20,
-                      ),
-                    ),
-                ],
-              ),
+                  ),
+              ],
             ),
             ProductImageGallery(
               images: product.images,
               cacheUrls: currentUser?.uid == product.ownerId,
             ),
             const SizedBox(height: 20),
-            ProductInfoSection(product: product),
-            const SizedBox(height: 20),
-            ProductDetailsSection(product: product),
-            const SizedBox(height: 20),
-            ProductOwnerInfo(ownerId: product.ownerId),
-            const SizedBox(height: 20),
-            ProductReviewsSection(product: product),
-            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ProductInfoSection(product: product),
+                  const SizedBox(height: 20),
+                  ProductDetailsSection(product: product),
+                  const SizedBox(height: 20),
+                  ProductOwnerInfo(ownerId: product.ownerId),
+                  const SizedBox(height: 20),
+                  ProductReviewsSection(product: product),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
           ],
         ),
       ),

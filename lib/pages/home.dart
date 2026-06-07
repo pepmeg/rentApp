@@ -15,7 +15,9 @@ import '../services/category_service.dart';
 import '../services/connectivityService.dart';
 import '../utils/pagination.dart';
 import '../widgets/category_filter.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
+import '../widgets/search_field.dart';
 import 'productScreen.dart';
 
 class Home extends StatefulWidget {
@@ -264,37 +266,20 @@ class HomeState extends State<Home> with PaginationMixin {
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
         child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                color: theme.colorScheme.surface,
-                child: TextField(
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                      resetPagination();
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Поиск',
-                    hintStyle: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      fontSize: 16,
-                    ),
-                    prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.filter_list, color: theme.primaryColor),
-                      onPressed: _openFilterSheet,
-                    ),
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                  ),
-                ),
+            SearchField(
+              hintText: 'Поиск',
+              padding: EdgeInsets.zero,
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                  resetPagination();
+                });
+              },
+              suffixIcon: IconButton(
+                icon: Icon(Icons.filter_list, color: theme.primaryColor),
+                onPressed: _openFilterSheet,
               ),
             ),
-            const SizedBox(height: 15),
             Expanded(
               child: _buildBody(allProducts, visibleProducts, currentUser, connectivity),
             ),
@@ -316,58 +301,25 @@ class HomeState extends State<Home> with PaginationMixin {
     if (_isLoading && !_hasError && allProducts.isEmpty) {
       return Center(child: CircularProgressIndicator(color: theme.primaryColor));
     }
+
     if (_hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.cloud_off, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            Text(
-              'Нет соединения с интернетом',
-              style: TextStyle(fontSize: 18, color: theme.colorScheme.onSurface.withOpacity(0.7)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Проверьте подключение и попробуйте снова',
-              style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withOpacity(0.4)),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _retryLoading,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Повторить'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-              ),
-            ),
-          ],
-        ),
+      return EmptyState(
+        icon: Icons.cloud_off,
+        title: 'Нет соединения с интернетом',
+        subtitle: 'Проверьте подключение и попробуйте снова',
+        buttonText: 'Повторить',
+        onButtonPressed: _retryLoading,
       );
     }
+
     if (allProducts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            Text(
-              'Ничего не найдено',
-              style: TextStyle(fontSize: 18, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Попробуйте изменить параметры поиска',
-              style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withOpacity(0.4)),
-            ),
-          ],
-        ),
+      return const EmptyState(
+        icon: Icons.search_off,
+        title: 'Ничего не найдено',
+        subtitle: 'Попробуйте изменить параметры поиска',
       );
     }
+
     return GridView.builder(
       controller: scrollController,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

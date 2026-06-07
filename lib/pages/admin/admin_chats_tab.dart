@@ -6,6 +6,8 @@ import '../../provider/AuthProvider.dart';
 import '../../provider/chat_provider.dart';
 import '../../utils/avatar.dart';
 import '../../utils/pagination.dart';
+import '../../widgets/search_field.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../chat_screen.dart';
 
 class AdminChatsTab extends StatefulWidget {
@@ -96,6 +98,21 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
     return uids;
   }
 
+  // 🚀 УНИВЕРСАЛЬНЫЙ МЕТОД ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ
+  Future<void> _confirmDeleteChat(BuildContext context, String chatId) async {
+    final confirm = await showConfirmDialog(
+      context,
+      title: 'Удалить чат?',
+      message: 'Все сообщения в этом чате будут удалены безвозвратно.',
+      confirmText: 'Удалить',
+      icon: Icons.delete_forever_rounded,
+    );
+
+    if (confirm == true && mounted) {
+      _chatProvider.deleteChats({chatId});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.read<AuthProvider>();
@@ -108,38 +125,12 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              color: theme.colorScheme.surface,
-              child: TextField(
-                onChanged: (value) {
-                  setState(() => _searchQuery = value);
-                  resetPagination();
-                },
-                decoration: InputDecoration(
-                  hintText: 'Поиск чатов',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
-                  prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                    icon: Icon(Icons.clear_rounded, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                    onPressed: () {
-                      setState(() => _searchQuery = '');
-                      resetPagination();
-                    },
-                  )
-                      : null,
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                ),
-              ),
-            ),
-          ),
+        SearchField(
+          hintText: 'Поиск чатов',
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+            resetPagination();
+          },
         ),
         Expanded(
           child: FutureBuilder(
@@ -200,35 +191,8 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                             ),
                           if (!isSupport && !isPrivilegedChat)
                             GestureDetector(
-                              onTap: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
-                                    title: Text(
-                                      'Удалить чат?',
-                                      style: TextStyle(color: theme.colorScheme.onSurface),
-                                    ),
-                                    content: Text(
-                                      'Все сообщения будут удалены.',
-                                      style: TextStyle(color: theme.colorScheme.onSurface),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(ctx),
-                                        child: Text('Отмена', style: TextStyle(color: theme.colorScheme.onSurface)),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          _chatProvider.deleteChats({chat.id});
-                                          Navigator.pop(ctx);
-                                        },
-                                        child: const Text('Удалить', style: TextStyle(color: Colors.red)),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
+                              // 🚀 ВЫЗОВ УНИВЕРСАЛЬНОГО ДИАЛОГА
+                              onTap: () => _confirmDeleteChat(context, chat.id),
                               child: Padding(
                                 padding: const EdgeInsets.only(left: 4),
                                 child: Icon(Icons.delete, size: 18, color: theme.colorScheme.onSurface),

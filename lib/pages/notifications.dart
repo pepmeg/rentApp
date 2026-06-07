@@ -5,6 +5,7 @@ import '../provider/LeaseRequestProvider.dart';
 import '../services/connectivityService.dart';
 import '../widgets/lease_request_card.dart';
 import '../provider/bottom_nav_provider.dart';
+import '../widgets/screen_header.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -20,36 +21,26 @@ class NotificationsScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ScreenHeader(
+            title: 'Запросы',
+            actions: [
+              if (!hasInternet)
                 IconButton(
-                  icon: Icon(Icons.arrow_back, size: 24, color: theme.colorScheme.onSurface),
-                  onPressed: () => Navigator.pop(context),
-                  constraints: const BoxConstraints(),
+                  icon: Icon(Icons.sync, color: theme.primaryColor),
+                  onPressed: () {
+                    context.read<LeaseRequestProvider>().loadRequests();
+                  },
                 ),
-                const SizedBox(width: 5),
-                Text(
-                  'Запросы',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
-                ),
-                const Spacer(),
-                if (!hasInternet)
-                  IconButton(
-                    icon: Icon(Icons.sync, color: theme.primaryColor),
-                    onPressed: () {
-                      context.read<LeaseRequestProvider>().loadRequests();
-                    },
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (!hasInternet)
-              Container(
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (!hasInternet)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
@@ -69,7 +60,10 @@ class NotificationsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            Expanded(
+            ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: requests.isEmpty
                   ? Center(
                 child: Text(
@@ -91,8 +85,8 @@ class NotificationsScreen extends StatelessWidget {
                 },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -13,6 +13,7 @@ import '../../utils/const.dart';
 import '../../utils/snackbar_custom.dart';
 import '../../pages/chat_screen.dart';
 import '../../provider/chat_provider.dart';
+import '../app_button.dart';
 
 class ProductInfoSection extends StatelessWidget {
   final Product product;
@@ -109,41 +110,23 @@ class ProductInfoSection extends StatelessWidget {
           if (!isOwner && isUser && isAvailable) ...[
             const SizedBox(height: 10),
             if (user?.blocked == true)
-              ElevatedButton(
+              Button(
+                text: 'Аккаунт заблокирован',
                 onPressed: null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.onSurface.withOpacity(0.3),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: const Text('Аккаунт заблокирован', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                size: ButtonSize.large,
               )
             else
-              ElevatedButton(
+              Button(
+                text: buttonText,
                 onPressed: canRent ? () => _onRentPressed(context) : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canRent ? theme.primaryColor : theme.colorScheme.onSurface.withOpacity(0.3),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-                child: Text(buttonText, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                size: ButtonSize.large,
               ),
             const SizedBox(height: 10),
-            ElevatedButton(
+            Button(
+              text: 'Написать продавцу',
               onPressed: () => _startChat(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.cardTheme.color ?? theme.colorScheme.surface,
-                foregroundColor: theme.colorScheme.onSurface,
-                side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              child: const Text('Написать продавцу', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              variant: ButtonVariant.outlined,
+              size: ButtonSize.large,
             ),
           ],
         ],

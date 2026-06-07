@@ -5,6 +5,7 @@ import '../provider/AuthProvider.dart';
 import '../provider/chat_provider.dart';
 import '../utils/chat_list_header.dart';
 import '../widgets/chat/chat_list_item.dart';
+import '../widgets/empty_state.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -212,7 +213,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
               onCloseSelection: _exitSelectionMode,
               onDeleteSelected: _deleteSelectedChats,
             ),
-            const SizedBox(height: 15),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refresh,
@@ -220,37 +220,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 child: isLoading
                     ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
                     : chats.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 64,
-                        color: theme.colorScheme.onSurface.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user.role == 'support' || user.role == 'admin'
-                            ? 'Нет доступных чатов'
-                            : 'Нет сообщений',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        user.role == 'support' || user.role == 'admin'
-                            ? 'Потяните вниз, чтобы обновить'
-                            : 'Напишите продавцу, чтобы начать общение',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.4),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ? EmptyState(
+                  icon: Icons.chat_bubble_outline,
+                  title: user.role == 'support' || user.role == 'admin'
+                      ? 'Нет доступных чатов'
+                      : 'Нет сообщений',
+                  subtitle: user.role == 'support' || user.role == 'admin'
+                      ? 'Потяните вниз, чтобы обновить'
+                      : 'Напишите продавцу, чтобы начать общение',
                 )
                     : ListView.builder(
                   itemCount: chats.length,

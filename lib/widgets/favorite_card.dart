@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../pages/productScreen.dart';
@@ -104,10 +105,14 @@ class _FavoriteCardState extends State<FavoriteCard> {
                     setState(() {});
                   }
                 },
-                child: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
-                  size: 20,
+                child: SvgPicture.asset(
+                  'assets/icons/heart.svg',
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(
+                    isFavorite ? theme.primaryColor : theme.colorScheme.onSurface,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ],

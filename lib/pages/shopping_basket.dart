@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/lease_request.dart';
+import '../widgets/app_button.dart';
 import '../widgets/basket_card.dart';
 import '../provider/basket_provider.dart';
 import '../provider/AuthProvider.dart';
 import '../utils/snackbar_custom.dart';
+import '../widgets/empty_state.dart';
 
 class ShoppingBasket extends StatefulWidget {
   const ShoppingBasket({super.key});
@@ -118,34 +120,11 @@ class BasketState extends State<ShoppingBasket> {
             ),
             Expanded(
               child: cartItems.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.shopping_cart_outlined,
-                      size: 80,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Ваша корзина пуста',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Завершённые аренды появятся здесь',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                    ),
-                  ],
-                ),
+                  ? const EmptyState(
+                icon: Icons.shopping_cart_outlined,
+                iconSize: 80,
+                title: 'Ваша корзина пуста',
+                subtitle: 'Завершённые аренды появятся здесь',
               )
                   : ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 20),
@@ -182,21 +161,10 @@ class BasketState extends State<ShoppingBasket> {
               ),
             ],
             const SizedBox(height: 15),
-            ElevatedButton(
+            Button(
+              text: 'Оплатить',
               onPressed: cartItems.isNotEmpty && !isBlocked ? () => _pay(context) : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primaryColor,
-                disabledBackgroundColor: theme.colorScheme.onSurface.withOpacity(0.3),
-                foregroundColor: theme.colorScheme.onPrimary,
-                disabledForegroundColor: theme.colorScheme.onPrimary.withOpacity(0.5),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              child: const Text(
-                'Оплатить',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              size: ButtonSize.large,
             ),
           ],
         ),

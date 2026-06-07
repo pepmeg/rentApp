@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../services/product_service.dart';
 import '../models/product.dart';
@@ -7,7 +8,9 @@ import '../provider/favorite_provider.dart';
 import '../services/category_service.dart';
 import '../utils/pagination.dart';
 import '../widgets/category_filter_bar.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/favorite_card.dart';
+import '../widgets/search_field.dart';
 
 class Favorite extends StatefulWidget {
   const Favorite({super.key});
@@ -115,29 +118,13 @@ class FavoriteState extends State<Favorite> with PaginationMixin {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                color: theme.colorScheme.surface,
-                child: TextField(
-                  onChanged: (value) {
-                    setState(() => searchQuery = value);
-                    resetPagination();
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Поиск',
-                    hintStyle: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      fontSize: 16,
-                    ),
-                    prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                  ),
-                ),
-              ),
+            SearchField(
+              hintText: 'Поиск',
+              padding: EdgeInsets.zero,
+              onChanged: (value) {
+                setState(() => searchQuery = value);
+                resetPagination();
+              },
             ),
             const SizedBox(height: 15),
             CategoryFilterBar(
@@ -148,30 +135,13 @@ class FavoriteState extends State<Favorite> with PaginationMixin {
                 });
               },
             ),
-            const SizedBox(height: 10),
             Expanded(
               child: _isLoading
                   ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
                   : items.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.favorite_border,
-                      size: 64,
-                      color: theme.colorScheme.onSurface.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Нет избранных товаров',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      ),
-                    ),
-                  ],
-                ),
+                  ? const EmptyState(
+                svgAsset: 'assets/icons/heart.svg',
+                title: 'Нет избранных товаров',
               )
                   : ListView.builder(
                 controller: scrollController,

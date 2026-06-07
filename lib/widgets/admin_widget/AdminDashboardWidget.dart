@@ -4,6 +4,7 @@ import '../../models/admin_models/report.dart';
 import '../../pages/admin/admin_screen.dart';
 import '../../provider/admin_provider.dart';
 import '../../provider/AuthProvider.dart';
+import '../../widgets/stat_card.dart';
 
 class AdminDashboardWidget extends StatefulWidget {
   const AdminDashboardWidget({super.key});
@@ -36,37 +37,31 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
             const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    context: context,
-                    title: 'Все',
-                    value: admin.totalProducts.toString(),
-                    icon: Icons.shopping_bag_rounded,
-                    color: theme.primaryColor,
-                    onTap: () => _openModerationTab(context, 0, productStatusFilter: null),
-                  ),
+                StatCard(
+                  value: admin.totalProducts.toString(),
+                  label: 'Все',
+                  icon: Icons.shopping_bag_rounded,
+                  iconColor: theme.primaryColor,
+                  compact: true,
+                  onTap: () => _openModerationTab(context, 0, productStatusFilter: null),
                 ),
                 const SizedBox(width: 6),
-                Expanded(
-                  child: _buildMetricCard(
-                    context: context,
-                    title: 'Скрытые',
-                    value: admin.hiddenProducts.toString(),
-                    icon: Icons.visibility_off_rounded,
-                    color: Colors.orange.shade300,
-                    onTap: () => _openModerationTab(context, 0, productStatusFilter: 'hidden'),
-                  ),
+                StatCard(
+                  value: admin.hiddenProducts.toString(),
+                  label: 'Скрытые',
+                  icon: Icons.visibility_off_rounded,
+                  iconColor: Colors.orange.shade300,
+                  compact: true,
+                  onTap: () => _openModerationTab(context, 0, productStatusFilter: 'hidden'),
                 ),
                 const SizedBox(width: 6),
-                Expanded(
-                  child: _buildMetricCard(
-                    context: context,
-                    title: 'Заблок.',
-                    value: admin.blockedProducts.toString(),
-                    icon: Icons.block_rounded,
-                    color: Colors.redAccent,
-                    onTap: () => _openModerationTab(context, 0, productStatusFilter: 'blocked'),
-                  ),
+                StatCard(
+                  value: admin.blockedProducts.toString(),
+                  label: 'Заблок.',
+                  icon: Icons.block_rounded,
+                  iconColor: Colors.redAccent,
+                  compact: true,
+                  onTap: () => _openModerationTab(context, 0, productStatusFilter: 'blocked'),
                 ),
               ],
             ),
@@ -77,47 +72,38 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
           const SizedBox(height: 6),
           Row(
             children: [
-              Expanded(
-                child: _buildMetricCard(
-                  context: context,
-                  title: 'Всего',
-                  value: admin.totalReports.toString(),
-                  icon: Icons.report_problem_rounded,
-                  color: theme.primaryColor,
-                  onTap: () => _openModerationTab(
-                    context,
-                    isAdmin ? 1 : 0,
-                  ),
+              StatCard(
+                value: admin.totalReports.toString(),
+                label: 'Всего',
+                icon: Icons.report_problem_rounded,
+                iconColor: theme.primaryColor,
+                compact: true,
+                onTap: () => _openModerationTab(context, isAdmin ? 1 : 0),
+              ),
+              const SizedBox(width: 6),
+              StatCard(
+                value: admin.reportsOnProductsCount.toString(),
+                label: 'На товары',
+                icon: Icons.shopping_bag_rounded,
+                iconColor: theme.primaryColor.withOpacity(0.7),
+                compact: true,
+                onTap: () => _openModerationTab(
+                  context,
+                  isAdmin ? 1 : 0,
+                  reportFilterType: ReportTargetType.product,
                 ),
               ),
               const SizedBox(width: 6),
-              Expanded(
-                child: _buildMetricCard(
-                  context: context,
-                  title: 'На товары',
-                  value: admin.reportsOnProductsCount.toString(),
-                  icon: Icons.shopping_bag_rounded,
-                  color: theme.primaryColor.withOpacity(0.7),
-                  onTap: () => _openModerationTab(
-                    context,
-                    isAdmin ? 1 : 0,
-                    reportFilterType: ReportTargetType.product,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _buildMetricCard(
-                  context: context,
-                  title: 'На польз.',
-                  value: admin.reportsOnUsersCount.toString(),
-                  icon: Icons.person,
-                  color: theme.colorScheme.onSurface,
-                  onTap: () => _openModerationTab(
-                    context,
-                    isAdmin ? 1 : 0,
-                    reportFilterType: ReportTargetType.user,
-                  ),
+              StatCard(
+                value: admin.reportsOnUsersCount.toString(),
+                label: 'На польз.',
+                icon: Icons.person,
+                iconColor: theme.colorScheme.onSurface,
+                compact: true,
+                onTap: () => _openModerationTab(
+                  context,
+                  isAdmin ? 1 : 0,
+                  reportFilterType: ReportTargetType.user,
                 ),
               ),
             ],
@@ -129,26 +115,22 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
             const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    context: context,
-                    title: 'Активные',
-                    value: admin.activeUsers.toString(),
-                    icon: Icons.people_rounded,
-                    color: theme.colorScheme.onSurface,
-                    onTap: () => _openModerationTab(context, 2),
-                  ),
+                StatCard(
+                  value: admin.activeUsers.toString(),
+                  label: 'Активные',
+                  icon: Icons.people_rounded,
+                  iconColor: theme.colorScheme.onSurface,
+                  compact: true,
+                  onTap: () => _openModerationTab(context, 2),
                 ),
                 const SizedBox(width: 6),
-                Expanded(
-                  child: _buildMetricCard(
-                    context: context,
-                    title: 'Заблок.',
-                    value: admin.blockedUsersCount.toString(),
-                    icon: Icons.block_rounded,
-                    color: Colors.redAccent,
-                    onTap: () => _openModerationTab(context, 2, showBlockedUsers: true),
-                  ),
+                StatCard(
+                  value: admin.blockedUsersCount.toString(),
+                  label: 'Заблок.',
+                  icon: Icons.block_rounded,
+                  iconColor: Colors.redAccent,
+                  compact: true,
+                  onTap: () => _openModerationTab(context, 2, showBlockedUsers: true),
                 ),
                 const SizedBox(width: 6),
                 const Expanded(child: SizedBox.shrink()),
@@ -168,63 +150,6 @@ class _AdminDashboardWidgetState extends State<AdminDashboardWidget> {
         fontWeight: FontWeight.w600,
         color: theme.colorScheme.onSurface.withOpacity(0.8),
         letterSpacing: 0.3,
-      ),
-    );
-  }
-
-  Widget _buildMetricCard({
-    required BuildContext context,
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.cardTheme.color ?? theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(12),
-      elevation: 1,
-      shadowColor: theme.colorScheme.onSurface.withOpacity(0.08),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 18, color: color),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onSurface,
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

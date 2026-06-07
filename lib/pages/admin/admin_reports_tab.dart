@@ -9,6 +9,9 @@ import '../../services/product_service.dart';
 import '../../provider/admin_provider.dart';
 import '../../provider/AuthProvider.dart';
 import '../../utils/pagination.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/search_field.dart';
+import '../../widgets/filter_chip.dart';
 import '../productScreen.dart';
 
 class _ReportBundleData {
@@ -61,6 +64,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     reports.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return reports;
   }
+
   ({Set<String> userIds, Set<String> productIds}) _collectIds(List<Report> reports) {
     final Set<String> userIds = {};
     final Set<String> productIds = {};
@@ -134,37 +138,19 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     if (visibleItems.isEmpty) {
       return Column(
         children: [
-          _buildSearchBar(theme),
+          SearchField(
+            hintText: 'Поиск жалоб',
+            onChanged: (value) {
+              setState(() => _searchQuery = value);
+              resetPagination();
+            },
+          ),
           _buildFilterBar(theme),
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.report_off_outlined,
-                    size: 64,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Нет жалоб',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Жалобы на товары и пользователей будут отображаться здесь',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+          const Expanded(
+            child: EmptyState(
+              icon: Icons.report_off_outlined,
+              title: 'Нет жалоб',
+              subtitle: 'Жалобы на товары и пользователей будут отображаться здесь',
             ),
           ),
           if (isLoading)
@@ -178,7 +164,13 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
 
     return Column(
       children: [
-        _buildSearchBar(theme),
+        SearchField(
+          hintText: 'Поиск жалоб',
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+            resetPagination();
+          },
+        ),
         _buildFilterBar(theme),
         Expanded(
           child: FutureBuilder<_ReportBundleData>(
@@ -346,78 +338,38 @@ class _AdminReportsTabState extends State<AdminReportsTab> with PaginationMixin 
     );
   }
 
-  Widget _buildSearchBar(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Container(
-          color: theme.colorScheme.surface,
-          child: TextField(
-            onChanged: (value) {
-              setState(() => _searchQuery = value);
-              resetPagination();
-            },
-            decoration: InputDecoration(
-              hintText: 'Поиск жалоб',
-              hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 16),
-              prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                icon: Icon(Icons.clear_rounded, color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                onPressed: () {
-                  setState(() => _searchQuery = '');
-                  resetPagination();
-                },
-              )
-                  : null,
-              border: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildFilterBar(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Row(
         children: [
-          _buildFilterChip(theme, 'Все', _filterTargetType == null, () {
-            setState(() => _filterTargetType = null);
-            resetPagination();
-          }),
+          AppFilterChip(
+            label: 'Все',
+            isSelected: _filterTargetType == null,
+            onTap: () {
+              setState(() => _filterTargetType = null);
+              resetPagination();
+            },
+          ),
           const SizedBox(width: 8),
-          _buildFilterChip(theme, 'Товары', _filterTargetType == ReportTargetType.product, () {
-            setState(() => _filterTargetType = ReportTargetType.product);
-            resetPagination();
-          }),
+          AppFilterChip(
+            label: 'Товары',
+            isSelected: _filterTargetType == ReportTargetType.product,
+            onTap: () {
+              setState(() => _filterTargetType = ReportTargetType.product);
+              resetPagination();
+            },
+          ),
           const SizedBox(width: 8),
-          _buildFilterChip(theme, 'Пользователи', _filterTargetType == ReportTargetType.user, () {
-            setState(() => _filterTargetType = ReportTargetType.user);
-            resetPagination();
-          }),
+          AppFilterChip(
+            label: 'Пользователи',
+            isSelected: _filterTargetType == ReportTargetType.user,
+            onTap: () {
+              setState(() => _filterTargetType = ReportTargetType.user);
+              resetPagination();
+            },
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(ThemeData theme, String label, bool selected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Chip(
-        label: Text(label),
-        backgroundColor: selected
-            ? theme.primaryColor.withOpacity(0.1)
-            : (theme.cardTheme.color ?? theme.colorScheme.surface),
-        labelStyle: TextStyle(
-          color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
-          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-        ),
       ),
     );
   }

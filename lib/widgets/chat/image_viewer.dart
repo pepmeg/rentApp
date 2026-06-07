@@ -20,20 +20,30 @@ class ImageViewer extends StatefulWidget {
   State<ImageViewer> createState() => _ImageViewerState();
 }
 
-class _ImageViewerState extends State<ImageViewer> {
+class _ImageViewerState extends State<ImageViewer> with SingleTickerProviderStateMixin {
   late PageController _pageController;
   late int _currentIndex;
+  late AnimationController _dismissController;
+  double _dragOffset = 0.0;
+  bool _isDismissing = false;
+  static const double _dismissThreshold = 120.0;
+  static const double _maxDragExtent = 300.0;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    _dismissController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _dismissController.dispose();
     super.dispose();
   }
 
@@ -46,6 +56,45 @@ class _ImageViewerState extends State<ImageViewer> {
   void _closeViewer() {
     if (widget.onDismiss != null) widget.onDismiss!();
     Navigator.pop(context);
+  }
+
+  Future<void> _animateDismiss(double direction) async {
+    setState(() => _isDismissing = true);
+
+    final targetOffset = direction > 0 ? _maxDragExtent : -_maxDragExtent;
+
+    await _dismissController.forward().then((_) {
+      setState(() {
+        _dragOffset = targetOffset;
+      });
+    });
+
+    if (mounted) {
+      if (widget.onDismiss != null) widget.onDismiss!();
+      Navigator.pop(context);
+    }
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (_isDismissing) return;
+
+    setState(() {
+      _dragOffset += details.delta.dy;
+      _dragOffset = _dragOffset.clamp(-_maxDragExtent, _maxDragExtent);
+    });
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    if (_isDismissing) return;
+    final velocity = details.primaryVelocity ?? 0;
+    final offset = _dragOffset.abs();
+    if (velocity.abs() > 700 || offset > _dismissThreshold) {
+      _animateDismiss(_dragOffset > 0 ? 1 : -1);
+    } else {
+      setState(() {
+        _dragOffset = 0;
+      });
+    }
   }
 
   ImageProvider _getImageProvider(String path) {
@@ -68,66 +117,86 @@ class _ImageViewerState extends State<ImageViewer> {
 
   @override
   Widget build(BuildContext context) {
+    final dragProgress = (_dragOffset / _maxDragExtent).abs().clamp(0.0, 1.0);
+    final backgroundOpacity = 0.85 * (1 - dragProgress);
+    final imageScale = 1.0 - (dragProgress * 0.2);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: GestureDetector(
-        onTap: _closeViewer,
-        child: Stack(
-          children: [
-            Container(
-              color: Colors.black.withOpacity(0.85),
+      body: Stack(
+        children: [
+          GestureDetector(
+            onTap: _isDismissing ? null : _closeViewer,
+            child: Container(
+              color: Colors.black.withOpacity(backgroundOpacity),
             ),
-            PhotoViewGallery.builder(
-              scrollPhysics: const BouncingScrollPhysics(),
-              builder: (BuildContext context, int index) {
-                return PhotoViewGalleryPageOptions(
-                  imageProvider: _getImageProvider(widget.imageUrls[index]),
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 2,
-                  heroAttributes: PhotoViewHeroAttributes(tag: widget.imageUrls[index]),
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.broken_image, size: 64, color: Colors.white38),
-                          const SizedBox(height: 8),
-                          Text('Не удалось загрузить', style: TextStyle(color: Colors.white54)),
-                        ],
+          ),
+          Positioned.fill(
+            child: GestureDetector(
+              onVerticalDragUpdate: _onVerticalDragUpdate,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              behavior: HitTestBehavior.translucent,
+              child: Transform.translate(
+                offset: Offset(0, _dragOffset),
+                child: Transform.scale(
+                  scale: imageScale,
+                  child: PhotoViewGallery.builder(
+                    scrollPhysics: const BouncingScrollPhysics(),
+                    builder: (BuildContext context, int index) {
+                      return PhotoViewGalleryPageOptions(
+                        imageProvider: _getImageProvider(widget.imageUrls[index]),
+                        minScale: PhotoViewComputedScale.contained,
+                        maxScale: PhotoViewComputedScale.covered * 2,
+                        heroAttributes: PhotoViewHeroAttributes(tag: widget.imageUrls[index]),
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, size: 64, color: Colors.white38),
+                                const SizedBox(height: 8),
+                                Text('Не удалось загрузить', style: TextStyle(color: Colors.white54)),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    itemCount: widget.imageUrls.length,
+                    loadingBuilder: (context, event) => Center(
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          value: event == null ? null : event.expectedTotalBytes != null
+                              ? event.cumulativeBytesLoaded / event.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
                       ),
-                    );
-                  },
-                );
-              },
-              itemCount: widget.imageUrls.length,
-              loadingBuilder: (context, event) => Center(
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: CircularProgressIndicator(
-                    value: event == null ? null : event.expectedTotalBytes != null
-                        ? event.cumulativeBytesLoaded / event.expectedTotalBytes!
-                        : null,
-                    color: Colors.white,
-                    strokeWidth: 2.5,
+                    ),
+                    backgroundDecoration: const BoxDecoration(color: Colors.transparent),
+                    pageController: _pageController,
+                    onPageChanged: _onPageChanged,
                   ),
                 ),
               ),
-              backgroundDecoration: const BoxDecoration(color: Colors.transparent),
-              pageController: _pageController,
-              onPageChanged: _onPageChanged,
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Opacity(
+                  opacity: 1 - dragProgress,
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: _closeViewer,
+                        onTap: _isDismissing ? null : _closeViewer,
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
@@ -160,8 +229,8 @@ class _ImageViewerState extends State<ImageViewer> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
