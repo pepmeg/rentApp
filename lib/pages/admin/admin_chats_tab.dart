@@ -98,7 +98,6 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
     return uids;
   }
 
-  // 🚀 УНИВЕРСАЛЬНЫЙ МЕТОД ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ
   Future<void> _confirmDeleteChat(BuildContext context, String chatId) async {
     final confirm = await showConfirmDialog(
       context,
@@ -163,6 +162,7 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     child: ListTile(
                       leading: buildUserAvatar(
+                        context,
                         user1,
                         fallbackImage: chat.productImage,
                         fallbackIcon: Icons.chat,
@@ -191,7 +191,6 @@ class _AdminChatsTabState extends State<AdminChatsTab> with PaginationMixin {
                             ),
                           if (!isSupport && !isPrivilegedChat)
                             GestureDetector(
-                              // 🚀 ВЫЗОВ УНИВЕРСАЛЬНОГО ДИАЛОГА
                               onTap: () => _confirmDeleteChat(context, chat.id),
                               child: Padding(
                                 padding: const EdgeInsets.only(left: 4),

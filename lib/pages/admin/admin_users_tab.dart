@@ -121,7 +121,7 @@ class _AdminUsersTabState extends State<AdminUsersTab> with PaginationMixin {
                 color: theme.cardTheme.color ?? theme.colorScheme.surface,
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: ListTile(
-                  leading: buildUserAvatar(user, radius: 24),
+                  leading: buildUserAvatar(context,user, radius: 24),
                   title: Row(
                     children: [
                       Flexible(

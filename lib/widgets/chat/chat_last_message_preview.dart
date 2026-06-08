@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/storage_service.dart';
 
 class ChatLastMessagePreview extends StatelessWidget {
@@ -14,7 +15,6 @@ class ChatLastMessagePreview extends StatelessWidget {
       final count = images!.length;
       final label = count == 1 ? 'Фотография' : '$count фото';
       final previewKeys = images!.take(3).toList();
-
       return Row(
         children: [
           ...previewKeys.map((key) => Padding(
@@ -25,13 +25,51 @@ class ChatLastMessagePreview extends StatelessWidget {
                 future: StorageService.getDownloadUrl(key, cache: true),
                 builder: (context, snapshot) {
                   if (snapshot.hasData && snapshot.data != null) {
-                    return Image.network(snapshot.data!,
-                        width: 28, height: 28, fit: BoxFit.cover);
+                    return CachedNetworkImage(
+                      imageUrl: snapshot.data!,
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Center(
+                          child: SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.primaryColor.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          size: 16,
+                          color: theme.colorScheme.onSurface.withOpacity(0.4),
+                        ),
+                      ),
+                    );
                   }
                   return Container(
                     width: 28,
                     height: 28,
-                    color: theme.colorScheme.onSurface.withOpacity(0.1),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   );
                 },
               ),

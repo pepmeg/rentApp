@@ -83,7 +83,7 @@ class CompletedLeaseCard extends StatelessWidget {
                           },
                           child: Row(
                             children: [
-                              buildUserAvatar(ownerUser, radius: 10),
+                              buildUserAvatar(context,ownerUser, radius: 10),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(

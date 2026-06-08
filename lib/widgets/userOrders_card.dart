@@ -167,7 +167,7 @@ class UserOrdersCard extends StatelessWidget {
                             avatarUrl: activeLease!.userAvatarUrl,
                             role: 'user',
                           );
-                          return buildUserAvatar(leaseUser, radius: 16);
+                          return buildUserAvatar(context,leaseUser, radius: 16);
                         }),
                         const SizedBox(width: 8),
                         Expanded(

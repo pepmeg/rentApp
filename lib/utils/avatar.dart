@@ -8,6 +8,7 @@ import '../theme/theme_data.dart';
 final Map<String, Future<String?>> _avatarUrlFutures = {};
 
 Widget buildUserAvatar(
+    BuildContext context,
     UserModel? user, {
       double radius = 20,
       String? fallbackImage,
@@ -27,8 +28,10 @@ Widget buildUserAvatar(
       child: Icon(Icons.headset_mic, color: Colors.white, size: radius * 1.2),
     );
   }
-
   final avatarUrl = user?.avatarUrl;
+  if (avatarUrl == null || avatarUrl.isEmpty) {
+    return _buildFallbackAvatar(context, radius, fallbackImage, fallbackIcon);
+  }
 
   return FutureBuilder<String?>(
     future: _resolveImageUrl(avatarUrl),
@@ -85,7 +88,6 @@ Widget _buildLoadingAvatar(BuildContext context, double radius) {
 }
 
 Widget _buildNetworkAvatar(BuildContext context, String url, double radius) {
-  final theme = Theme.of(context);
   return ClipOval(
     child: CachedNetworkImage(
       imageUrl: url,

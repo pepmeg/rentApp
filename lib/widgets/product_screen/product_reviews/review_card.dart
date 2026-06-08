@@ -50,7 +50,7 @@ class _ReviewCardState extends State<ReviewCard> {
         children: [
           Row(
             children: [
-              buildUserAvatar(user, radius: 20),
+              buildUserAvatar(context,user, radius: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

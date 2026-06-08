@@ -160,7 +160,7 @@ class LeaseRequestCard extends StatelessWidget {
                           avatarUrl: request.requesterAvatarPath,
                           role: 'user',
                         );
-                        return buildUserAvatar(requesterUser, radius: 16);
+                        return buildUserAvatar(context,requesterUser, radius: 16);
                       }),
                       const SizedBox(width: 10),
                       Expanded(

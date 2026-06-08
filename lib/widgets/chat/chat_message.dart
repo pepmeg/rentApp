@@ -401,7 +401,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   if (!isMyMessage && widget.showAvatar && !isAiAssistant)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: buildUserAvatar(widget.companion, radius: 16),
+                      child: buildUserAvatar(context,widget.companion, radius: 16),
                     )
                   else if (!isMyMessage)
                     const SizedBox(width: 40),

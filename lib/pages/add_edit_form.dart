@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../provider/bottom_nav_provider.dart';
 import '../services/brand_service.dart';
@@ -312,13 +311,14 @@ class _ProductFormState extends State<ProductForm> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().currentUser;
+    final user = context.read<AuthProvider>().currentUser;
+    final isUser = context.read<AuthProvider>().isUser;
     final theme = Theme.of(context);
     final price = int.tryParse(priceController.text.trim());
     final commission = price != null ? Product.commissionForPrice(price) : null;
     final commissionRate = price != null ? (price > 1000 ? 3 : 5) : null;
 
-    if (!context.watch<AuthProvider>().isUser) {
+    if (!isUser) {
       return const SizedBox.shrink();
     }
 

@@ -228,7 +228,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        buildUserAvatar(author, radius: 20),
+                                        buildUserAvatar(context,author, radius: 20),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(

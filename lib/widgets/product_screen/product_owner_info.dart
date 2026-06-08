@@ -35,7 +35,7 @@ class ProductOwnerInfo extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                buildUserAvatar(owner, radius: 50),
+                buildUserAvatar(context,owner, radius: 50),
                 const SizedBox(width: 30),
                 Expanded(
                   child: Column(

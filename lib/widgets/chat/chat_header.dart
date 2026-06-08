@@ -195,7 +195,7 @@ class ChatSellerRow extends StatelessWidget {
             padding: EdgeInsets.zero,
           ),
           const SizedBox(width: 8),
-          buildUserAvatar(companion, radius: 18),
+          buildUserAvatar(context,companion, radius: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

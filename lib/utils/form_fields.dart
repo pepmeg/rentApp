@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -121,7 +122,7 @@ Color _popupMenuBackgroundColor(BuildContext context, Set<WidgetState> states) {
   return theme.cardTheme.color ?? theme.colorScheme.surface;
 }
 
-class AppDropdownMenu extends StatelessWidget {
+class AppDropdownMenu extends StatefulWidget {
   final String? value;
   final String hint;
   final List<String> options;
@@ -138,20 +139,126 @@ class AppDropdownMenu extends StatelessWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  State<AppDropdownMenu> createState() => _AppDropdownMenuState();
+}
+
+class _AppDropdownMenuState extends State<AppDropdownMenu> {
+  final TextEditingController _controller = TextEditingController();
+  List<DropdownMenuEntry<String>> _entries = [];
+  bool _dependenciesInitialized = false;
+
+  Widget? _cachedWidget;
+  String? _cachedValue;
+  List<String>? _cachedOptions;
+  String? _cachedHint;
+  String? _cachedErrorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_dependenciesInitialized) {
+      _updateEntries();
+      _dependenciesInitialized = true;
+      _cachedWidget = null;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AppDropdownMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    bool entriesChanged = false;
+    if (!listEquals(oldWidget.options, widget.options) || oldWidget.value != widget.value) {
+      _updateEntries();
+      entriesChanged = true;
+    }
+
+    if (oldWidget.value != widget.value) {
+      _updateController();
+    }
+
+    if (entriesChanged ||
+        oldWidget.value != widget.value ||
+        oldWidget.hint != widget.hint ||
+        oldWidget.errorText != widget.errorText) {
+      _cachedWidget = null;
+    }
+  }
+
+  void _updateEntries() {
     final theme = Theme.of(context);
-    final hasError = errorText != null && errorText!.isNotEmpty;
+    _entries = widget.options.map<DropdownMenuEntry<String>>((option) {
+      final isSelected = option == widget.value;
+      return DropdownMenuEntry<String>(
+        value: option,
+        label: option,
+        style: MenuItemButton.styleFrom(
+          foregroundColor: theme.colorScheme.onSurface,
+          backgroundColor: isSelected
+              ? theme.primaryColor.withOpacity(0.15)
+              : Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }).toList();
+  }
+
+  void _updateController() {
+    final newValue = widget.value ?? '';
+    if (_controller.text != newValue) {
+      _controller.text = newValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paramsChanged = _cachedValue != widget.value ||
+        !listEquals(_cachedOptions, widget.options) ||
+        _cachedHint != widget.hint ||
+        _cachedErrorText != widget.errorText ||
+        _cachedWidget == null;
+
+    if (paramsChanged) {
+      _cachedValue = widget.value;
+      _cachedOptions = widget.options;
+      _cachedHint = widget.hint;
+      _cachedErrorText = widget.errorText;
+      _cachedWidget = _buildContent(context);
+    }
+    return _cachedWidget!;
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownMenu<String>(
-          key: key,
-          initialSelection: value,
+          controller: _controller,
           requestFocusOnTap: false,
           expandedInsets: EdgeInsets.zero,
-          onSelected: (selected) => onChanged?.call(selected),
-          hintText: hint,
+          enableFilter: false,
+          enableSearch: false,
+          onSelected: (selected) {
+            if (widget.onChanged != null) {
+              widget.onChanged!(selected);
+            }
+          },
+          hintText: widget.hint,
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: theme.cardTheme.color ?? theme.colorScheme.surface,
@@ -188,28 +295,16 @@ class AppDropdownMenu extends StatelessWidget {
           menuStyle: MenuStyle(
             shape: WidgetStateProperty.all(_popupMenuShape()),
             backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => _popupMenuBackgroundColor(context, states)),
+                  (states) => _popupMenuBackgroundColor(context, states),
+            ),
           ),
-          dropdownMenuEntries: options.map<DropdownMenuEntry<String>>((option) {
-            final isSelected = option == value;
-            return DropdownMenuEntry<String>(
-              value: option,
-              label: option,
-              style: MenuItemButton.styleFrom(
-                foregroundColor: theme.colorScheme.onSurface,
-                backgroundColor: isSelected
-                    ? theme.primaryColor.withOpacity(0.15)
-                    : Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            );
-          }).toList(),
+          dropdownMenuEntries: _entries,
         ),
         if (hasError)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 8),
             child: Text(
-              errorText!,
+              widget.errorText!,
               style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
             ),
           ),

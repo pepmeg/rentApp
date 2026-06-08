@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/messager_model/chat.dart';
-import '../../models/user.dart';
 import '../../pages/chat_screen.dart';
 import '../../provider/AuthProvider.dart';
 import '../../provider/chat_provider.dart';
@@ -52,6 +51,7 @@ class ChatListItem extends StatelessWidget {
     final bool showUnreadBadge = unreadCount > 0 && !isLastMessageFromMe;
     final bool isUnread = showUnreadBadge && chatProvider.isChatUnread(chat.id, user.uid);
     final leading = buildUserAvatar(
+      context,
       companion,
       fallbackImage: chat.productImage,
       fallbackIcon: Icons.chat,

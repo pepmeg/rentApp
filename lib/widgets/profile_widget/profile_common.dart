@@ -96,7 +96,7 @@ class ProfileUserInfo extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          buildUserAvatar(user, radius: 50),
+          buildUserAvatar(context,user, radius: 50),
           const SizedBox(width: 30),
           Expanded(
             child: Column(

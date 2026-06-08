@@ -137,6 +137,7 @@ class _EditProfileState extends State<EditProfile> {
               GestureDetector(
                 onTap: _pickImage,
                 child: buildUserAvatar(
+                  context,
                   _buildCurrentUserWithAvatar(),
                   radius: 50,
                   fallbackIcon: Icons.camera_alt,

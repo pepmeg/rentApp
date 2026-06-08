@@ -27,7 +27,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => HomeState();
 }
 
-class HomeState extends State<Home> with PaginationMixin {
+class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver {
   String searchQuery = '';
   List<String>? _selectedCategoryPath;
   int? minPrice;
@@ -40,7 +40,8 @@ class HomeState extends State<Home> with PaginationMixin {
   List<Product> _allProducts = [];
   bool _isLoading = true;
   bool _hasError = false;
-  late StreamSubscription<QuerySnapshot> _productsSubscription;
+  bool _needsRefresh = true;
+  DateTime? _lastLoadTime;
 
   static const String _cachedProductsKey = 'cached_active_products';
 
@@ -121,8 +122,23 @@ class HomeState extends State<Home> with PaginationMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCachedProducts();
-    _listenToProductsWithFallback();
+    _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _needsRefresh = true;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _loadCachedProducts() async {
@@ -155,65 +171,66 @@ class HomeState extends State<Home> with PaginationMixin {
     }
   }
 
-  void _listenToProductsWithFallback() {
-    final connectivity = context.read<ConnectivityService>();
-    Timer? timeoutTimer;
-    bool dataReceived = false;
+  Future<void> _loadProducts() async {
+    if (!_needsRefresh && _allProducts.isNotEmpty) return;
 
-    timeoutTimer = Timer(const Duration(seconds: 10), () {
-      if (!dataReceived && mounted) {
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-        });
-        _productsSubscription.cancel();
-      }
-    });
-
-    _productsSubscription = FirebaseFirestore.instance
-        .collection('products')
-        .where('moderationStatus', isEqualTo: 'active')
-        .snapshots()
-        .listen((snapshot) {
-      if (!mounted) return;
-      dataReceived = true;
-      timeoutTimer?.cancel();
-
-      final products = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return Product.fromJson(data);
-      }).toList();
-
-      setState(() {
-        _allProducts = products;
-        _isLoading = false;
-        _hasError = false;
-      });
-      if (connectivity.hasInternet) {
-        _saveProductsToCache(products);
-      }
-    }, onError: (error) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _hasError = true;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _productsSubscription.cancel();
-    super.dispose();
-  }
-
-  void _retryLoading() {
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
-    _listenToProductsWithFallback();
+
+    try {
+      final connectivity = context.read<ConnectivityService>();
+
+      if (!connectivity.hasInternet) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
+        return;
+      }
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('moderationStatus', isEqualTo: 'active')
+          .get()
+          .timeout(const Duration(seconds: 10));
+
+      final products = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return Product.fromJson(data);
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _allProducts = products;
+          _isLoading = false;
+          _hasError = false;
+          _needsRefresh = false;
+          _lastLoadTime = DateTime.now();
+        });
+        _saveProductsToCache(products);
+      }
+    } catch (e) {
+      debugPrint('Ошибка загрузки товаров: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshProducts() async {
+    _needsRefresh = true;
+    await _loadProducts();
+  }
+
+  void _retryLoading() {
+    _needsRefresh = true;
+    _loadProducts();
   }
 
   void _openFilterSheet() {
@@ -249,18 +266,21 @@ class HomeState extends State<Home> with PaginationMixin {
 
   @override
   Widget build(BuildContext context) {
+    final bottomNavProvider = context.watch<BottomNavProvider>();
     context.watch<AuthProvider>();
-    context.watch<BottomNavProvider>();
     context.watch<ActiveLeasesProvider>();
     context.watch<ReviewsProvider>();
     context.watch<CategoryService>();
     final connectivity = context.watch<ConnectivityService>();
     final currentUser = context.watch<AuthProvider>().currentUser;
+    if (bottomNavProvider.currentIndex == 0 && _needsRefresh) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadProducts();
+      });
+    }
     final allProducts = filteredProducts;
     final visibleProducts = allProducts.take(visibleCount).toList();
-
     final theme = Theme.of(context);
-
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 40),
@@ -320,37 +340,42 @@ class HomeState extends State<Home> with PaginationMixin {
       );
     }
 
-    return GridView.builder(
-      controller: scrollController,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.84,
+    return RefreshIndicator(
+      onRefresh: _refreshProducts,
+      color: theme.primaryColor,
+      child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        controller: scrollController,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 0.84,
+        ),
+        itemCount: visibleProducts.length,
+        itemBuilder: (context, index) {
+          final product = visibleProducts[index];
+          return ProductCard(
+            key: ValueKey(product.id),
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            location: product.location,
+            images: product.images,
+            isPricePerHour: product.isPricePerHour,
+            ownerId: product.ownerId,
+            cacheUrls: currentUser?.uid == product.ownerId,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductScreen(product: product),
+                ),
+              );
+            },
+          );
+        },
       ),
-      itemCount: visibleProducts.length,
-      itemBuilder: (context, index) {
-        final product = visibleProducts[index];
-        return ProductCard(
-          key: ValueKey(product.id),
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          location: product.location,
-          images: product.images,
-          isPricePerHour: product.isPricePerHour,
-          ownerId: product.ownerId,
-          cacheUrls: currentUser?.uid == product.ownerId,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductScreen(product: product),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
