@@ -68,7 +68,6 @@ class GitHubUpdateService {
         required String apkUrl,
       }) {
     final theme = Theme.of(context);
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -134,12 +133,17 @@ class GitHubUpdateService {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      releaseNotes,
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.4,
-                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          releaseNotes,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.4,
+                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                          ),
+                        ),
                       ),
                     ),
                   ],
