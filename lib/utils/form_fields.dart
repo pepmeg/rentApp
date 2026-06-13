@@ -145,13 +145,13 @@ class AppDropdownMenu extends StatefulWidget {
 class _AppDropdownMenuState extends State<AppDropdownMenu> {
   final TextEditingController _controller = TextEditingController();
   List<DropdownMenuEntry<String>> _entries = [];
-  bool _dependenciesInitialized = false;
 
-  Widget? _cachedWidget;
+  // 🚀 Кэш для определения изменений
   String? _cachedValue;
   List<String>? _cachedOptions;
   String? _cachedHint;
   String? _cachedErrorText;
+  Brightness? _cachedBrightness; // 🚀 Кэш темы
 
   @override
   void initState() {
@@ -162,32 +162,17 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_dependenciesInitialized) {
-      _updateEntries();
-      _dependenciesInitialized = true;
-      _cachedWidget = null;
-    }
+    // 🚀 Инициализируем кэш темы и entries при первой отрисовке
+    _cachedBrightness = Theme.of(context).brightness;
+    _updateEntries();
   }
 
   @override
   void didUpdateWidget(covariant AppDropdownMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    bool entriesChanged = false;
-    if (!listEquals(oldWidget.options, widget.options) || oldWidget.value != widget.value) {
-      _updateEntries();
-      entriesChanged = true;
-    }
-
     if (oldWidget.value != widget.value) {
       _updateController();
-    }
-
-    if (entriesChanged ||
-        oldWidget.value != widget.value ||
-        oldWidget.hint != widget.hint ||
-        oldWidget.errorText != widget.errorText) {
-      _cachedWidget = null;
     }
   }
 
@@ -224,20 +209,29 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final paramsChanged = _cachedValue != widget.value ||
+    final currentBrightness = Theme.of(context).brightness;
+
+    // 🚀 Проверяем, изменилось ли что-то (включая тему!)
+    final needsRebuild = _cachedValue != widget.value ||
         !listEquals(_cachedOptions, widget.options) ||
         _cachedHint != widget.hint ||
         _cachedErrorText != widget.errorText ||
-        _cachedWidget == null;
+        _cachedBrightness != currentBrightness;
 
-    if (paramsChanged) {
+    if (needsRebuild) {
+      // 🚀 Если изменилась тема - перестраиваем entries с новыми цветами
+      if (_cachedBrightness != currentBrightness) {
+        _updateEntries();
+      }
+
       _cachedValue = widget.value;
-      _cachedOptions = widget.options;
+      _cachedOptions = List.from(widget.options);
       _cachedHint = widget.hint;
       _cachedErrorText = widget.errorText;
-      _cachedWidget = _buildContent(context);
+      _cachedBrightness = currentBrightness;
     }
-    return _cachedWidget!;
+
+    return _buildContent(context);
   }
 
   Widget _buildContent(BuildContext context) {
@@ -254,9 +248,7 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
           enableFilter: false,
           enableSearch: false,
           onSelected: (selected) {
-            if (widget.onChanged != null) {
-              widget.onChanged!(selected);
-            }
+            widget.onChanged?.call(selected);
           },
           hintText: widget.hint,
           inputDecorationTheme: InputDecorationTheme(

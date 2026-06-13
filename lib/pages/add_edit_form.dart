@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../main.dart';
 import '../provider/bottom_nav_provider.dart';
 import '../services/brand_service.dart';
 import '../services/image_file_service.dart';
@@ -28,7 +29,7 @@ class ProductForm extends StatefulWidget {
   State<ProductForm> createState() => _ProductFormState();
 }
 
-class _ProductFormState extends State<ProductForm> {
+class _ProductFormState extends State<ProductForm> with RouteAware{
   late TextEditingController nameController;
   late TextEditingController priceController;
   late TextEditingController daysController;
@@ -48,7 +49,7 @@ class _ProductFormState extends State<ProductForm> {
     super.initState();
     final p = widget.product;
     final user = context.read<AuthProvider>().currentUser;
-
+    _initControllers();
     nameController = TextEditingController(text: p?.name ?? '');
     priceController = TextEditingController(text: p?.price.toString() ?? '');
     daysController = TextEditingController(
@@ -74,7 +75,14 @@ class _ProductFormState extends State<ProductForm> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     nameController.dispose();
     priceController.dispose();
     daysController.dispose();
@@ -82,6 +90,41 @@ class _ProductFormState extends State<ProductForm> {
     descriptionController.dispose();
     brandController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    if (!widget.isEditing) {
+      _clearForm();
+    }
+  }
+
+  void _initControllers() {
+    final p = widget.product;
+    final user = context.read<AuthProvider>().currentUser;
+
+    nameController = TextEditingController(text: p?.name ?? '');
+    priceController = TextEditingController(text: p?.price.toString() ?? '');
+    daysController = TextEditingController(
+      text: p != null
+          ? (p.isPricePerHour ? p.minRentHours : p.minRentDays).toString()
+          : '',
+    );
+    locationController = TextEditingController(
+      text: p?.location ?? (user?.address.isNotEmpty == true ? user!.address : ''),
+    );
+    descriptionController = TextEditingController(text: p?.description ?? '');
+    brandController = TextEditingController(text: p?.brand ?? '');
+
+    _imagePaths = p != null ? List<String>.from(p.images) : [];
+    _isPricePerHour = p?.isPricePerHour ?? false;
+    _categoryPath = p != null ? List<String>.from(p.categoryPath) : [];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !context.read<AuthProvider>().isUser) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    });
   }
 
   Future<void> _pickImages() async {

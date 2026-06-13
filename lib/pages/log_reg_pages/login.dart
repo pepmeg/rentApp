@@ -116,13 +116,18 @@ class LoginState extends State<Login> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
               ),
               const SizedBox(height: 15),
-              Button(
-                text: 'Создать аккаунт',
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => Registration()));
-                },
-                borderRadius: 8,
-              ),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  primaryColor: const Color(0xFF564739),
+                ),
+                child: Button(
+                  text: 'Создать аккаунт',
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => Registration()));
+                  },
+                  borderRadius: 8,
+                ),
+              )
             ],
           ),
         ),

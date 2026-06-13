@@ -77,6 +77,8 @@ void main() async {
   );
 }
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 class MyApp extends StatelessWidget {
   final String initialRoute;
 
@@ -89,6 +91,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
+      navigatorObservers: [routeObserver],
       navigatorKey: navigatorKey,
       initialRoute: '/splash',
       routes: {

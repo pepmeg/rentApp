@@ -21,12 +21,28 @@ class CategoryPicker extends StatefulWidget {
 
 class _CategoryPickerState extends State<CategoryPicker> {
   List<CategoryNode> _selectedNodes = [];
+  ThemeMode? _lastThemeMode;
 
   @override
   void initState() {
     super.initState();
     if (widget.initialPath != null && widget.initialPath!.isNotEmpty) {
       _restorePath();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final theme = Theme.of(context);
+    final currentThemeMode = theme.brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light;
+
+    if (_lastThemeMode != null && _lastThemeMode != currentThemeMode) {
+      setState(() {
+        _lastThemeMode = currentThemeMode;
+      });
+    } else if (_lastThemeMode == null) {
+      _lastThemeMode = currentThemeMode;
     }
   }
 
@@ -42,6 +58,17 @@ class _CategoryPickerState extends State<CategoryPicker> {
         _restorePath();
       }
     }
+  }
+
+  @override
+  void deactivate() {
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _selectedNodes = [];
+    super.dispose();
   }
 
   Future<void> _restorePath() async {
@@ -89,16 +116,12 @@ class _CategoryPickerState extends State<CategoryPicker> {
   Widget build(BuildContext context) {
     final service = context.watch<CategoryService>();
     final roots = service.rootCategories;
-
     final levels = <Widget>[];
     for (int i = 0; i <= _selectedNodes.length; i++) {
       final parentId = i == 0 ? null : _selectedNodes[i - 1].id;
       final children = parentId == null ? roots : service.getChildren(parentId);
-
       if (children.isEmpty && i == _selectedNodes.length) break;
-
       final currentValue = i < _selectedNodes.length ? _selectedNodes[i] : null;
-
       levels.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
@@ -116,7 +139,6 @@ class _CategoryPickerState extends State<CategoryPicker> {
         ),
       );
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: levels,

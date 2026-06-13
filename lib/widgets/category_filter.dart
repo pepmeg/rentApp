@@ -13,6 +13,8 @@ class CategoryFilterSheet extends StatefulWidget {
   final String? initialRegion;
   final String? initialCity;
   final String? initialSort;
+  final List<String> availableRegions;
+  final Map<String, List<String>> regionToCities;
   final Function(List<String>? categoryPath, int? minPrice, int? maxPrice,
       String? brand, String? region, String? city, String? sort) onApply;
 
@@ -25,6 +27,8 @@ class CategoryFilterSheet extends StatefulWidget {
     this.initialRegion,
     this.initialCity,
     this.initialSort,
+    required this.availableRegions,
+    required this.regionToCities,
     required this.onApply,
   });
 
@@ -330,7 +334,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
               key: ValueKey('region_$_selectedRegion'),
               value: _selectedRegion,
               hint: 'Регион',
-              options: ['Все регионы'],
+              options: ['Все регионы', ...widget.availableRegions],
               onChanged: (v) => setState(() {
                 _selectedRegion = (v == 'Все регионы') ? null : v;
                 _selectedCity = null;
@@ -347,7 +351,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
                 key: ValueKey('city_$_selectedCity'),
                 value: _selectedCity,
                 hint: 'Город',
-                options: ['Все города'],
+                options: ['Все города', ...(widget.regionToCities[_selectedRegion] ?? [])],
                 onChanged: (v) => setState(() => _selectedCity = (v == 'Все города') ? null : v),
               ),
             ],

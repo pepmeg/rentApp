@@ -234,6 +234,25 @@ class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver
   }
 
   void _openFilterSheet() {
+    final Set<String> regionsSet = {};
+    final Map<String, Set<String>> regionToCitiesMap = {};
+
+    for (final product in _allProducts) {
+      if (product.region.isNotEmpty) {
+        regionsSet.add(product.region);
+
+        if (product.city.isNotEmpty) {
+          regionToCitiesMap.putIfAbsent(product.region, () => {});
+          regionToCitiesMap[product.region]!.add(product.city);
+        }
+      }
+    }
+
+    final availableRegions = regionsSet.toList()..sort();
+    final regionToCities = regionToCitiesMap.map(
+          (region, cities) => MapEntry(region, cities.toList()..sort()),
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -248,6 +267,8 @@ class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver
         initialRegion: regionFilter,
         initialCity: cityFilter,
         initialSort: sortMode,
+        availableRegions: availableRegions,
+        regionToCities: regionToCities,
         onApply: (categoryPath, minP, maxP, brand, region, city, sort) {
           setState(() {
             _selectedCategoryPath = categoryPath;

@@ -20,6 +20,7 @@ class Button extends StatelessWidget {
   final bool isLoading;
   final IconData? icon;
   final double borderRadius;
+  final Color? color;
 
   const Button({
     super.key,
@@ -29,7 +30,8 @@ class Button extends StatelessWidget {
     this.size = ButtonSize.normal,
     this.isLoading = false,
     this.icon,
-    this.borderRadius = 15,
+    this.borderRadius = 15, required,
+    this.color,
   });
 
   bool get _isEnabled => onPressed != null && !isLoading;

@@ -26,6 +26,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _isLoading = false;
   int _selectedIndex = -1;
   bool _showSuggestions = false;
+  bool _isSelectingSuggestion = false; // 🚀 Флаг для предотвращения повторного поиска
 
   @override
   void initState() {
@@ -53,6 +54,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   }
 
   Future<void> _onSearchChanged(String query) async {
+    // 🚀 Игнорируем изменения текста во время выбора подсказки
+    if (_isSelectingSuggestion) return;
+
     if (query.length < 3) {
       setState(() {
         _suggestions = [];
@@ -81,6 +85,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   void _selectSuggestion(int index) {
     final item = _suggestions[index];
+
+    // 🚀 Устанавливаем флаг ПЕРЕД изменением текста
+    _isSelectingSuggestion = true;
+
     setState(() {
       _suggestions = [];
       _showSuggestions = false;
@@ -90,6 +98,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _searchController.text = item.title;
       _selectedAddress = item.title;
       _showMap = true;
+    });
+
+    // 🚀 Сбрасываем флаг после следующего кадра
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _isSelectingSuggestion = false;
+      }
     });
   }
 
@@ -215,6 +230,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   hintText: 'Поиск адреса',
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
                   onClear: () {
+                    _isSelectingSuggestion = false; // 🚀 Сбрасываем флаг при очистке
                     setState(() {
                       _suggestions = [];
                       _showSuggestions = false;
