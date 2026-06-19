@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import '../services/connectivityService.dart';
 import '../services/image_file_service.dart';
@@ -671,7 +670,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 Navigator.popUntil(context, (route) => route.isFirst);
               }
             },
-            isSupportChat: isSupportChat,
+            isSupportChat: false,
             isCurrentUserSupport: isCurrentUserSupport,
             isParticipant: isParticipant,
             aiMode: _aiMode,
@@ -684,6 +683,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               await _chatProvider.toggleAiMode(widget.chat.id, !_aiMode);
             },
           ),
+    /*
           if (_humanRequested && !isCurrentUserSupport)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -706,6 +706,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ],
               ),
             ),
+            */
           Expanded(
             child: messages.isEmpty
                 ? Center(

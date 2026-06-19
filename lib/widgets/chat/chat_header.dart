@@ -113,7 +113,7 @@ class ChatHeader extends StatelessWidget {
               humanRequested: humanRequested,
               assignedOperatorId: assignedOperatorId,
               onRequestHumanOperator: onRequestHumanOperator,
-              onToggleAiMode: onToggleAiMode,
+              //onToggleAiMode: onToggleAiMode,
               isReady: isReady,
             ),
           if (product != null) ...[
@@ -225,7 +225,7 @@ class ChatSellerRow extends StatelessWidget {
               ],
             ),
           ),
-          if (showRequestOperator) _buildOperatorButton(theme),
+          //if (showRequestOperator) _buildOperatorButton(theme),
         ],
       ),
     );
@@ -287,7 +287,7 @@ class ChatSellerRow extends StatelessWidget {
       ),
     );
   }
-
+/*
   Widget _buildOperatorButton(ThemeData theme) {
     return GestureDetector(
       onTap: onRequestHumanOperator,
@@ -314,7 +314,7 @@ class ChatSellerRow extends StatelessWidget {
         ),
       ),
     );
-  }
+  }*/
 }
 
 class ChatProductRow extends StatelessWidget {
