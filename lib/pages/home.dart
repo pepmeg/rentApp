@@ -35,7 +35,7 @@ class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver
   String? brandFilter;
   String? regionFilter;
   String? cityFilter;
-  String? sortMode;
+  List<String>? sortModes;
 
   List<Product> _allProducts = [];
   bool _isLoading = true;
@@ -101,19 +101,23 @@ class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver
       return reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
     }
 
-    switch (sortMode) {
-      case 'price_asc':
-        list.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case 'price_desc':
-        list.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      case 'rating':
-        list.sort((a, b) => getRating(b).compareTo(getRating(a)));
-        break;
-      case 'date_desc':
-        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
+    if (sortModes != null && sortModes!.isNotEmpty) {
+      for (final sortMode in sortModes!) {
+        switch (sortMode) {
+          case 'price_asc':
+            list.sort((a, b) => a.price.compareTo(b.price));
+            break;
+          case 'price_desc':
+            list.sort((a, b) => b.price.compareTo(a.price));
+            break;
+          case 'rating':
+            list.sort((a, b) => getRating(b).compareTo(getRating(a)));
+            break;
+          case 'date_desc':
+            list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            break;
+        }
+      }
     }
 
     return list;
@@ -266,10 +270,10 @@ class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver
         initialBrand: brandFilter,
         initialRegion: regionFilter,
         initialCity: cityFilter,
-        initialSort: sortMode,
+        initialSorts: sortModes,
         availableRegions: availableRegions,
         regionToCities: regionToCities,
-        onApply: (categoryPath, minP, maxP, brand, region, city, sort) {
+        onApply: (categoryPath, minP, maxP, brand, region, city, sorts) {
           setState(() {
             _selectedCategoryPath = categoryPath;
             minPrice = minP;
@@ -277,7 +281,7 @@ class HomeState extends State<Home> with PaginationMixin, WidgetsBindingObserver
             brandFilter = brand;
             regionFilter = region;
             cityFilter = city;
-            sortMode = sort;
+            sortModes = sorts;
             resetPagination();
           });
         },

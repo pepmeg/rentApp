@@ -8,11 +8,13 @@ import '../utils/form_fields.dart';
 class CategoryPicker extends StatefulWidget {
   final List<String>? initialPath;
   final ValueChanged<List<String>> onPathChanged;
+  final String? errorText;
 
   const CategoryPicker({
     super.key,
     this.initialPath,
     required this.onPathChanged,
+    this.errorText,
   });
 
   @override
@@ -103,6 +105,7 @@ class _CategoryPickerState extends State<CategoryPicker> {
     final newNodes = _selectedNodes.sublist(0, level)..add(node);
     final newPath = newNodes.map((n) => n.id).toList();
     final oldPath = _selectedNodes.map((n) => n.id).toList();
+    final theme = Theme.of(context);
 
     if (!listEquals(newPath, oldPath)) {
       setState(() {
@@ -117,11 +120,14 @@ class _CategoryPickerState extends State<CategoryPicker> {
     final service = context.watch<CategoryService>();
     final roots = service.rootCategories;
     final levels = <Widget>[];
+    final theme = Theme.of(context);
+
     for (int i = 0; i <= _selectedNodes.length; i++) {
       final parentId = i == 0 ? null : _selectedNodes[i - 1].id;
       final children = parentId == null ? roots : service.getChildren(parentId);
       if (children.isEmpty && i == _selectedNodes.length) break;
       final currentValue = i < _selectedNodes.length ? _selectedNodes[i] : null;
+
       levels.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
@@ -130,6 +136,7 @@ class _CategoryPickerState extends State<CategoryPicker> {
             value: currentValue?.name,
             hint: i == 0 ? 'Выберите категорию' : 'Выберите подкатегорию',
             options: children.map((c) => c.name).toList(),
+            errorText: widget.errorText,
             onChanged: (selectedName) {
               if (selectedName == null) return;
               final selected = children.firstWhere((c) => c.name == selectedName);
@@ -139,9 +146,12 @@ class _CategoryPickerState extends State<CategoryPicker> {
         ),
       );
     }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: levels,
+      children: [
+        ...levels,
+      ],
     );
   }
 }

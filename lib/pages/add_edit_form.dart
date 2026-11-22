@@ -43,6 +43,7 @@ class _ProductFormState extends State<ProductForm> with RouteAware{
   bool _isSubmitting = false;
   int _categoryPickerKey = 0;
   static const int maxImages = 10;
+  String? _categoryError;
 
   @override
   void initState() {
@@ -296,22 +297,16 @@ class _ProductFormState extends State<ProductForm> with RouteAware{
   }
 
   bool _validateForm() {
+    setState(() => _categoryError = null);
+
     final formValid = _formKey.currentState!.validate();
-    if (!formValid) {
-      if (mounted) SnackBarCustom.show(context, message: 'Заполните все обязательные поля');
-      return false;
-    }
+
     if (_categoryPath.isEmpty) {
-      if (mounted) SnackBarCustom.show(context, message: 'Выберите категорию');
+      setState(() => _categoryError = 'Выберите категорию');
       return false;
     }
-    final location = locationController.text.trim();
-    final user = context.read<AuthProvider>().currentUser;
-    if (location.isEmpty && (user?.address.isEmpty ?? true)) {
-      if (mounted) SnackBarCustom.show(context, message: 'Укажите местоположение');
-      return false;
-    }
-    return true;
+
+    return formValid;
   }
 
   void _clearForm() {
@@ -326,6 +321,7 @@ class _ProductFormState extends State<ProductForm> with RouteAware{
       _categoryPath = [];
       _isPricePerHour = false;
       _categoryPickerKey++;
+      _categoryError = null;
     });
   }
 
@@ -437,8 +433,12 @@ class _ProductFormState extends State<ProductForm> with RouteAware{
                 CategoryPicker(
                   key: ValueKey('category_picker_$_categoryPickerKey'),
                   initialPath: _categoryPath,
+                  errorText: _categoryError,
                   onPathChanged: (path) {
-                    setState(() => _categoryPath = path);
+                    setState(() {
+                      _categoryPath = path;
+                      _categoryError = null;
+                    });
                   },
                 ),
                 BrandInput(controller: brandController),
@@ -505,6 +505,14 @@ class _ProductFormState extends State<ProductForm> with RouteAware{
                       controller: locationController,
                       hint: 'Местоположение (нажмите для выбора)',
                       maxLength: 200,
+                      validator: (v) {
+                        final location = v?.trim() ?? '';
+                        final user = context.read<AuthProvider>().currentUser;
+                        if (location.isEmpty && (user?.address.isEmpty ?? true)) {
+                          return 'Укажите местоположение';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ),

@@ -146,12 +146,11 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
   final TextEditingController _controller = TextEditingController();
   List<DropdownMenuEntry<String>> _entries = [];
 
-  // 🚀 Кэш для определения изменений
   String? _cachedValue;
   List<String>? _cachedOptions;
   String? _cachedHint;
   String? _cachedErrorText;
-  Brightness? _cachedBrightness; // 🚀 Кэш темы
+  Brightness? _cachedBrightness;
 
   @override
   void initState() {
@@ -162,7 +161,6 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 🚀 Инициализируем кэш темы и entries при первой отрисовке
     _cachedBrightness = Theme.of(context).brightness;
     _updateEntries();
   }
@@ -211,7 +209,6 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
   Widget build(BuildContext context) {
     final currentBrightness = Theme.of(context).brightness;
 
-    // 🚀 Проверяем, изменилось ли что-то (включая тему!)
     final needsRebuild = _cachedValue != widget.value ||
         !listEquals(_cachedOptions, widget.options) ||
         _cachedHint != widget.hint ||
@@ -219,7 +216,6 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
         _cachedBrightness != currentBrightness;
 
     if (needsRebuild) {
-      // 🚀 Если изменилась тема - перестраиваем entries с новыми цветами
       if (_cachedBrightness != currentBrightness) {
         _updateEntries();
       }
@@ -288,6 +284,12 @@ class _AppDropdownMenuState extends State<AppDropdownMenu> {
             shape: WidgetStateProperty.all(_popupMenuShape()),
             backgroundColor: WidgetStateProperty.resolveWith(
                   (states) => _popupMenuBackgroundColor(context, states),
+            ),
+            padding: WidgetStateProperty.all(
+              const EdgeInsets.only(top: 8),
+            ),
+            maximumSize: WidgetStateProperty.all(
+              const Size.fromHeight(400),
             ),
           ),
           dropdownMenuEntries: _entries,

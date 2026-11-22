@@ -12,11 +12,11 @@ class CategoryFilterSheet extends StatefulWidget {
   final String? initialBrand;
   final String? initialRegion;
   final String? initialCity;
-  final String? initialSort;
+  final List<String>? initialSorts;
   final List<String> availableRegions;
   final Map<String, List<String>> regionToCities;
   final Function(List<String>? categoryPath, int? minPrice, int? maxPrice,
-      String? brand, String? region, String? city, String? sort) onApply;
+      String? brand, String? region, String? city, List<String>? sorts) onApply;
 
   const CategoryFilterSheet({
     super.key,
@@ -26,7 +26,7 @@ class CategoryFilterSheet extends StatefulWidget {
     this.initialBrand,
     this.initialRegion,
     this.initialCity,
-    this.initialSort,
+    this.initialSorts,
     required this.availableRegions,
     required this.regionToCities,
     required this.onApply,
@@ -43,7 +43,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
   String? _selectedBrand;
   String? _selectedRegion;
   String? _selectedCity;
-  String? _selectedSort;
+  Set<String> _selectedSorts = {};
 
   String? _minPriceError;
   String? _maxPriceError;
@@ -57,7 +57,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
     _selectedBrand = widget.initialBrand;
     _selectedRegion = widget.initialRegion;
     _selectedCity = widget.initialCity;
-    _selectedSort = widget.initialSort;
+    _selectedSorts = widget.initialSorts?.toSet() ?? {};
   }
 
   @override
@@ -100,6 +100,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
     final maxText = maxPriceController.text.trim();
     final minPrice = int.tryParse(minText);
     final maxPrice = int.tryParse(maxText);
+    final sorts = _selectedSorts.isNotEmpty ? _selectedSorts.toList() : null;
 
     widget.onApply(
       _selectedPath.isEmpty ? null : _selectedPath,
@@ -108,10 +109,11 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
       _selectedBrand,
       _selectedRegion,
       _selectedCity,
-      _selectedSort,
+      sorts,
     );
     Navigator.pop(context);
   }
+
 
   void _clearAll() {
     setState(() {
@@ -121,7 +123,7 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
       _selectedBrand = null;
       _selectedRegion = null;
       _selectedCity = null;
-      _selectedSort = null;
+      _selectedSorts = {};
       _minPriceError = null;
       _maxPriceError = null;
     });
@@ -433,21 +435,36 @@ class _CategoryFilterSheetState extends State<CategoryFilterSheet> {
   }
 
   Widget _buildSortChip(ThemeData theme, String label, String value) {
-    final selected = _selectedSort == value;
-    return ChoiceChip(
+    final selected = _selectedSorts.contains(value);
+
+    return FilterChip(
       label: Text(label),
       selected: selected,
       onSelected: (isSelected) {
-        setState(() => _selectedSort = isSelected ? value : null);
+        setState(() {
+          if (isSelected) {
+            if (value == 'price_asc') {
+              _selectedSorts.remove('price_desc');
+            } else if (value == 'price_desc') {
+              _selectedSorts.remove('price_asc');
+            }
+            _selectedSorts.add(value);
+          } else {
+            _selectedSorts.remove(value);
+          }
+        });
       },
       selectedColor: theme.primaryColor.withOpacity(0.2),
       backgroundColor: theme.colorScheme.background,
+      checkmarkColor: theme.primaryColor,
       labelStyle: TextStyle(
         color: selected ? theme.primaryColor : theme.colorScheme.onSurface,
         fontSize: 14,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       elevation: 0,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 }

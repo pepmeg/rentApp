@@ -683,7 +683,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               await _chatProvider.toggleAiMode(widget.chat.id, !_aiMode);
             },
           ),
-    /*
           if (_humanRequested && !isCurrentUserSupport)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -706,7 +705,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            */
           Expanded(
             child: messages.isEmpty
                 ? Center(
